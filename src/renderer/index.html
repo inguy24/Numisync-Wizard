@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Numismat Enrichment Tool</title>
+  <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header class="app-header">
+      <h1>OpenNumismat - Numista Enrichment Tool</h1>
+      <div class="header-actions">
+        <button id="settingsBtn" class="btn btn-secondary">
+          âš™ï¸ Settings
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="app-main">
+      
+      <!-- Screen 1: Welcome / Load Collection -->
+      <div id="welcomeScreen" class="screen active">
+        <div class="welcome-container">
+          <h2>Welcome to Numismat Enrichment</h2>
+          <p>Enrich your OpenNumismat collection with data from Numista</p>
+          
+          <div class="welcome-actions">
+            <button id="loadCollectionBtn" class="btn btn-primary btn-large">
+              ðŸ“‚ Load Collection
+            </button>
+          </div>
+
+          <div class="welcome-info">
+            <h3>Quick Start:</h3>
+            <ol>
+              <li><strong>First time?</strong> Click âš™ï¸ Settings (top right) and add your Numista API key
+                <br><small>Get a free key at <a href="https://en.numista.com/api/" target="_blank">numista.com/api</a></small>
+              </li>
+              <li><strong>Load your collection</strong> - Select your OpenNumismat .db file</li>
+              <li><strong>Click on any coin</strong> to search Numista for matches</li>
+              <li><strong>Select the best match</strong> from the results</li>
+              <li><strong>Choose which fields to import</strong> and apply changes</li>
+              <li><strong>Repeat</strong> for each coin you want to enrich</li>
+            </ol>
+            
+            <p class="text-muted" style="margin-top: 20px;">
+              ðŸ’¡ <strong>Tip:</strong> You work on one coin at a time to ensure accuracy. 
+              Your progress is automatically saved!
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Screen 2: Collection Overview -->
+      <div id="collectionScreen" class="screen">
+        <div class="collection-header">
+          <h2 id="collectionTitle">Collection</h2>
+          <div class="collection-actions">
+            <button id="dataSettingsBtn" class="btn btn-secondary">
+              âš™ï¸Â Data Settings
+            </button>
+            <button id="fastPricingBtn" class="btn btn-secondary">
+              ðŸ’° Fast Pricing Update
+            </button>
+            <button id="closeCollectionBtn" class="btn btn-secondary">
+              â† Close Collection
+            </button>
+          </div>
+        </div>
+
+        <!-- Progress Summary -->
+        <div class="progress-summary">
+          <div class="stat-card">
+            <div class="stat-value" id="statTotal">0</div>
+            <div class="stat-label">Total Coins</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="statProcessed">0</div>
+            <div class="stat-label">Processed</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="statMerged">0</div>
+            <div class="stat-label">Merged</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="statRemaining">0</div>
+            <div class="stat-label">Remaining</div>
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters">
+          <label>
+            Show:
+            <select id="statusFilter">
+              <option value="all">All Coins</option>
+              <option value="unprocessed">Unprocessed Only</option>
+              <option value="merged">Merged</option>
+              <option value="skipped">Skipped</option>
+            </select>
+          </label>
+          <label>
+            Sort by:
+            <select id="sortBy">
+              <option value="title">Title</option>
+              <option value="year">Year</option>
+              <option value="country">Country</option>
+            </select>
+          </label>
+        </div>
+
+        <!-- Coin List -->
+        <div class="coin-list" id="coinList">
+          <!-- Coins will be dynamically added here -->
+          <div class="empty-state" style="text-align: center; padding: 40px; color: #666;">
+            <h3>ðŸ“‹ Click on any coin to get started</h3>
+            <p>Select a coin from the list to search Numista and enrich its data.</p>
+            <p style="margin-top: 20px;">
+              ðŸ’¡ <strong>How it works:</strong><br>
+              1. Click a coin â‚¬Â Ã¢â†’ 2. Review matches â‚¬Â Ã¢â†’ 3. Choose fields â‚¬Â Ã¢â†’ 4. Apply changes
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Screen 3: Match Selection -->
+      <div id="matchScreen" class="screen">
+        <div class="match-header">
+          <h2>Select Matching Coin</h2>
+          <div class="current-coin-info" id="currentCoinInfo">
+            <!-- Current coin details shown here -->
+          </div>
+          <button id="backToListBtn" class="btn btn-secondary">
+            â† Back to List
+          </button>
+        </div>
+
+        <div class="match-controls">
+          <div id="searchStatus" class="search-status">
+            <p style="color: #666; margin: 10px 0;">
+              ðŸ’¡ <strong>How to choose:</strong> Look for the highest confidence score and verify the details match your coin.
+              Click on a match to see detailed field comparison.
+            </p>
+          </div>
+          <button id="searchAgainBtn" class="btn btn-secondary">
+            ðŸ”„Å¾ Search Again
+          </button>
+          <button id="manualSearchBtn" class="btn btn-secondary">
+            ðŸ” Try Different Search
+          </button>
+        </div>
+
+        <div id="manualSearchPanel" class="manual-search-panel" style="display: none;">
+          <h3>Manual Search</h3>
+          <p class="help-text">
+            Automatic search didn't work? Try searching with custom terms:
+          </p>
+          <div class="manual-search-form">
+            <input 
+              type="text" 
+              id="manualSearchInput" 
+              placeholder="e.g., &quot;George V Penny&quot;, &quot;KM 23&quot;, &quot;1 Penny 1912&quot;"
+              class="manual-search-input"
+            >
+            <button id="performManualSearchBtn" class="btn btn-primary">
+              Search
+            </button>
+            <button id="cancelManualSearchBtn" class="btn btn-secondary">
+              Cancel
+            </button>
+          </div>
+          <div class="search-tips">
+            <strong>Search Tips:</strong>
+            <ul>
+              <li>Try shorter terms: "1 Penny 1912" instead of full title</li>
+              <li>Try denomination and year: "Penny 1912"</li>
+              <li>Try ruler name: "George V"</li>
+              <li>Try catalog number: "KM 23"</li>
+              <li>Try country and year: "Australia 1912"</li>
+            </ul>
+          </div>
+        </div>
+
+        <div id="matchResults" class="match-results">
+          <!-- Match results will be displayed here -->
+        </div>
+
+        <div class="match-actions">
+          <button id="skipCoinBtn" class="btn btn-secondary">
+            Skip This Coin
+          </button>
+        </div>
+      </div>
+
+      <!-- Screen 4: Field Comparison -->
+      <div id="comparisonScreen" class="screen">
+        <div class="comparison-header">
+          <h2>Review and Select Fields</h2>
+          <button id="backToMatchesBtn" class="btn btn-secondary">
+            â† Back to Matches
+          </button>
+        </div>
+
+        <div class="field-selection-controls">
+          <p style="color: #666; margin-bottom: 10px;">
+            ðŸ’¡ <strong>Select fields to import:</strong> Check the boxes for fields you want to update from Numista. 
+            Fields in <strong>bold</strong> are different from your current data.
+          </p>
+          <button id="selectAllFieldsBtn" class="btn btn-small">Select All</button>
+          <button id="selectNoneFieldsBtn" class="btn btn-small">Select None</button>
+          <button id="selectEmptyFieldsBtn" class="btn btn-small">Select Empty Only</button>
+          <button id="selectDifferentFieldsBtn" class="btn btn-small">Select Different Only</button>
+        </div>
+
+        <div id="fieldComparison" class="field-comparison">
+          <!-- Field-by-field comparison will be displayed here -->
+        </div>
+
+        <div class="comparison-actions">
+          <button id="applyChangesBtn" class="btn btn-primary btn-large">
+            âœ“ Apply Changes to Coin
+          </button>
+          <button id="cancelMergeBtn" class="btn btn-secondary">
+            Cancel
+          </button>
+        </div>
+      </div>
+
+      <!-- Screen 5: Settings -->
+      <div id="settingsScreen" class="screen">
+        <div class="settings-header">
+          <h2>Settings</h2>
+          <button id="closeSettingsBtn" class="btn btn-secondary">
+            â† Close
+          </button>
+        </div>
+
+        <div class="settings-content">
+          <div class="setting-group">
+            <h3>Numista API Key <span style="color: #e74c3c;">*Required</span></h3>
+            <label>
+              API Key:
+              <input type="password" id="apiKeyInput" placeholder="Enter your Numista API key">
+            </label>
+            <p class="setting-help">
+              <strong>Don't have an API key?</strong><br>
+              1. Go to <a href="https://en.numista.com/" target="_blank">numista.com</a> and create a free account<br>
+              2. Visit <a href="https://en.numista.com/api/" target="_blank">numista.com/api</a> to generate your key<br>
+              3. Copy and paste it here<br>
+              <br>
+              The API key is <strong>free for personal use</strong> and lets you search the Numista database.
+            </p>
+          </div>
+
+          <div class="setting-group">
+            <h3>Search Settings</h3>
+            <label>
+              Request Delay (ms):
+              <input type="number" id="requestDelayInput" value="2000" min="1000" max="10000" step="500">
+            </label>
+            <p class="setting-help">
+              Time to wait between API requests. Default 2000ms (2 seconds) is recommended to respect Numista's servers.
+            </p>
+          </div>
+
+          <div class="setting-group">
+            <h3>Image Handling</h3>
+            <label>
+              <input type="radio" name="imageHandling" value="url" checked>
+              Store image URLs (Recommended)
+            </label>
+            <label>
+              <input type="radio" name="imageHandling" value="blob">
+              Download and store images as BLOBs
+            </label>
+            <p class="setting-help">
+              <strong>URL mode:</strong> OpenNumismat downloads images when you open the collection (requires internet)<br>
+              <strong>BLOB mode:</strong> Images are downloaded now and stored in your database (works offline)
+            </p>
+          </div>
+
+          <div class="setting-group">
+            <h3>Safety</h3>
+            <label>
+              <input type="checkbox" id="autoBackupCheckbox" checked>
+              Automatically create backup before making changes
+            </label>
+            <p class="setting-help">
+              <strong>Highly recommended!</strong> A timestamped backup is created in a "backups" folder next to your collection before any data is modified.
+            </p>
+          </div>
+
+          <div class="settings-actions">
+            <button id="saveSettingsBtn" class="btn btn-primary">
+              Save Settings
+            </button>
+            <button id="resetSettingsBtn" class="btn btn-secondary">
+              Reset to Defaults
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- Status Bar -->
+    <footer class="app-footer">
+      <div id="statusMessage" class="status-message"></div>
+      <div class="fetch-settings-display">
+        <span id="fetchSettingsText">Fetch: Basic (2 calls)</span>
+        <span class="separator">â€¢</span>
+        <span id="sessionCallsText">Session: 0 calls</span>
+      </div>
+      <div id="progressBar" class="progress-bar" style="display: none;">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Modal for dialogs -->
+  <div id="modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalTitle"></h3>
+        <button id="modalClose" class="modal-close">Ã—</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-footer">
+        <button id="modalOk" class="btn btn-primary">OK</button>
+        <button id="modalCancel" class="btn btn-secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Data Settings Modal -->
+  <div id="dataSettingsModal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Ã¢Å¡â„¢Ã¯Â¸Â Data Fetch Settings</h3>
+        <button id="dataSettingsCloseBtn" class="modal-close">Ã—</button>
+      </div>
+      
+      <div class="modal-body">
+        <p class="help-text">
+          Select which data to fetch for each coin. This helps you manage API usage and only get the data you need.
+        </p>
+        
+        <div class="data-settings-options">
+          
+          <!-- Basic Data - Always Required -->
+          <div class="data-setting-card disabled">
+            <div class="data-setting-header">
+              <label class="checkbox-label">
+                <input type="checkbox" id="fetchBasicData" checked disabled>
+                <strong>Basic Data</strong> <span class="required-badge">REQUIRED</span>
+              </label>
+            </div>
+            <div class="data-setting-details">
+              <p class="data-description">
+                Core information about the coin:
+              </p>
+              <ul class="data-fields-list">
+                <li>Title, country, denomination, year</li>
+                <li>Composition, weight, diameter, shape</li>
+                <li>Descriptions, catalog numbers</li>
+              </ul>
+              <p class="api-cost">
+                <strong>Cost:</strong> 2 API calls per coin
+              </p>
+            </div>
+          </div>
+
+          <!-- Issue Data -->
+          <div class="data-setting-card">
+            <div class="data-setting-header">
+              <label class="checkbox-label">
+                <input type="checkbox" id="fetchIssueData">
+                <strong>Issue Data</strong> <span class="optional-badge">OPTIONAL</span>
+              </label>
+            </div>
+            <div class="data-setting-details">
+              <p class="data-description">
+                Mint-specific information:
+              </p>
+              <ul class="data-fields-list">
+                <li>Mintmark (mint letter)</li>
+                <li>Mintage (number minted)</li>
+                <li>Auto-matched by year and mintmark when possible</li>
+              </ul>
+              <p class="api-cost">
+                <strong>Cost:</strong> +1 API call per coin
+              </p>
+              <p class="data-note">
+                Ã¢â€žÂ¹Ã¯Â¸Â If multiple mints exist, you'll be asked to choose the correct one.
+              </p>
+            </div>
+          </div>
+
+          <!-- Pricing Data -->
+          <div class="data-setting-card">
+            <div class="data-setting-header">
+              <label class="checkbox-label">
+                <input type="checkbox" id="fetchPricingData">
+                <strong>Pricing Data</strong> <span class="optional-badge">OPTIONAL</span>
+              </label>
+            </div>
+            <div class="data-setting-details">
+              <p class="data-description">
+                Current market values:
+              </p>
+              <ul class="data-fields-list">
+                <li>Uncirculated (UNC) price</li>
+                <li>Extremely Fine (XF) price</li>
+                <li>Very Fine (VF) price</li>
+                <li>Fine price</li>
+              </ul>
+              <p class="api-cost">
+                <strong>Cost:</strong> +1 API call per coin
+              </p>
+              <p class="data-note">
+                Ã¢â€žÂ¹Ã¯Â¸Â Pricing includes freshness tracking (how recent the prices are).
+              </p>
+            </div>
+          </div>
+
+          <!-- Currency Selection -->
+          <div class="data-setting-card">
+            <div class="data-setting-header">
+              <strong>Pricing Currency</strong>
+            </div>
+            <div class="data-setting-details">
+              <p class="data-description">
+                Select your preferred currency for pricing data:
+              </p>
+              <div class="currency-select-wrapper">
+                <select id="pricingCurrency" class="currency-select">
+                  <option value="USD">USD - US Dollar</option>
+                  <option value="EUR">EUR - Euro</option>
+                  <option value="GBP">GBP - British Pound</option>
+                  <option value="CAD">CAD - Canadian Dollar</option>
+                  <option value="AUD">AUD - Australian Dollar</option>
+                  <option value="JPY">JPY - Japanese Yen</option>
+                  <option value="CHF">CHF - Swiss Franc</option>
+                </select>
+              </div>
+              <p class="data-note">
+                Note: Numista returns prices converted to your selected currency.
+              </p>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="data-settings-summary">
+          <div class="summary-row">
+            <span class="summary-label">Current Selection:</span>
+            <span class="summary-value" id="callsPerCoinDisplay">2 calls per coin</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label">This Session:</span>
+            <span class="summary-value" id="sessionCallsDisplay">0 calls used</span>
+          </div>
+        </div>
+
+        <div class="data-settings-info">
+          <p>
+            <strong>ðŸ’¡ Tip:</strong> You can change these settings at any time. For coins you've already processed, 
+            use the "Fetch More Data" feature to add additional data types later.
+          </p>
+        </div>
+      </div>
+      
+      <div class="modal-footer">
+        <button id="saveDataSettingsBtn" class="btn btn-primary">Apply Settings</button>
+        <button id="cancelDataSettingsBtn" class="btn btn-secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
