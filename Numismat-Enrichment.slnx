@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="Numismat-Enrichment/Numismat-Enrichment.esproj">
+    <Build />
+    <Deploy />
+  </Project>
+</Solution>
