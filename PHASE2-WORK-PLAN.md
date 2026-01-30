@@ -1,0 +1,926 @@
+# Phase 2 Work Plan - OpenNumismat Enrichment Tool
+
+**Project:** OpenNumismat-Numista Data Enrichment Tool  
+**Phase:** Phase 2 - Enhanced Features & User Experience  
+**Date Created:** January 22, 2026  
+**Status:** Planning Complete - Ready for Implementation
+
+---
+
+## Executive Summary
+
+Phase 2 focuses on adding advanced features that make the tool more efficient, user-friendly, and reliable:
+- **Granular status tracking** - Track basic data, issue data, and pricing separately
+- **User-controlled data fetching** - Choose which data types to fetch (API quota management)
+- **Image support** - Display and download coin images
+- **Pricing freshness tracking** - Know when pricing was last updated
+- **Persistent metadata storage** - Survives app reinstall and device changes
+- **Enhanced filtering/sorting** - Filter by data type and freshness
+
+---
+
+## Architecture Decisions Summary
+
+| Decision Point | Choice | Rationale |
+|----------------|--------|-----------|
+| **Data Settings UI** | Settings button on main screen | Always visible, gives user control |
+| **Quota Tracking** | Session tracking only (honest) | Cannot accurately track API quota across sessions |
+| **Issue Matching** | Auto-match year+mintmark, fallback to user picker | Smart automation + user control when needed |
+| **Overall Coin Status** | Complete = user got what they requested | Flexible per-session goals |
+| **Pricing Freshness Thresholds** | <3mo Current, <1yr Recent, <2yr Aging, >2yr Outdated | Based on Numista's update frequency |
+| **Metadata Storage** | HTML comments in OpenNumismat `note` field | Survives reinstall, travels with database |
+| **Storage Strategy** | Three-tier: Database/Settings/Cache | Balance permanence & performance |
+| **Numista ID Storage** | Both catalog field AND metadata | Reliability + fast access |
+
+---
+
+## Storage Architecture
+
+### Three-Tier Storage System
+
+```
+1. OpenNumismat Database (note field) - PERMANENT
+   â””â”€ Per-coin enrichment metadata (status, timestamps, IDs, prices)
+   â””â”€ Survives: App reinstall, device changes, database copies
+
+2. Settings File (next to .db file) - PORTABLE
+   â””â”€ Filename: {database-name}_settings.json
+   â””â”€ API key, fetch settings, field mappings, UI preferences
+   â””â”€ Survives: App reinstall (if database folder copied)
+
+3. Session Cache (next to .db file) - TEMPORARY
+   â””â”€ Filename: {database-name}_enrichment_progress.json
+   â””â”€ Search cache, status lookup cache, session stats
+   â””â”€ Rebuilt from database on each startup
+```
+
+### File Structure Example
+```
+C:\Users\User\Documents\My Coins\
+â”œâ”€â”€ my-collection.db                           â† Database (metadata in notes)
+â”œâ”€â”€ my-collection_settings.json                â† User preferences (SURVIVES)
+â”œâ”€â”€ my-collection_enrichment_progress.json     â† Session cache (REBUILD)
+â””â”€â”€ my-collection.db.backup.20260122-103000    â† Auto-backup
+```
+
+---
+
+## Metadata Storage Format
+
+### In OpenNumismat `note` Field (HTML Comments)
+
+```
+User's original notes go here. They can write whatever they want.
+This is a beautiful example from my grandfather's collection.
+
+<!-- NUMISMAT_ENRICHMENT_DATA
+{
+  "version": "1.0",
+  "basicData": {
+    "status": "MERGED",
+    "timestamp": "2026-01-22T10:30:00Z",
+    "numistaId": 420,
+    "numistaIdField": "catalognum4",
+    "fieldsMerged": ["title", "country", "weight", "diameter"]
+  },
+  "issueData": {
+    "status": "MERGED",
+    "timestamp": "2026-01-22T10:31:00Z",
+    "issueId": 51757,
+    "matchMethod": "AUTO_YEAR_AND_MINT",
+    "fieldsMerged": ["mintmark", "mintage"]
+  },
+  "pricingData": {
+    "status": "MERGED",
+    "timestamp": "2025-07-15T14:20:00Z",
+    "issueId": 51757,
+    "currency": "USD",
+    "fieldsMerged": ["price_unc", "price_xf", "price_vf", "price_fine"],
+    "lastPrices": {
+      "unc": 2.50,
+      "xf": 1.50,
+      "vf": 1.00,
+      "fine": 0.75
+    }
+  }
+}
+END_NUMISMAT_ENRICHMENT_DATA -->
+```
+
+### Status Values
+
+| Status | Meaning |
+|--------|---------|
+| `PENDING` | User selected this data type but hasn't processed yet |
+| `MERGED` | Successfully fetched and merged |
+| `NOT_QUERIED` | User didn't select this data type |
+| `ERROR` | API call failed |
+| `SKIPPED` | User chose to skip this coin |
+| `NO_MATCH` | For issue data - couldn't match by year/mintmark |
+| `NO_DATA` | API returned no data (e.g., no pricing available) |
+
+---
+
+## Pricing Freshness Thresholds
+
+```javascript
+function getPricingFreshness(timestamp) {
+  if (!timestamp) return { icon: 'âšª', text: 'Never Updated' };
+  
+  const months = (Date.now() - new Date(timestamp)) / (1000 * 60 * 60 * 24 * 30);
+  const years = months / 12;
+  
+  if (months < 3)  return { icon: 'ðŸŸ¢', text: 'Current' };
+  if (years < 1)   return { icon: 'ðŸŸ¡', text: 'Recent' };
+  if (years < 2)   return { icon: 'ðŸŸ ', text: 'Aging' };
+  return { icon: 'ðŸ”´', text: 'Outdated' };
+}
+```
+
+**Thresholds:**
+- ðŸŸ¢ **Current:** < 3 months
+- ðŸŸ¡ **Recent:** 3 months - 1 year  
+- ðŸŸ  **Aging:** 1-2 years
+- ðŸ”´ **Outdated:** > 2 years
+- âšª **Never:** No pricing data
+
+---
+
+## Issue Matching Strategy
+
+When fetching issue data (mintmark/mintage), use this logic:
+
+```javascript
+async function matchIssue(issues, userCoin) {
+  const userYear = userCoin.year;
+  const userMintmark = userCoin.mintmark;
+  
+  // Strategy 1: Try to match BOTH year AND mintmark
+  if (userYear && userMintmark) {
+    const exactMatch = issues.find(i => 
+      i.year == userYear && 
+      i.mint_letter == userMintmark
+    );
+    if (exactMatch) {
+      return { type: 'AUTO_MATCHED', issue: exactMatch };
+    }
+  }
+  
+  // Strategy 2: Try year only
+  if (userYear) {
+    const yearMatches = issues.filter(i => i.year == userYear);
+    
+    if (yearMatches.length === 1) {
+      // Only one match by year, use it
+      return { type: 'AUTO_MATCHED', issue: yearMatches[0] };
+    }
+    
+    if (yearMatches.length > 1) {
+      // Multiple matches, ask user to pick
+      return { type: 'USER_PICK', options: yearMatches };
+    }
+  }
+  
+  // Strategy 3: No year match, show all issues and let user pick
+  return { type: 'USER_PICK', options: issues };
+}
+```
+
+**User Picker UI:**
+```
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ Multiple Issues Found for 1943 Lincoln Cent         â”‚
+â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
+â”‚ Your coin year: 1943                                 â”‚
+â”‚ Your mintmark: (empty)                               â”‚
+â”‚                                                       â”‚
+â”‚ Select which issue matches your coin:                â”‚
+â”‚                                                       â”‚
+â”‚ â—‹ 1943-P (Philadelphia)                              â”‚
+â”‚   Mintmark: P  â€¢  Mintage: 684,628,670              â”‚
+â”‚                                                       â”‚
+â”‚ â—‹ 1943-D (Denver)                                    â”‚
+â”‚   Mintmark: D  â€¢  Mintage: 217,660,000              â”‚
+â”‚                                                       â”‚
+â”‚ â—‹ 1943-S (San Francisco)                            â”‚
+â”‚   Mintmark: S  â€¢  Mintage: 191,550,000              â”‚
+â”‚                                                       â”‚
+â”‚ â—‹ Skip - I can't determine the correct mint         â”‚
+â”‚                                                       â”‚
+â”‚ [Apply Selection]  [Cancel]                          â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+```
+
+---
+
+## Implementation Tasks
+
+### 2.1 - Metadata Storage System â­ CRITICAL FOUNDATION
+
+**Priority:** CRITICAL - Everything else depends on this  
+**Estimated Time:** 2 days
+
+**Tasks:**
+- [ ] Create `src/modules/metadata-manager.js`
+- [ ] Implement `readEnrichmentMetadata(noteField)`
+  - [ ] Parse HTML comments (`<!-- NUMISMAT_ENRICHMENT_DATA ... -->`)
+  - [ ] Extract user notes separately
+  - [ ] Parse JSON metadata
+  - [ ] Handle missing/malformed metadata gracefully
+  - [ ] Return default structure if no metadata found
+- [ ] Implement `writeEnrichmentMetadata(userNotes, metadata)`
+  - [ ] Preserve existing user notes
+  - [ ] Remove old metadata block
+  - [ ] Append new metadata block
+  - [ ] Format JSON with proper indentation
+- [ ] Test with real notes to ensure no data loss
+  - [ ] Test with no metadata (first time)
+  - [ ] Test with existing metadata (update)
+  - [ ] Test with malformed metadata (graceful failure)
+  - [ ] Test with special characters in user notes
+
+**Files to Create/Modify:**
+- `src/modules/metadata-manager.js` (NEW)
+
+**Deliverable:** Robust, tested metadata read/write system
+
+**Testing Checklist:**
+- [ ] User notes preserved exactly
+- [ ] Metadata updates correctly
+- [ ] Handles missing metadata
+- [ ] Handles corrupted JSON
+- [ ] No data loss on any operation
+
+---
+
+### 2.2 - Granular Status Tracking â­ CORE FEATURE
+
+**Priority:** HIGH - Needed for all other features  
+**Estimated Time:** 2 days
+
+**Tasks:**
+- [ ] Update `src/modules/progress-tracker.js`
+  - [ ] Define status enum (PENDING, MERGED, NOT_QUERIED, ERROR, etc.)
+  - [ ] Implement three-tier status structure (basicData/issueData/pricingData)
+  - [ ] Track timestamps per data type
+  - [ ] Track field-level merges (which fields were updated)
+  - [ ] Store Numista ID in metadata (duplicate from catalognum)
+  - [ ] Store Issue ID in metadata
+  - [ ] Store previous prices for comparison
+- [ ] Update statistics calculation
+  - [ ] Calculate totals per data type
+  - [ ] Calculate freshness statistics
+  - [ ] Handle NOT_QUERIED vs PENDING distinction
+- [ ] Update progress file format
+  - [ ] Rebuild from database on startup
+  - [ ] Keep as session cache only
+
+**Files to Create/Modify:**
+- `src/modules/progress-tracker.js` (MODIFY)
+- `src/modules/metadata-manager.js` (INTEGRATE)
+
+**Deliverable:** Complete per-coin, per-data-type tracking
+
+**Data Structure:**
+```javascript
+{
+  "id": 42,
+  "basicData": {
+    "status": "MERGED",
+    "timestamp": "2026-01-22T10:30:00Z",
+    "numistaId": 420,
+    "numistaIdField": "catalognum4",
+    "fieldsMerged": ["title", "country", "weight"]
+  },
+  "issueData": {
+    "status": "MERGED",
+    "timestamp": "2026-01-22T10:31:00Z",
+    "issueId": 51757,
+    "matchMethod": "AUTO_YEAR_AND_MINT",
+    "fieldsMerged": ["mintmark", "mintage"]
+  },
+  "pricingData": {
+    "status": "MERGED",
+    "timestamp": "2025-07-15T14:20:00Z",
+    "issueId": 51757,
+    "currency": "USD",
+    "fieldsMerged": ["price_unc", "price_xf", "price_vf", "price_fine"],
+    "lastPrices": { "unc": 2.50, "xf": 1.50, "vf": 1.00, "fine": 0.75 }
+  }
+}
+```
+
+---
+
+### 2.3 - Data Settings UI â­ USER CONTROL
+
+**Priority:** HIGH - Users need to configure before enriching  
+**Estimated Time:** 2 days
+
+**Tasks:**
+- [ ] Create settings modal component
+  - [ ] Three checkboxes: Basic Data, Issue Data, Pricing Data
+  - [ ] Show API call cost per coin (2/3/4)
+  - [ ] Show session call counter
+  - [ ] Explanation of what each data type includes
+- [ ] Add âš™ï¸ Data Settings button to main screen
+- [ ] Show current settings in status bar
+  - [ ] "Fetch: Basic + Pricing (3 calls)"
+  - [ ] "Session: 45 calls used"
+- [ ] Implement settings persistence
+  - [ ] Save to `{database}_settings.json` (next to DB file)
+  - [ ] Load on startup
+  - [ ] Fallback to defaults if missing
+- [ ] Update renderer UI
+  - [ ] Add settings button
+  - [ ] Add status bar display
+  - [ ] Add modal dialog
+
+**Files to Create/Modify:**
+- `src/renderer/index.html` (ADD settings modal)
+- `src/renderer/app.js` (ADD settings handlers)
+- `src/renderer/styles.css` (ADD settings styling)
+- `src/main/index.js` (ADD settings IPC handlers)
+- `src/modules/settings-manager.js` (NEW)
+
+**UI Mock:**
+```
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ Data Fetch Settings                                     â”‚
+â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
+â”‚                                                          â”‚
+â”‚ Select which data to fetch for each coin:               â”‚
+â”‚                                                          â”‚
+â”‚ â˜‘ Basic Data (REQUIRED)                                 â”‚
+â”‚   â€¢ Title, country, denomination, year                  â”‚
+â”‚   â€¢ Composition, weight, diameter, shape                â”‚
+â”‚   â€¢ Descriptions, images, catalog numbers               â”‚
+â”‚   Cost: 2 API calls per coin                           â”‚
+â”‚                                                          â”‚
+â”‚ â˜ Issue Data (mintmark & mintage)                      â”‚
+â”‚   â€¢ Mintmark (mint letter)                              â”‚
+â”‚   â€¢ Mintage (number minted)                             â”‚
+â”‚   Cost: +1 API call per coin                           â”‚
+â”‚                                                          â”‚
+â”‚ â˜ Pricing Data (market values)                         â”‚
+â”‚   â€¢ Uncirculated, XF, VF, Fine prices                   â”‚
+â”‚   Cost: +1 API call per coin                           â”‚
+â”‚                                                          â”‚
+â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
+â”‚ Current Selection: 2 calls per coin                     â”‚
+â”‚ Session Usage: 45 calls used                           â”‚
+â”‚                                                          â”‚
+â”‚ [ Apply Settings ]  [ Cancel ]                          â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+```
+
+**Deliverable:** User can configure data fetching
+
+---
+
+### 2.4 - Conditional API Calls â­ EFFICIENCY
+
+**Priority:** HIGH - Respect user's data selection  
+**Estimated Time:** 2 days
+
+**Tasks:**
+- [ ] Modify `src/modules/numista-api.js`
+  - [ ] Accept fetch settings parameter
+  - [ ] Conditionally call `/types/{id}/issues` endpoint
+  - [ ] Conditionally call `/types/{id}/issues/{issue_id}/prices` endpoint
+  - [ ] Return structured response indicating what was fetched
+- [ ] Implement issue matching logic
+  - [ ] Auto-match by year + mintmark (if available)
+  - [ ] Auto-match by year only (if single match)
+  - [ ] Return USER_PICK if multiple matches
+- [ ] Create issue picker UI component
+  - [ ] Show issue options in modal
+  - [ ] Display mintmark, mintage for each
+  - [ ] Include "Skip" option
+- [ ] Update field comparison screen
+  - [ ] Gray out unavailable fields (not fetched)
+  - [ ] Show "Fetch Issue Data" button if not fetched
+  - [ ] Show "Fetch Pricing Data" button if not fetched
+- [ ] Handle edge cases
+  - [ ] NO_MATCH (year doesn't match any issue)
+  - [ ] NO_DATA (API returns empty)
+  - [ ] ERROR (API failure)
+
+**Files to Create/Modify:**
+- `src/modules/numista-api.js` (MODIFY)
+- `src/renderer/app.js` (ADD issue picker)
+- `src/renderer/index.html` (ADD issue picker modal)
+- `src/main/index.js` (ADD issue picker IPC handlers)
+
+**Deliverable:** Smart, conditional API calls based on user settings
+
+**API Call Flow:**
+```
+User selects: Basic + Pricing
+
+Coin Search:
+1. searchTypes (1 call) âœ…
+2. getType (1 call) âœ…
+3. getIssues âŒ SKIP - not selected
+4. getPricing (1 call) âœ…
+
+Total: 3 calls
+```
+
+---
+
+### 2.5 - Freshness Indicators â­ UX ENHANCEMENT
+
+**Priority:** MEDIUM - Helpful but not critical  
+**Estimated Time:** 1 day
+
+**Tasks:**
+- [ ] Create `src/utils/freshness-calculator.js`
+  - [ ] Implement `getPricingFreshness(timestamp)`
+  - [ ] Return icon, text, color based on thresholds
+- [ ] Update coin list display
+  - [ ] Show freshness badge for pricing
+  - [ ] Show "Last updated: X months ago"
+  - [ ] Color-code by freshness
+- [ ] Add freshness to detail view
+  - [ ] Show all three data types with timestamps
+  - [ ] Warn if pricing is outdated (>2 years)
+  - [ ] Offer "Update Pricing Now" button
+- [ ] Add filter by freshness
+  - [ ] Current, Recent, Aging, Outdated, Never
+  - [ ] Show count for each category
+
+**Files to Create/Modify:**
+- `src/utils/freshness-calculator.js` (NEW)
+- `src/renderer/app.js` (ADD freshness display)
+- `src/renderer/styles.css` (ADD freshness colors)
+
+**Deliverable:** Visual pricing freshness indicators throughout UI
+
+**UI Examples:**
+```
+Coin List:
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ [img][img]  1943 Lincoln Cent                      â”‚
+â”‚  obv  rev   United States â€¢ Steel                  â”‚
+â”‚             Basic: âœ…  Issue: âœ…  Pricing: ðŸŸ       â”‚
+â”‚             Last pricing: Jan 2024 (1.8 years ago) â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+
+Detail View:
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ Data Status                                        â”‚
+â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
+â”‚ Basic Data:   âœ… Updated Jan 22, 2026             â”‚
+â”‚ Issue Data:   âœ… Updated Jan 22, 2026             â”‚
+â”‚ Pricing Data: ðŸŸ  Updated Jul 15, 2024             â”‚
+â”‚               (1.5 years ago - Aging)              â”‚
+â”‚                                                     â”‚
+â”‚ âš ï¸ Pricing data is aging (>1 year old)            â”‚
+â”‚ [Update Pricing Now] (1 API call)                 â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+```
+
+---
+
+### 2.6 - Filter & Sort Enhancements â­ UX IMPROVEMENT
+
+**Priority:** MEDIUM - Improves usability  
+**Estimated Time:** 1 day
+
+**Tasks:**
+- [ ] Debug existing filter/sort (currently broken from Phase 1)
+- [ ] Add data type filters
+  - [ ] Complete (all selected data merged)
+  - [ ] Missing Basic Data
+  - [ ] Missing Issue Data
+  - [ ] Missing Pricing Data
+  - [ ] Partial (some data merged)
+- [ ] Add freshness filters
+  - [ ] Current (<3 months)
+  - [ ] Recent (3mo-1yr)
+  - [ ] Aging (1-2yr)
+  - [ ] Outdated (>2yr)
+  - [ ] Never Updated
+- [ ] Add sort options
+  - [ ] By last update date (newest/oldest)
+  - [ ] By pricing freshness
+  - [ ] By status
+- [ ] Show counts for each filter option
+
+**Files to Create/Modify:**
+- `src/renderer/app.js` (FIX and ENHANCE filters)
+- `src/renderer/index.html` (UPDATE filter UI)
+
+**Deliverable:** Working, comprehensive filter/sort system
+
+**UI Example:**
+```
+Show:
+[All Coins â–¼]
+â”œâ”€ All Coins (250)
+â”œâ”€ Complete Enrichment (180)
+â”œâ”€ Partial Enrichment (25)
+â”‚
+â”œâ”€ Data Type:
+â”‚   â”œâ”€ Missing Basic Data (15)
+â”‚   â”œâ”€ Missing Issue Data (45)
+â”‚   â””â”€ Missing Pricing (30)
+â”‚
+â””â”€ Pricing Freshness:
+    â”œâ”€ ðŸŸ¢ Current (<3mo) (45)
+    â”œâ”€ ðŸŸ¡ Recent (3mo-1yr) (85)
+    â”œâ”€ ðŸŸ  Aging (1-2yr) (60)
+    â”œâ”€ ðŸ”´ Outdated (>2yr) (30)
+    â””â”€ âšª Never (30)
+
+Sort:
+[Title â–¼]
+â”œâ”€ Title (A-Z)
+â”œâ”€ Year (oldest first)
+â”œâ”€ Country
+â”œâ”€ Status
+â”œâ”€ Last Updated (newest first)
+â””â”€ Pricing Freshness
+```
+
+---
+
+### 2.7 - "Fetch More Data" Feature â­ FLEXIBILITY
+
+**Priority:** MEDIUM - Nice to have  
+**Estimated Time:** 1 day
+
+**Tasks:**
+- [ ] Add buttons to comparison screen
+  - [ ] "Fetch Issue Data" button (if not already fetched)
+  - [ ] "Fetch Pricing Data" button (if not already fetched)
+  - [ ] Show API call cost warning
+- [ ] Implement individual fetch logic
+  - [ ] Fetch for single coin only
+  - [ ] Update metadata after fetch
+  - [ ] Refresh comparison display
+- [ ] Handle already-fetched state
+  - [ ] Hide button if data already exists
+  - [ ] Show "Last fetched: X days ago" for pricing
+  - [ ] Offer "Refresh Pricing" if outdated
+- [ ] Update session call counter
+
+**Files to Create/Modify:**
+- `src/renderer/app.js` (ADD fetch buttons)
+- `src/renderer/index.html` (ADD button UI)
+- `src/main/index.js` (ADD individual fetch handlers)
+
+**Deliverable:** Per-coin additional data fetching
+
+**UI Example:**
+```
+Field Comparison Screen:
+
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ Additional Data Available                          â”‚
+â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
+â”‚ âš ï¸ Issue data not fetched for this coin           â”‚
+â”‚                                                     â”‚
+â”‚ Fetch mintmark & mintage from Numista?            â”‚
+â”‚ Cost: 1 API call                                   â”‚
+â”‚                                                     â”‚
+â”‚ [Fetch Issue Data]  [Skip]                        â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+```
+
+---
+
+### 2.8 - Images â­ VISUAL ENHANCEMENT
+
+**Priority:** HIGH - User emphasized importance  
+**Estimated Time:** 3 days
+
+**Tasks:**
+- [ ] Implement OpenNumismat image reading
+  - [ ] Read from `images` table (foreign key relationship)
+  - [ ] Convert BLOB â†’ base64 for display
+  - [ ] Handle missing images gracefully
+- [ ] Display in coin list
+  - [ ] Show obverse/reverse thumbnails (40x40px)
+  - [ ] Lazy load for performance
+  - [ ] Placeholder for missing images
+- [ ] Display Numista images in search results
+  - [ ] Show thumbnail from Numista API
+  - [ ] Load from URL
+  - [ ] Show larger preview on hover
+- [ ] Build side-by-side comparison view
+  - [ ] Show user's images (from OpenNumismat)
+  - [ ] Show Numista images
+  - [ ] Allow zoom/full-size view
+- [ ] Implement image download
+  - [ ] Download from Numista URL
+  - [ ] Convert to BLOB
+  - [ ] Insert into `images` table
+  - [ ] Get image ID
+  - [ ] Store ID in coin record (obverseimg, reverseimg, edgeimg)
+- [ ] Handle edge images
+  - [ ] Download if available
+  - [ ] Display in comparison
+- [ ] Error handling
+  - [ ] Network failures
+  - [ ] Invalid image formats
+  - [ ] Missing images
+
+**Files to Create/Modify:**
+- `src/modules/image-handler.js` (NEW)
+- `src/modules/opennumismat-db.js` (ADD image reading)
+- `src/renderer/app.js` (ADD image display)
+- `src/renderer/index.html` (ADD image containers)
+- `src/renderer/styles.css` (ADD image styling)
+
+**Deliverable:** Full image support end-to-end
+
+**UI Examples:**
+```
+Coin List:
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ [OBV] [REV]  1943 Lincoln Cent                 â”‚
+â”‚  img   img   United States â€¢ Steel             â”‚
+â”‚              Basic: âœ…  Pricing: ðŸŸ             â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+
+Search Results:
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ Match #1 (95% confidence)                        â”‚
+â”‚ [OBV] [REV]  Lincoln Cent - Wheat Reverse       â”‚
+â”‚  img   img   1943 â€¢ Steel â€¢ KM# 132a            â”‚
+â”‚              19mm â€¢ 2.70g                        â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+
+Side-by-Side Comparison:
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚   Your Coin      â”‚  Numista Match   â”‚
+â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
+â”‚  [Your Obverse]  â”‚ [Numista Obverse]â”‚
+â”‚   (from BLOB)    â”‚   (from URL)     â”‚
+â”‚                  â”‚                  â”‚
+â”‚  [Your Reverse]  â”‚ [Numista Reverse]â”‚
+â”‚   (from BLOB)    â”‚   (from URL)     â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+```
+
+**Technical Notes:**
+- OpenNumismat stores images as INTEGER foreign keys, not BLOBs directly in coins table
+- Must query `images` table separately
+- Image fields: `obverseimg`, `reverseimg`, `edgeimg` contain image IDs
+
+---
+
+### 2.9 - Settings File Management â­ PERSISTENCE
+
+**Priority:** MEDIUM - Supports portability  
+**Estimated Time:** 1 day
+
+**Tasks:**
+- [ ] Create `src/modules/settings-manager.js`
+  - [ ] Implement `loadSettings(dbPath)`
+  - [ ] Implement `saveSettings(dbPath, settings)`
+  - [ ] Generate filename: `{dbname}_settings.json`
+  - [ ] Store next to database file
+- [ ] Define settings structure
+  - [ ] API configuration (apiKey, rateLimit)
+  - [ ] Fetch settings (basicData, issueData, pricingData)
+  - [ ] Field mappings (user customizations)
+  - [ ] UI preferences (view, sort, filter defaults)
+- [ ] Implement defaults
+  - [ ] Fall back to `default-field-mapping.js`
+  - [ ] Prompt for API key if missing
+- [ ] Handle multiple collections
+  - [ ] Each database has its own settings file
+  - [ ] Switch settings when switching databases
+- [ ] Settings UI
+  - [ ] Allow editing in settings modal
+  - [ ] Save on change
+  - [ ] Reset to defaults option
+
+**Files to Create/Modify:**
+- `src/modules/settings-manager.js` (NEW)
+- `src/main/index.js` (INTEGRATE settings loading)
+
+**Deliverable:** Portable user preferences per collection
+
+**Settings File Structure:**
+```json
+{
+  "version": "1.0",
+  "collectionPath": "C:\\Users\\User\\Documents\\my-collection.db",
+  
+  "apiConfiguration": {
+    "apiKey": "i883i335qeAa8fFHKXbWfkoIyZ1wuWJmvulRgwuA",
+    "rateLimit": 2000
+  },
+  
+  "fetchSettings": {
+    "basicData": true,
+    "issueData": false,
+    "pricingData": true
+  },
+  
+  "fieldMappings": {
+    "catalognum1": { "catalogCode": "KM", "enabled": true },
+    "catalognum2": { "catalogCode": "SchÃ¶n", "enabled": true },
+    "period": { "numistaPath": "ruler[0].group.name", "enabled": true }
+  },
+  
+  "uiPreferences": {
+    "defaultView": "list",
+    "defaultSort": "title",
+    "defaultFilter": "all",
+    "showThumbnails": true
+  }
+}
+```
+
+---
+
+## Implementation Timeline
+
+### Week 1: Foundation
+**Days 1-2:**
+- [ ] 2.1 - Metadata Storage System
+- [ ] Test thoroughly with real data
+
+**Days 3-4:**
+- [ ] 2.2 - Granular Status Tracking
+- [ ] Integration testing
+
+**Day 5:**
+- [ ] 2.9 - Settings File Management
+- [ ] Testing and bug fixes
+
+**Deliverable:** Solid foundation for all other features
+
+---
+
+### Week 2: User Control & API Efficiency
+**Days 1-2:**
+- [ ] 2.3 - Data Settings UI
+- [ ] User testing and refinement
+
+**Days 3-4:**
+- [ ] 2.4 - Conditional API Calls
+- [ ] Issue matching and picker UI
+
+**Day 5:**
+- [ ] 2.5 - Freshness Indicators
+- [ ] UI polish
+
+**Deliverable:** User can control data fetching, API calls are optimized
+
+---
+
+### Week 3: Images & Polish
+**Days 1-3:**
+- [ ] 2.8 - Images (complex feature)
+  - Day 1: Reading and display
+  - Day 2: Download and storage
+  - Day 3: Side-by-side comparison
+
+**Day 4:**
+- [ ] 2.6 - Filter & Sort Enhancements
+- [ ] Fix existing bugs
+
+**Day 5:**
+- [ ] 2.7 - Fetch More Data Feature
+- [ ] Final testing and bug fixes
+
+**Deliverable:** Complete Phase 2 feature set
+
+---
+
+## Dependencies
+
+### Task Dependencies
+```
+2.1 (Metadata Storage)
+  â””â”€> 2.2 (Status Tracking)
+       â”œâ”€> 2.3 (Data Settings UI)
+       â”‚    â””â”€> 2.4 (Conditional API Calls)
+       â”‚         â””â”€> 2.7 (Fetch More Data)
+       â””â”€> 2.5 (Freshness Indicators)
+            â””â”€> 2.6 (Filter & Sort)
+
+2.9 (Settings File) â”€> 2.3 (Data Settings UI)
+
+2.8 (Images) â”€> Independent (can be done in parallel)
+```
+
+**Critical Path:** 2.1 â†’ 2.2 â†’ 2.3 â†’ 2.4
+
+---
+
+## Testing Strategy
+
+### Unit Testing
+- [ ] Metadata parsing (malformed JSON, missing fields)
+- [ ] Freshness calculation (edge cases, null dates)
+- [ ] Issue matching logic (all scenarios)
+- [ ] Settings persistence (read/write)
+
+### Integration Testing
+- [ ] Metadata storage â†’ Status tracking
+- [ ] Settings â†’ Conditional API calls
+- [ ] Image download â†’ Database insertion
+- [ ] Filter/sort with new status structure
+
+### User Acceptance Testing
+- [ ] Load collection with existing progress
+- [ ] Change data settings mid-session
+- [ ] Process coins with different data selections
+- [ ] Verify freshness indicators
+- [ ] Test filter/sort options
+- [ ] Verify images display correctly
+- [ ] Test app reinstall scenario (data survives)
+- [ ] Test database copy to new device (settings survive)
+
+### Performance Testing
+- [ ] Large collections (1000+ coins)
+- [ ] Metadata parsing speed
+- [ ] Image loading performance
+- [ ] Filter/sort responsiveness
+
+---
+
+## Success Criteria
+
+### Phase 2 Complete When:
+- [ ] âœ… Metadata storage working reliably (no data loss)
+- [ ] âœ… Three-tier status tracking implemented
+- [ ] âœ… User can select which data to fetch
+- [ ] âœ… API calls conditional based on settings
+- [ ] âœ… Issue matching working (auto + manual)
+- [ ] âœ… Pricing freshness indicators visible
+- [ ] âœ… Filters work for all data types and freshness
+- [ ] âœ… Images display in coin list
+- [ ] âœ… Images display in search results
+- [ ] âœ… Images download and store correctly
+- [ ] âœ… Side-by-side image comparison works
+- [ ] âœ… Settings persist next to database
+- [ ] âœ… App reinstall preserves all data
+- [ ] âœ… Database copy to new device works
+
+### Quality Metrics:
+- [ ] No metadata parsing errors in testing
+- [ ] No user notes lost or corrupted
+- [ ] Filter/sort works for collections of 1000+ coins
+- [ ] Image loading < 500ms per image
+- [ ] Settings load/save < 100ms
+- [ ] All features work after app reinstall
+- [ ] All features work after database copy
+
+---
+
+## Risk Assessment
+
+### High Risk
+- **Metadata storage in note field** - Could corrupt user notes
+  - Mitigation: Extensive testing, backup before write, graceful failure
+  
+- **Image download failures** - Network issues, invalid URLs
+  - Mitigation: Retry logic, graceful degradation, continue without images
+
+### Medium Risk
+- **Issue matching complexity** - Multiple mints, no year match
+  - Mitigation: Clear UI for user to pick, skip option
+
+- **Settings file conflicts** - Database moved between devices
+  - Mitigation: Validate settings on load, reset to defaults if corrupted
+
+### Low Risk
+- **Freshness calculation edge cases** - Null dates, future dates
+  - Mitigation: Defensive programming, default to "Never Updated"
+
+---
+
+## Post-Phase 2 Features (Future)
+
+Features to consider for Phase 3:
+- [ ] Batch operations (process multiple coins at once)
+- [ ] Fast Pricing Update mode (1 API call per coin)
+- [ ] Undo functionality
+- [ ] Export reports (pricing changes, enrichment summary)
+- [ ] Custom field mapping UI
+- [ ] Price change history charts
+- [ ] Automatic pricing alerts (notify when prices change)
+
+---
+
+## Notes & Decisions Log
+
+**2026-01-22:**
+- Decided on three-tier storage strategy
+- Chose HTML comments for metadata (Option C)
+- Set pricing freshness thresholds (3mo, 1yr, 2yr)
+- Agreed to duplicate Numista ID in metadata for reliability
+- Issue matching: auto-match year+mintmark, fallback to user picker
+
+---
+
+**Document Status:** COMPLETE - Ready for Implementation  
+**Next Action:** Begin with Task 2.1 - Metadata Storage System
