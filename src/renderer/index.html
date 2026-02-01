@@ -13,7 +13,7 @@
       <h1>OpenNumismat - Numista Enrichment Tool</h1>
       <div class="header-actions">
         <button id="settingsBtn" class="btn btn-secondary">
-          âš™ï¸ Settings
+          ⚙️ Settings
         </button>
       </div>
     </header>
@@ -29,14 +29,14 @@
           
           <div class="welcome-actions">
             <button id="loadCollectionBtn" class="btn btn-primary btn-large">
-              ðŸ“‚ Load Collection
+              📂 Load Collection
             </button>
           </div>
 
           <div class="welcome-info">
             <h3>Quick Start:</h3>
             <ol>
-              <li><strong>First time?</strong> Click âš™ï¸ Settings (top right) and add your Numista API key
+              <li><strong>First time?</strong> Click ⚙️ Settings (top right) and add your Numista API key
                 <br><small>Get a free key at <a href="https://en.numista.com/api/" target="_blank">numista.com/api</a></small>
               </li>
               <li><strong>Load your collection</strong> - Select your OpenNumismat .db file</li>
@@ -47,7 +47,7 @@
             </ol>
             
             <p class="text-muted" style="margin-top: 20px;">
-              ðŸ’¡ <strong>Tip:</strong> You work on one coin at a time to ensure accuracy. 
+              💡 <strong>Tip:</strong> You work on one coin at a time to ensure accuracy. 
               Your progress is automatically saved!
             </p>
           </div>
@@ -60,13 +60,13 @@
           <h2 id="collectionTitle">Collection</h2>
           <div class="collection-actions">
             <button id="dataSettingsBtn" class="btn btn-secondary">
-              âš™ï¸Â Data Settings
+              ⚙️ Data Settings
             </button>
             <button id="fastPricingBtn" class="btn btn-secondary">
-              ðŸ’° Fast Pricing Update
+              💰 Fast Pricing Update
             </button>
             <button id="closeCollectionBtn" class="btn btn-secondary">
-              â† Close Collection
+              ← Close Collection
             </button>
           </div>
         </div>
@@ -116,10 +116,10 @@
         <div class="coin-list" id="coinList">
           <!-- Coins will be dynamically added here -->
           <div class="empty-state" style="text-align: center; padding: 40px; color: #666;">
-            <h3>ðŸ“‹ Click on any coin to get started</h3>
+            <h3>📋 Click on any coin to get started</h3>
             <p>Select a coin from the list to search Numista and enrich its data.</p>
             <p style="margin-top: 20px;">
-              ðŸ’¡ <strong>How it works:</strong><br>
+              💡 <strong>How it works:</strong><br>
               1. Click a coin â‚¬Â Ã¢â†’ 2. Review matches â‚¬Â Ã¢â†’ 3. Choose fields â‚¬Â Ã¢â†’ 4. Apply changes
             </p>
           </div>
@@ -134,14 +134,14 @@
             <!-- Current coin details shown here -->
           </div>
           <button id="backToListBtn" class="btn btn-secondary">
-            â† Back to List
+            ← Back to List
           </button>
         </div>
 
         <div class="match-controls">
           <div id="searchStatus" class="search-status">
             <p style="color: #666; margin: 10px 0;">
-              ðŸ’¡ <strong>How to choose:</strong> Look for the highest confidence score and verify the details match your coin.
+              💡 <strong>How to choose:</strong> Look for the highest confidence score and verify the details match your coin.
               Click on a match to see detailed field comparison.
             </p>
           </div>
@@ -200,13 +200,13 @@
         <div class="comparison-header">
           <h2>Review and Select Fields</h2>
           <button id="backToMatchesBtn" class="btn btn-secondary">
-            â† Back to Matches
+            ← Back to Matches
           </button>
         </div>
 
         <div class="field-selection-controls">
           <p style="color: #666; margin-bottom: 10px;">
-            ðŸ’¡ <strong>Select fields to import:</strong> Check the boxes for fields you want to update from Numista. 
+            💡 <strong>Select fields to import:</strong> Check the boxes for fields you want to update from Numista. 
             Fields in <strong>bold</strong> are different from your current data.
           </p>
           <button id="selectAllFieldsBtn" class="btn btn-small">Select All</button>
@@ -221,7 +221,7 @@
 
         <div class="comparison-actions">
           <button id="applyChangesBtn" class="btn btn-primary btn-large">
-            âœ“ Apply Changes to Coin
+            ✅ Apply Changes to Coin
           </button>
           <button id="cancelMergeBtn" class="btn btn-secondary">
             Cancel
@@ -234,7 +234,7 @@
         <div class="settings-header">
           <h2>Settings</h2>
           <button id="closeSettingsBtn" class="btn btn-secondary">
-            â† Close
+            ← Close
           </button>
         </div>
 
@@ -311,7 +311,7 @@
       <div id="statusMessage" class="status-message"></div>
       <div class="fetch-settings-display">
         <span id="fetchSettingsText">Fetch: Basic (2 calls)</span>
-        <span class="separator">â€¢</span>
+        <span class="separator">•</span>
         <span id="sessionCallsText">Session: 0 calls</span>
       </div>
       <div id="progressBar" class="progress-bar" style="display: none;">
@@ -339,7 +339,7 @@
   <div id="dataSettingsModal" class="modal" style="display: none;">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>Ã¢Å¡â„¢Ã¯Â¸Â Data Fetch Settings</h3>
+        <h3>⚙️ Data Fetch Settings</h3>
         <button id="dataSettingsCloseBtn" class="modal-close">Ã—</button>
       </div>
       
@@ -394,7 +394,7 @@
                 <strong>Cost:</strong> +1 API call per coin
               </p>
               <p class="data-note">
-                Ã¢â€žÂ¹Ã¯Â¸Â If multiple mints exist, you'll be asked to choose the correct one.
+                ⚠️ If multiple mints exist, you'll be asked to choose the correct one.
               </p>
             </div>
           </div>
@@ -421,7 +421,7 @@
                 <strong>Cost:</strong> +1 API call per coin
               </p>
               <p class="data-note">
-                Ã¢â€žÂ¹Ã¯Â¸Â Pricing includes freshness tracking (how recent the prices are).
+                ⚠️ Pricing includes freshness tracking (how recent the prices are).
               </p>
             </div>
           </div>
@@ -467,7 +467,7 @@
 
         <div class="data-settings-info">
           <p>
-            <strong>ðŸ’¡ Tip:</strong> You can change these settings at any time. For coins you've already processed, 
+            <strong>💡 Tip:</strong> You can change these settings at any time. For coins you've already processed, 
             use the "Fetch More Data" feature to add additional data types later.
           </p>
         </div>

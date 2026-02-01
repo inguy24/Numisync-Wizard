@@ -254,7 +254,7 @@ function renderCoinList() {
 
 function getStatusIcon(status) {
   const icons = {
-    'MERGED': 'ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦',
+    'MERGED': '✅',
     'SKIPPED': 'â­ï¸',
     'ERROR': 'âŒ',
     'MATCHED': 'ðŸ”Ãƒâ€šÃ‚Â',
@@ -707,7 +707,7 @@ function createDefaultSelection(comparison) {
     selection[fieldName] = autoSelect;
     
     if (autoSelect) {
-      console.log(`  ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ Auto-selecting '${fieldName}' (current empty, numista has value)`);
+      console.log(`  ✅ Auto-selecting '${fieldName}' (current empty, numista has value)`);
     } else {
       console.log(`  - Not selecting '${fieldName}' (hasCurrentValue=${data.hasCurrentValue}, hasNumistaValue=${data.hasNumistaValue})`);
     }
@@ -1294,7 +1294,7 @@ class DataSettingsUI {
   showSuccess(message) {
     const statusMessage = document.getElementById('statusMessage');
     if (statusMessage) {
-      statusMessage.textContent = `ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ ${message}`;
+      statusMessage.textContent = `✅ ${message}`;
       statusMessage.style.color = '#27ae60';
       
       setTimeout(() => {
