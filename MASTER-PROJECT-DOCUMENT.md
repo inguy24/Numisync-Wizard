@@ -574,3 +574,51 @@ Once this master document is in place, these can be deleted:
 
 **Rule Added:** Added Rule 4 to CRITICAL LESSONS LEARNED: "NEVER CREATE STANDALONE MODULE FILES - INTEGRATE INTO EXISTING FILES"
 
+
+### Fix: Corrupted Emoji Encoding in UI Files (January 31, 2026)
+
+**Problem:** All emoji icons throughout the application UI were displaying as corrupted garbage characters (e.g., "äs™,□" instead of "⚙️", "ðŸ"‚" instead of "📂"). This affected buttons, status messages, tooltips, and other UI elements.
+
+**Root Cause:** Previous file operations had corrupted UTF-8 emoji byte sequences. The corruption existed at the byte level, with multi-byte UTF-8 sequences being mangled into invalid character combinations. Standard text editing tools (including the Edit and Write tools in Claude Code) could not fix this because they would further corrupt the encoding when attempting to read and write the files.
+
+**Files Fixed:**
+- `src/renderer/index.html` - Fixed 17+ corrupted emoji instances
+- `src/renderer/app.js` - Fixed 3+ corrupted emoji instances
+
+**Affected Emojis:**
+- ⚙️ Settings gear (multiple locations)
+- 📂 Folder icon (Load Collection button)
+- 💡 Light bulb (tip/info messages)
+- 💰 Money bag (Fast Pricing button)
+- ← Left arrow (navigation buttons)
+- 📋 Clipboard (empty state messages)
+- 🔄 Refresh (search again button)
+- 🔍 Magnifying glass (search button)
+- ✅ Checkmark (success status, merged status)
+- ⚠️ Warning (alert messages)
+- • Bullet point (status bar separator)
+- → Right arrow (workflow steps)
+- ❌ X mark (error status)
+
+**Solution Approach:**
+1. Created Python scripts using bash heredoc to avoid encoding corruption
+2. Used binary mode file operations to read and replace exact byte sequences
+3. Identified corrupted byte patterns through hex dump analysis
+4. Replaced corrupted sequences with correct UTF-8 emoji bytes
+5. Multiple iterations needed to clean up residual garbage after partial fixes
+
+**Key Learnings:**
+- The Write tool in Claude Code corrupts emojis when creating new files
+- The Edit tool cannot match corrupted byte sequences accurately
+- Shell sed commands struggle with multi-byte UTF-8 characters
+- Python in binary mode with explicit byte sequence replacement is the most reliable approach
+- Corruption can leave residual garbage bytes after the emoji even when the emoji itself is partially fixed
+
+**Prevention:**
+- Always follow EMOJI-ENCODING-GUIDANCE.md when working with files containing emojis
+- Use bash commands (cp, sed) rather than Write/Edit tools for files with emojis
+- Never use create_file or str_replace on sections containing emojis
+- Test emoji rendering after any file modifications
+
+**Commit:** 913e8d7 - Fix corrupted emoji encoding in UI files
+
