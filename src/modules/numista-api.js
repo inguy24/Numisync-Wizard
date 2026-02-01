@@ -137,14 +137,15 @@ class NumistaAPI {
    */
   async getTypeIssues(typeId, lang = 'en') {
     const cacheKey = `issues:${typeId}:${lang}`;
-    
+
     if (this.cache.has(cacheKey)) {
       return this.cache.get(cacheKey);
     }
 
     const result = await this.request(`/types/${typeId}/issues`, { lang });
+    console.log('getTypeIssues response for type', typeId, ':', JSON.stringify(result, null, 2));
     this.cache.set(cacheKey, result);
-    
+
     return result;
   }
 
@@ -166,15 +167,19 @@ class NumistaAPI {
 
   /**
    * Match issue by year and mintmark
-   * 
+   *
    * @param {Object} coin - User's coin data
    * @param {Object} issuesResponse - Response from getTypeIssues
    * @returns {Object} - { type: 'AUTO_MATCHED'|'USER_PICK'|'NO_MATCH'|'NO_ISSUES', issue?, options? }
    */
   matchIssue(coin, issuesResponse) {
-    const issues = issuesResponse?.issues || [];
-    
+    console.log('matchIssue - issuesResponse:', issuesResponse);
+    // API returns array directly, not wrapped in object
+    const issues = Array.isArray(issuesResponse) ? issuesResponse : (issuesResponse?.issues || []);
+    console.log('matchIssue - issues array length:', issues.length);
+
     if (issues.length === 0) {
+      console.log('matchIssue - NO_ISSUES (empty issues array)');
       return { type: 'NO_ISSUES' };
     }
     

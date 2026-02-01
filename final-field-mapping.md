@@ -1,7 +1,7 @@
 # FINAL OpenNumismat â†” Numista Field Mapping
 ## Based on Actual API Specification (Swagger v3.29.0)
 
-**Date:** 2026-01-21  
+**Date:** 2026-01-31 (Updated - Issues endpoint format)  
 **API Version:** v3.29.0  
 **OpenNumismat Database:** 110 fields analyzed  
 **Status:** READY FOR IMPLEMENTATION
@@ -226,6 +226,55 @@ Catalog numbers are in the `references` array:
 - Type has `min_year`/`max_year` (range for whole type)
 - Issue has `year` (specific year for this variant)
 - User's coin year should match `issue.year`, not `type.min_year`!
+
+### 1.10 GET /types/{type_id}/issues Endpoint Response Format
+
+**CRITICAL API DISCOVERY (2026-01-31):**
+
+The `/types/{type_id}/issues` endpoint returns an **ARRAY DIRECTLY**, not wrapped in an object!
+
+**Correct Response Format:**
+```javascript
+// API returns THIS:
+[
+  {
+    "id": 27148,
+    "is_dated": true,
+    "year": 1938,
+    "gregorian_year": 1938,
+    "mintage": 2864000,
+    "comment": "Circulation"
+  },
+  {
+    "id": 27156,
+    "is_dated": true,
+    "year": 1943,
+    "gregorian_year": 1943,
+    "mint_letter": "S",
+    "mintage": 4000000,
+    "comment": "Circulation"
+  }
+]
+```
+
+**NOT wrapped in an object:**
+```javascript
+// It does NOT return this:
+{
+  "issues": [ ... ]  // ❌ WRONG - common mistake!
+}
+```
+
+**Implementation Impact:**
+```javascript
+// WRONG (before fix):
+const issues = issuesResponse.issues || [];  // undefined!
+
+// CORRECT (after fix):
+const issues = Array.isArray(issuesResponse) ? issuesResponse : [];
+```
+
+**Bug Fixed:** 2026-01-31 - Code was incorrectly expecting `issuesResponse.issues`, causing all issue and pricing data to fail with NO_ISSUES error.
 
 ---
 

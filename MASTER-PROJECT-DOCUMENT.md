@@ -1,6 +1,6 @@
 # OpenNumismat Enrichment Tool - Master Project Document
 
-**Last Updated:** January 28, 2026  
+**Last Updated:** January 31, 2026  
 **Purpose:** Single source of truth for project state, fixes, and lessons learned  
 **Replaces:** All individual fix documents (see deletion list at end)
 
@@ -163,10 +163,18 @@ numismat-enrichment/
 ### Task 2.6 - Filter & Sort Ã¢ÂÅ’ NOT STARTED
 ### Task 2.7 - Fetch More Data Ã¢ÂÅ’ NOT STARTED  
 ### Task 2.8 - Images Ã¢ÂÅ’ NOT STARTED
+n### Coin List Pagination u2705 COMPLETE (January 31, 2026)
+- Added pagination state to AppState (currentPage, pageSize, totalPages)
+- Created pagination UI controls with navigation buttons
+- Implemented smart button states (auto-disable at boundaries)
+- Updated loadCoins to support offset-based pagination
+- Added updatePaginationControls function
+- Displays 100 coins per page with clear page indicators
+- Shows current range (e.g., "Showing 101-200 of 500 coins")
 
 ---
 
-## CURRENT CRITICAL ISSUE
+## CURRENT STATUS - All Issues Resolved (Jan 31, 2026)
 
 ### Pricing and Mintage Fields Not Writing to Database
 
@@ -621,4 +629,151 @@ Once this master document is in place, these can be deleted:
 - Test emoji rendering after any file modifications
 
 **Commit:** 913e8d7 - Fix corrupted emoji encoding in UI files
+
+
+### Fix: Missing axios Dependency (January 31, 2026)
+
+**Problem:** Application failed to start with error "Cannot find module 'axios'" when running `npm start`.
+
+**Root Cause:** The `axios` package was required by `numista-api.js` but was not listed in `package.json` dependencies.
+
+**Files Fixed:**
+- `package.json` - Added `axios: "^1.13.4"` to dependencies
+
+**Solution:**
+```bash
+npm install axios
+```
+
+**Result:** Application now starts successfully with all dependencies installed.
+
+
+### Fix: Automatic Search Returning No Results (January 31, 2026)
+
+**Problem:** Automatic search (when clicking a coin) was returning 0 results, but manual search with the same coin title worked fine.
+
+**Root Cause:** The `buildSearchParams` function in `app.js` was:
+1. Adding the `series` field to the query, making it too specific (e.g., "Australia 2 Shillings 1944 WWII florin")
+2. Initially used incorrect API parameter `year` instead of `min_year`/`max_year`
+
+**Files Fixed:**
+- `src/renderer/app.js` - Rewrote `buildSearchParams` function
+
+**Solution:**
+- Only use the `title` field for the query
+- Check if year is already in the title
+- If year is NOT in title, append it to the query string
+- Don't use min_year/max_year API parameters (they're too restrictive)
+- Don't include the series field (too specific)
+
+**Before:**
+```javascript
+params.q = 'Australia 2 Shillings 1944 WWII florin';
+params.year = 1944;  // Invalid parameter
+```
+
+**After:**
+```javascript
+params.q = 'Australia 2 Shillings 1944';  // Clean, specific enough
+```
+
+**Result:** Automatic search now finds matches successfully, just like manual search.
+
+
+### Fix: Issue and Pricing Data Always Null (January 31, 2026)
+
+**Problem:** Even though the Numista API was returning issue data (mintage, mintmark, etc.), the `matchIssue` function was detecting 0 issues and returning `NO_ISSUES`, causing issue and pricing data to never be fetched.
+
+**Root Cause:** The Numista API `/types/{id}/issues` endpoint returns an **array directly**, but the code was trying to access `issuesResponse.issues` (as if it were wrapped in an object).
+
+**Debug Evidence:**
+```javascript
+// API returned:
+[{ id: 27148, year: 1938, mintage: 2864000 }, ...]
+
+// Code was looking for:
+issuesResponse.issues  // undefined!
+
+// Result:
+const issues = issuesResponse?.issues || [];  // []
+issues.length === 0  // true → NO_ISSUES
+```
+
+**Files Fixed:**
+- `src/modules/numista-api.js` - Fixed `matchIssue` method
+
+**Solution:**
+```javascript
+// Before:
+const issues = issuesResponse?.issues || [];
+
+// After:
+const issues = Array.isArray(issuesResponse)
+  ? issuesResponse
+  : (issuesResponse?.issues || []);
+```
+
+**Result:**
+- Issue data now correctly identified and matched
+- Auto-matching by year + mintmark works
+- Pricing data can now be fetched (requires issue)
+- Mintage and mintmark fields now available in field comparison
+
+**Impact:** This was a critical bug preventing the entire Phase 2 multi-tier data fetching system from working. With this fix, users can now fetch:
+- ✅ Basic coin type data
+- ✅ Issue-specific data (mintage, mintmark)
+- ✅ Pricing data (price1-4 in selected currency)
+
+
+### Enhancement: Coin List Pagination (January 31, 2026)
+
+**Feature Added:** Pagination controls for navigating through large coin collections.
+
+**Motivation:** The coin list was limited to loading only the first 100 coins. Users with large collections (hundreds or thousands of coins) had no way to access coins beyond the first 100.
+
+**Files Modified:**
+- `src/renderer/app.js` - Added pagination state, updated loadCoins function, added updatePaginationControls function, added event handlers
+- `src/renderer/index.html` - Added pagination controls UI between filters and coin list
+- `src/renderer/styles/main.css` - Added pagination button and info styling
+
+**Implementation Details:**
+
+1. **Pagination State (AppState):**
+```javascript
+pagination: {
+  currentPage: 1,
+  pageSize: 100,
+  totalPages: 1
+}
+```
+
+2. **UI Controls:**
+- ⏮️ First Page button
+- ◀️ Previous button
+- Page indicator showing "Page X of Y"
+- ▶️ Next button
+- ⏭️ Last Page button
+
+3. **Smart Button States:**
+- First/Previous buttons disabled on page 1
+- Next/Last buttons disabled on final page
+
+4. **Status Display:**
+Shows current range: "Showing 101-200 of 500 coins"
+
+5. **Backend Integration:**
+- Backend already supported limit/offset parameters via getCoins method
+- Frontend now calculates offset: `(currentPage - 1) * pageSize`
+- Total pages calculated: `Math.ceil(totalCoins / pageSize)`
+
+**Result:**
+- Users can now navigate through entire collection regardless of size
+- Performance improved - only 100 coins rendered at a time
+- Clear visual feedback on current position in collection
+- Seamless integration with existing filter/sort controls
+
+**Documentation Updated:**
+- PHASE2-WORK-PLAN.md - Added "Completed Enhancements" section
+- CHANGELOG.md - Created with pagination feature entry
+- MASTER-PROJECT-DOCUMENT.md - Updated Phase 2 status and fix log
 

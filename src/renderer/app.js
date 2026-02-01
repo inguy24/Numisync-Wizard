@@ -18,7 +18,12 @@ const AppState = {
   fieldComparison: null,
   selectedFields: {},
   settings: null,
-  progressStats: null
+  progressStats: null,
+  pagination: {
+    currentPage: 1,
+    pageSize: 100,
+    totalPages: 1
+  }
 };
 
 // =============================================================================
@@ -179,8 +184,17 @@ function updateProgressStats() {
 async function loadCoins() {
   try {
     showStatus('Loading coins...');
-    
-    const result = await window.electronAPI.getCoins({ limit: 100, offset: 0 });
+
+    const total = AppState.progressStats?.total || 0;
+    AppState.pagination.totalPages = Math.ceil(total / AppState.pagination.pageSize) || 1;
+
+    // Calculate offset based on current page
+    const offset = (AppState.pagination.currentPage - 1) * AppState.pagination.pageSize;
+
+    const result = await window.electronAPI.getCoins({
+      limit: AppState.pagination.pageSize,
+      offset: offset
+    });
 
     if (!result.success) {
       throw new Error(result.error);
@@ -188,12 +202,27 @@ async function loadCoins() {
 
     AppState.coins = result.coins;
     renderCoinList();
-    
-    const total = AppState.progressStats?.total || 0;
-    showStatus(`Showing ${result.coins.length} of ${total} coins`);
+    updatePaginationControls();
+
+    const startIndex = offset + 1;
+    const endIndex = Math.min(offset + result.coins.length, total);
+    showStatus(`Showing ${startIndex}-${endIndex} of ${total} coins`);
   } catch (error) {
     showStatus(`Error loading coins: ${error.message}`, 'error');
   }
+}
+
+function updatePaginationControls() {
+  const { currentPage, totalPages } = AppState.pagination;
+
+  // Update page info text
+  document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${totalPages}`;
+
+  // Update button states
+  document.getElementById('firstPageBtn').disabled = currentPage === 1;
+  document.getElementById('prevPageBtn').disabled = currentPage === 1;
+  document.getElementById('nextPageBtn').disabled = currentPage === totalPages;
+  document.getElementById('lastPageBtn').disabled = currentPage === totalPages;
 }
 
 function renderCoinList() {
@@ -423,10 +452,13 @@ async function searchForMatches() {
   try {
     showStatus('Searching Numista...');
     document.getElementById('searchStatus').textContent = 'Searching...';
-    
+
     // Build search parameters from current coin
     const searchParams = buildSearchParams(AppState.currentCoin);
-    
+    console.log('=== AUTOMATIC SEARCH ===');
+    console.log('Current coin:', AppState.currentCoin);
+    console.log('Search params:', searchParams);
+
     const result = await window.electronAPI.searchNumista(searchParams);
 
     if (!result.success) {
@@ -463,18 +495,25 @@ async function searchForMatches() {
 
 function buildSearchParams(coin) {
   const params = {};
-  
+
   // Build search query from coin data
-  const searchTerms = [];
-  if (coin.title) searchTerms.push(coin.title);
-  if (coin.series) searchTerms.push(coin.series);
-  
-  if (searchTerms.length > 0) {
-    params.q = searchTerms.join(' ');
+  let query = '';
+
+  if (coin.title && coin.title.trim()) {
+    query = coin.title.trim();
   }
 
+  // Add year to query if it exists and isn't already in the title
   if (coin.year && !isNaN(coin.year)) {
-    params.year = parseInt(coin.year);
+    const year = coin.year.toString();
+    // Check if year is already in the title
+    if (!query.includes(year)) {
+      query = query ? `${query} ${year}` : year;
+    }
+  }
+
+  if (query) {
+    params.q = query.trim();
   }
 
   params.count = 20;
@@ -987,6 +1026,34 @@ document.getElementById('manualSearchInput').addEventListener('keypress', (e) =>
   if (e.key === 'Enter') {
     document.getElementById('performManualSearchBtn').click();
   }
+});
+
+// =============================================================================
+// Pagination
+// =============================================================================
+
+document.getElementById('firstPageBtn').addEventListener('click', () => {
+  AppState.pagination.currentPage = 1;
+  loadCoins();
+});
+
+document.getElementById('prevPageBtn').addEventListener('click', () => {
+  if (AppState.pagination.currentPage > 1) {
+    AppState.pagination.currentPage--;
+    loadCoins();
+  }
+});
+
+document.getElementById('nextPageBtn').addEventListener('click', () => {
+  if (AppState.pagination.currentPage < AppState.pagination.totalPages) {
+    AppState.pagination.currentPage++;
+    loadCoins();
+  }
+});
+
+document.getElementById('lastPageBtn').addEventListener('click', () => {
+  AppState.pagination.currentPage = AppState.pagination.totalPages;
+  loadCoins();
 });
 
 // =============================================================================

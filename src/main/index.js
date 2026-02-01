@@ -197,10 +197,16 @@ function getApiKey() {
 
 ipcMain.handle('search-numista', async (event, searchParams) => {
   try {
+    console.log('=== BACKEND SEARCH ===');
+    console.log('Received search params:', searchParams);
+
     const apiKey = getApiKey();
     const api = new NumistaAPI(apiKey);
     const results = await api.searchTypes(searchParams);
-    
+
+    console.log('Search results count:', results.count);
+    console.log('Number of types returned:', results.types?.length || 0);
+
     return { success: true, results };
   } catch (error) {
     console.error('Error searching Numista:', error);
