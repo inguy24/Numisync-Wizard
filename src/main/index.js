@@ -9,11 +9,13 @@ const FieldMapper = require('../modules/field-mapper');
 const ProgressTracker = require('../modules/progress-tracker');
 const SettingsManager = require('../modules/settings-manager');
 const metadataManager = require('../modules/metadata-manager');
+const ImageHandler = require('../modules/image-handler');
 
 let mainWindow;
 let db = null;
 let progressTracker = null;
 let settingsManager = null;
+const imageHandler = new ImageHandler();
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -90,7 +92,7 @@ ipcMain.handle('load-collection', async (event, filePath) => {
     // Get collection summary FIRST
     const summary = db.getCollectionSummary();
     console.log('Collection summary:', summary);
-    
+
     // Initialize settings manager for this collection
     settingsManager = new SettingsManager(filePath);
     console.log('Settings loaded:', settingsManager.getFetchSettings());
@@ -279,6 +281,34 @@ ipcMain.handle('fetch-coin-data', async (event, { typeId, coin }) => {
   }
 });
 
+ipcMain.handle('fetch-pricing-for-issue', async (event, { typeId, issueId }) => {
+  try {
+    console.log('=== fetch-pricing-for-issue called ===');
+    console.log('typeId:', typeId, 'issueId:', issueId);
+
+    const apiKey = getApiKey();
+    const api = new NumistaAPI(apiKey);
+
+    // Get currency from settings (defaults to USD)
+    const currency = settingsManager ? settingsManager.getCurrency() : 'USD';
+    console.log('Currency:', currency);
+
+    // Fetch pricing for this specific issue
+    const pricingData = await api.getIssuePricing(typeId, issueId, currency);
+    console.log('Pricing fetched:', !!pricingData);
+
+    // Increment API call counter
+    if (settingsManager) {
+      settingsManager.incrementApiCalls(1);
+    }
+
+    return { success: true, pricingData };
+  } catch (error) {
+    console.error('Error fetching pricing for issue:', error);
+    return { success: false, error: error.message };
+  }
+});
+
 // ============================================================================
 // IPC HANDLERS - Field Mapping & Merge
 // ============================================================================
@@ -399,19 +429,36 @@ ipcMain.handle('update-coin-status', async (event, { coinId, status, metadata })
       throw new Error('Progress tracker not initialized');
     }
 
+    if (!db) {
+      throw new Error('Database not initialized');
+    }
+
     // Convert simple status to Phase 2 metadata format
     const timestamp = new Date().toISOString();
-    const phase2Metadata = {
+    let phase2Metadata = {
       basicData: { status: 'NOT_QUERIED' },
       issueData: { status: 'NOT_QUERIED' },
       pricingData: { status: 'NOT_QUERIED' }
     };
-    
+
     // Map simple statuses to Phase 2 structure
     if (status === 'skipped' || status === 'SKIPPED') {
       phase2Metadata.basicData = { status: 'SKIPPED', timestamp };
       phase2Metadata.issueData = { status: 'SKIPPED', timestamp };
       phase2Metadata.pricingData = { status: 'SKIPPED', timestamp };
+
+      // Write metadata to database for skipped status
+      const coin = db.getCoinById(coinId);
+      if (coin) {
+        const { userNotes } = metadataManager.readEnrichmentMetadata(coin.note || '');
+        const updatedNote = metadataManager.writeEnrichmentMetadata(userNotes, phase2Metadata);
+        db.updateCoin(coinId, { note: updatedNote });
+        console.log(`Skipped metadata written to database for coin ${coinId}`);
+
+        // Read back the complete metadata from the note we just wrote
+        const { metadata: completeMetadata } = metadataManager.readEnrichmentMetadata(updatedNote);
+        phase2Metadata = completeMetadata;
+      }
     } else if (status === 'no_matches' || status === 'NO_MATCHES') {
       phase2Metadata.basicData = { status: 'NO_MATCH', timestamp };
     } else if (status === 'matched' || status === 'MATCHED') {
@@ -420,12 +467,16 @@ ipcMain.handle('update-coin-status', async (event, { coinId, status, metadata })
     } else if (status === 'error' || status === 'ERROR') {
       phase2Metadata.basicData = { status: 'ERROR', timestamp, error: metadata?.error };
     }
-    
+
     // Get current fetch settings
     const fetchSettings = settingsManager ? settingsManager.getFetchSettings() : { basicData: true, issueData: false, pricingData: false };
-    
+
+    // Update progress tracker's current fetch settings
+    progressTracker.currentFetchSettings = fetchSettings;
+
+    // Update progress cache
     progressTracker.updateCoinInCache(coinId, phase2Metadata, fetchSettings);
-    
+
     return { success: true };
   } catch (error) {
     console.error('Error updating coin status:', error);
@@ -576,6 +627,116 @@ ipcMain.handle('increment-api-calls', async (event, count = 1) => {
   } catch (error) {
     console.error('Error incrementing API calls:', error);
     throw error;
+  }
+});
+
+// ============================================================================
+// IPC HANDLERS - Image Operations
+// ============================================================================
+
+ipcMain.handle('get-coin-images', async (event, coinId) => {
+  try {
+    if (!db) {
+      throw new Error('No collection loaded');
+    }
+
+    const images = db.getCoinImages(coinId);
+
+    if (!images) {
+      return {
+        success: false,
+        error: 'Coin not found'
+      };
+    }
+
+    // Convert BLOBs to data URIs for display
+    const result = {
+      success: true,
+      images: {
+        obverse: null,
+        reverse: null,
+        edge: null
+      }
+    };
+
+    if (images.obverse) {
+      const mimeType = imageHandler.getMimeType(images.obverse);
+      result.images.obverse = imageHandler.blobToDataUri(images.obverse, mimeType);
+    }
+
+    if (images.reverse) {
+      const mimeType = imageHandler.getMimeType(images.reverse);
+      result.images.reverse = imageHandler.blobToDataUri(images.reverse, mimeType);
+    }
+
+    if (images.edge) {
+      const mimeType = imageHandler.getMimeType(images.edge);
+      result.images.edge = imageHandler.blobToDataUri(images.edge, mimeType);
+    }
+
+    return result;
+  } catch (error) {
+    console.error('Error getting coin images:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
+
+ipcMain.handle('download-and-store-images', async (event, { coinId, imageUrls }) => {
+  try {
+    if (!db) {
+      throw new Error('No collection loaded');
+    }
+
+    console.log(`Downloading images for coin ${coinId}:`, imageUrls);
+
+    const imageBuffers = {};
+
+    // Download each image
+    if (imageUrls.obverse) {
+      try {
+        console.log(`Downloading obverse: ${imageUrls.obverse}`);
+        imageBuffers.obverse = await imageHandler.downloadImage(imageUrls.obverse);
+      } catch (error) {
+        console.error('Failed to download obverse image:', error.message);
+      }
+    }
+
+    if (imageUrls.reverse) {
+      try {
+        console.log(`Downloading reverse: ${imageUrls.reverse}`);
+        imageBuffers.reverse = await imageHandler.downloadImage(imageUrls.reverse);
+      } catch (error) {
+        console.error('Failed to download reverse image:', error.message);
+      }
+    }
+
+    if (imageUrls.edge) {
+      try {
+        console.log(`Downloading edge: ${imageUrls.edge}`);
+        imageBuffers.edge = await imageHandler.downloadImage(imageUrls.edge);
+      } catch (error) {
+        console.error('Failed to download edge image:', error.message);
+      }
+    }
+
+    // Store images in database
+    const imageIds = await db.storeImagesForCoin(coinId, imageBuffers);
+
+    console.log(`Images stored for coin ${coinId}:`, imageIds);
+
+    return {
+      success: true,
+      imageIds
+    };
+  } catch (error) {
+    console.error('Error downloading and storing images:', error);
+    return {
+      success: false,
+      error: error.message
+    };
   }
 });
 

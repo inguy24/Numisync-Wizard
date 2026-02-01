@@ -14,6 +14,7 @@ const apiMethods = {
   manualSearchNumista: (data) => ipcRenderer.invoke('manual-search-numista', data),
   getNumistaType: (typeId) => ipcRenderer.invoke('get-numista-type', typeId),
   fetchCoinData: (data) => ipcRenderer.invoke('fetch-coin-data', data),
+  fetchPricingForIssue: (data) => ipcRenderer.invoke('fetch-pricing-for-issue', data),
   
   // Field mapping and merge
   compareFields: (data) => ipcRenderer.invoke('compare-fields', data),
@@ -35,7 +36,11 @@ const apiMethods = {
   
   // Phase 2 - Statistics and API tracking
   getStatistics: () => ipcRenderer.invoke('get-statistics'),
-  incrementApiCalls: (count) => ipcRenderer.invoke('increment-api-calls', count)
+  incrementApiCalls: (count) => ipcRenderer.invoke('increment-api-calls', count),
+
+  // Phase 2 - Image handling
+  getCoinImages: (coinId) => ipcRenderer.invoke('get-coin-images', coinId),
+  downloadAndStoreImages: (data) => ipcRenderer.invoke('download-and-store-images', data)
 };
 
 // Expose as both 'electronAPI' (for backward compatibility) and 'api' (for new code)

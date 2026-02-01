@@ -21,9 +21,12 @@ Phase 2 focuses on adding advanced features that make the tool more efficient, u
 
 ## Architecture Decisions Summary
 
+**IMPORTANT:** All three data types (Basic, Issue, Pricing) can be fetched INDEPENDENTLY. Basic data is NOT required.
+
 | Decision Point | Choice | Rationale |
 |----------------|--------|-----------|
 | **Data Settings UI** | Settings button on main screen | Always visible, gives user control |
+| **Data Independence** | All three data types optional | User can fetch only what they need (e.g., just pricing updates) |
 | **Quota Tracking** | Session tracking only (honest) | Cannot accurately track API quota across sessions |
 | **Issue Matching** | Auto-match year+mintmark, fallback to user picker | Smart automation + user control when needed |
 | **Overall Coin Status** | Complete = user got what they requested | Flexible per-session goals |
@@ -349,9 +352,10 @@ async function matchIssue(issues, userCoin) {
 â”‚ Data Fetch Settings                                     â”‚
 â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
 â”‚                                                          â”‚
-â”‚ Select which data to fetch for each coin:               â”‚
-â”‚                                                          â”‚
-â”‚ â˜‘ Basic Data (REQUIRED)                                 â”‚
+â"‚ Select which data to fetch for each coin:               â"‚
+â"‚ All three data types can be fetched independently.      â"‚
+â"‚                                                          â"‚
+â"‚ â˜' Basic Data                                            â"‚
 â”‚   â€¢ Title, country, denomination, year                  â”‚
 â”‚   â€¢ Composition, weight, diameter, shape                â”‚
 â”‚   â€¢ Descriptions, images, catalog numbers               â”‚
@@ -597,35 +601,35 @@ Field Comparison Screen:
 **Estimated Time:** 3 days
 
 **Tasks:**
-- [ ] Implement OpenNumismat image reading
-  - [ ] Read from `images` table (foreign key relationship)
-  - [ ] Convert BLOB â†’ base64 for display
-  - [ ] Handle missing images gracefully
-- [ ] Display in coin list
-  - [ ] Show obverse/reverse thumbnails (40x40px)
-  - [ ] Lazy load for performance
-  - [ ] Placeholder for missing images
-- [ ] Display Numista images in search results
-  - [ ] Show thumbnail from Numista API
-  - [ ] Load from URL
-  - [ ] Show larger preview on hover
-- [ ] Build side-by-side comparison view
-  - [ ] Show user's images (from OpenNumismat)
-  - [ ] Show Numista images
-  - [ ] Allow zoom/full-size view
-- [ ] Implement image download
-  - [ ] Download from Numista URL
-  - [ ] Convert to BLOB
-  - [ ] Insert into `images` table
-  - [ ] Get image ID
-  - [ ] Store ID in coin record (obverseimg, reverseimg, edgeimg)
-- [ ] Handle edge images
-  - [ ] Download if available
-  - [ ] Display in comparison
-- [ ] Error handling
-  - [ ] Network failures
-  - [ ] Invalid image formats
-  - [ ] Missing images
+- [x] Implement OpenNumismat image reading
+  - [x] Read from `images` table (foreign key relationship)
+  - [x] Convert BLOB â†’ base64 for display
+  - [x] Handle missing images gracefully
+- [x] Display in coin list
+  - [x] Show obverse/reverse thumbnails (40x40px)
+  - [x] Lazy load for performance
+  - [x] Placeholder for missing images
+- [x] Display Numista images in search results
+  - [x] Show thumbnail from Numista API
+  - [x] Load from URL
+  - [x] Show larger preview on hover
+- [x] Build side-by-side comparison view
+  - [x] Show user's images (from OpenNumismat)
+  - [x] Show Numista images
+  - [x] Allow zoom/full-size view
+- [x] Implement image download
+  - [x] Download from Numista URL
+  - [x] Convert to BLOB
+  - [x] Insert into `images` table
+  - [x] Get image ID
+  - [x] Store ID in coin record (obverseimg, reverseimg, edgeimg)
+- [x] Handle edge images
+  - [x] Download if available
+  - [x] Display in comparison
+- [x] Error handling
+  - [x] Network failures
+  - [x] Invalid image formats
+  - [x] Missing images
 
 **Files to Create/Modify:**
 - `src/modules/image-handler.js` (NEW)
@@ -940,6 +944,102 @@ Added pagination controls to navigate through large coin collections efficiently
 
 ## Post-Phase 2 Features (Future)
 
+### Task 2.8 - Image Support ✅
+
+**Status:** COMPLETED
+**Date Completed:** January 31, 2026
+
+**Feature Overview:**
+Added comprehensive image support for coins, including display of user's coin images from OpenNumismat database, Numista images in search results, side-by-side comparison, and image download/storage functionality. Images enhance visual coin identification and comparison throughout the workflow.
+
+**Implementation Details:**
+
+**1. Image Handler Module (image-handler.js)**
+- Converts BLOBs to base64 data URIs for HTML display
+- Downloads images from Numista URLs (no API calls - direct HTTP)
+- Detects MIME types (JPEG, PNG, GIF, WebP) from buffers
+- Validates image data integrity
+- Generates SVG placeholders for missing images
+
+**2. Database Integration (opennumismat-db.js)**
+- `getImageData(imageId)` - Reads BLOB from images table by ID
+- `getCoinImages(coinId)` - Retrieves all images for a coin
+- `insertImage(imageData, title)` - Stores image BLOB in database
+- `storeImagesForCoin(coinId, imageBuffers)` - Batch inserts obverse/reverse/edge images
+- Properly handles foreign key relationships (obverseimg, reverseimg, edgeimg fields)
+
+**3. IPC Communication**
+- `get-coin-images` - Fetches coin images from database as data URIs
+- `download-and-store-images` - Downloads from Numista and stores in database
+- Added to preload.js and main/index.js
+
+**4. UI Features**
+
+**a) Coin List Thumbnails**
+- 40x40px obverse/reverse thumbnails for each coin
+- Lazy loading for performance (loads after list renders)
+- SVG placeholders for coins without images
+- Smooth rendering with no layout shift
+
+**b) Match Screen - User's Coin Images**
+- Displays user's coin images (60x60px) at top of match screen
+- Positioned next to coin details for easy reference
+- 3x zoom on hover for detailed inspection
+- Loads asynchronously without blocking UI
+
+**c) Search Results Images**
+- Shows Numista obverse/reverse images (80x80px) for each match
+- Stacked vertical layout
+- 2.5x zoom on hover for better viewing
+- Images come free with search API response (no extra calls)
+
+**d) Side-by-Side Comparison View**
+- Displays user's images vs Numista images (150x150px each)
+- Two columns: "Your Coin" | "Numista Match"
+- Hover to zoom for detailed comparison
+- "Download Images to Collection" button
+- Auto-refreshes after successful download
+
+**5. Image Download Process**
+- Downloads at 400x400 resolution from Numista
+- Converts thumbnail URLs (150x150) to higher quality (400x400)
+- Stores as BLOBs in OpenNumismat images table
+- Updates coin record with new image IDs
+- Handles network errors gracefully
+
+**Files Created:**
+- `src/modules/image-handler.js` - New module for all image operations
+
+**Files Modified:**
+- `src/modules/opennumismat-db.js` - Added 5 image-related methods
+- `src/main/index.js` - Added 2 IPC handlers for images
+- `src/main/preload.js` - Added 2 IPC method definitions
+- `src/renderer/app.js` - Updated renderCoinList, renderMatches, renderCurrentCoinInfo, added renderImageComparison, handleImageDownload
+- `src/renderer/styles/main.css` - Added styles for thumbnails, hover effects, comparison layout
+
+**User Experience:**
+- Visual coin identification improves matching accuracy
+- Hover zoom allows detailed inspection without opening images
+- Side-by-side comparison makes verification easy
+- One-click download preserves images in collection
+- Works offline after images are downloaded
+
+**Technical Notes:**
+- Images use zero API quota (direct HTTP downloads, not API endpoints)
+- Image URLs included free in Numista type data response
+- Lazy loading prevents performance impact on large collections
+- Hover zoom uses CSS transforms (smooth, no layout reflow)
+- High z-index ensures zoomed images appear above other content
+- OpenNumismat stores images as foreign key IDs, not direct BLOBs
+
+**Performance:**
+- Lazy loading: Images load after coin list renders
+- Batch loading: All visible coins load concurrently
+- Caching: Browser caches data URIs
+- No database queries for placeholders
+
+---
+
 Features to consider for Phase 3:
 - [ ] Batch operations (process multiple coins at once)
 - [ ] Fast Pricing Update mode (1 API call per coin)
@@ -962,5 +1062,141 @@ Features to consider for Phase 3:
 
 ---
 
-**Document Status:** COMPLETE - Ready for Implementation  
-**Next Action:** Begin with Task 2.1 - Metadata Storage System
+**Document Status:** IN PROGRESS - Task 2.4 COMPLETE, Task 2.8 COMPLETE
+**Next Action:** Begin Task 2.7 - Fetch More Data, or Task 2.1 - Metadata Storage System
+
+---
+
+## Recent Development Sessions
+
+### Session: January 31, 2026 Evening - Data Independence & Smart Issue Matching
+
+**Status:** COMPLETED
+**Tasks Affected:** 2.4 (Conditional API Calls), 2.8 (Images)
+
+**Issues Fixed:**
+
+1. **Data Independence Problem** - All three data types (Basic, Issue, Pricing) now truly independent
+   - Root cause: basicData was hardcoded as required in settings-manager.js
+   - Fixed: Removed all enforcement of basicData=true throughout codebase
+   - Files modified: settings-manager.js, numista-api.js, index.html, app.js
+
+2. **Smart Issue Matching Implementation** - Adaptive algorithm for year+mintmark vs year+type matching
+   - Problem: Static matching only checked year+mintmark, failed for coins differentiated by type (Proof vs regular)
+   - Solution: Analyzes which fields vary (mint_letter, comment) and applies filters based on user's data
+   - Algorithm:
+     - Filter by year first (required)
+     - Analyze which fields differentiate issues (mint_letter, comment)
+     - Apply mintmark filter if it varies AND user has mintmark
+     - Apply type/comment filter if it varies (blank type = regular, "Proof" = proof issues)
+     - Return AUTO_MATCHED if single result, USER_PICK if multiple remain
+   - Files modified: numista-api.js (lines 168-284)
+
+3. **Image Display Fixes**
+   - Problem 1: Thumbnails not showing in comparison view
+     - Cause: Thumbnail URLs from search results overwritten by detailed type data
+     - Fix: Preserve thumbnail URLs before merging with detailed data
+   - Problem 2: Database error "table images has no column named title"
+     - Cause: insertImage trying to insert non-existent title column
+     - Fix: Changed INSERT to only include image column
+   - Problem 3: Download button styling inconsistent
+     - Fix: Changed to btn-primary class, moved below images, made full-width
+   - Files modified: app.js, opennumismat-db.js
+
+**Task 2.4 Status Update:**
+- ✅ Modified numista-api.js to accept fetch settings
+- ✅ Conditionally call endpoints based on settings (basicData now truly optional)
+- ✅ Implemented smart issue matching logic (adaptive to available fields)
+- ✅ Handle edge cases (NO_MATCH, NO_DATA, ERROR, USER_PICK)
+- ✅ **COMPLETE:** Issue Picker UI component fully implemented (see session below)
+- ✅ Updated field comparison screen to respect fetch settings
+
+**Task 2.4 is now 100% COMPLETE** ✅
+
+**Task 2.8 Status:** COMPLETED (see section above)
+
+**Files Modified:**
+- `src/modules/settings-manager.js` - Made basicData truly optional
+- `src/modules/numista-api.js` - Smart issue matching, conditional fetching
+- `src/modules/opennumismat-db.js` - Fixed image insertion
+- `src/renderer/index.html` - Updated Basic Data UI
+- `src/renderer/app.js` - Thumbnail preservation, button styling
+
+**Next Steps:**
+- ✅ Issue Picker UI modal implemented (Task 2.4 complete)
+- Begin Task 2.7 - Fetch More Data, or Task 2.1 - Metadata Storage System
+
+---
+
+### Session: January 31, 2026 Late Evening - Issue Picker UI Implementation
+
+**Status:** COMPLETED
+**Tasks Affected:** 2.4 (Conditional API Calls) - Final Component
+
+**Implementation Summary:**
+
+Completed the final missing piece of Task 2.4: the Issue Picker UI modal that allows users to manually select the correct issue when smart matching finds multiple candidates.
+
+**Components Implemented:**
+
+1. **Issue Picker Modal HTML** (`src/renderer/index.html`)
+   - Clean modal layout with coin information display
+   - Dynamic list container for issue options
+   - User's coin data displayed (year, mintmark, type)
+   - "Apply Selection" and "Skip Issue Data" action buttons
+
+2. **Issue Picker Styling** (`src/renderer/styles/main.css`)
+   - 112 lines of CSS for modal, cards, badges
+   - Hover and selection state styling
+   - Green badge for exact matches (year + mintmark)
+   - Orange badge for partial matches (year OR type)
+   - Responsive card layout with detail grid
+
+3. **Issue Picker Logic** (`src/renderer/app.js`)
+   - `showIssuePicker(issueOptions, coin)` function
+   - Match quality analysis (exact vs partial)
+   - Interactive selection with radio buttons
+   - Returns Promise with user action (selected/skip/cancel)
+   - Displays mintage to help identify rare variants
+
+4. **Integration into Match Flow** (`src/renderer/app.js` - handleMatchSelection)
+   - Detects USER_PICK scenarios after fetchCoinData
+   - Shows picker modal when multiple issues found
+   - Fetches pricing for selected issue (if enabled)
+   - Handles skip/cancel gracefully
+
+5. **Pricing Fetch Handler** (`src/main/index.js`, `src/main/preload.js`)
+   - New IPC handler: `fetch-pricing-for-issue`
+   - Calls `api.getIssuePricing(typeId, issueId, currency)`
+   - Increments API call counter
+   - Returns pricing data for selected issue
+
+**User Experience:**
+
+When multiple issues match (e.g., 1943 Lincoln Cent from P/D/S mints):
+1. Modal displays all candidates with detailed information
+2. Exact matches highlighted with green "EXACT MATCH" badge
+3. User selects the correct issue via radio button
+4. System fetches pricing for that specific issue (if enabled)
+5. Proceeds to field comparison with mint-specific data
+
+**Files Modified:**
+- `src/renderer/index.html` - Issue Picker modal
+- `src/renderer/styles/main.css` - Styling (112 lines added)
+- `src/renderer/app.js` - showIssuePicker() + integration
+- `src/main/index.js` - fetch-pricing-for-issue handler
+- `src/main/preload.js` - fetchPricingForIssue API method
+
+**Task 2.4 Final Status:**
+- ✅ Conditional API calls
+- ✅ Smart issue matching (adaptive)
+- ✅ Issue Picker UI (complete)
+- ✅ Edge case handling
+- ✅ Pricing fetch for selected issue
+
+**Phase 2 Task 2.4 - Conditional API Calls: 100% COMPLETE** ✅
+
+---
+
+**Document Status:** IN PROGRESS - Task 2.4 COMPLETE, Task 2.8 COMPLETE
+**Next Action:** Begin Task 2.7 - Fetch More Data, or Task 2.1 - Metadata Storage System

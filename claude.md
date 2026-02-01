@@ -1,9 +1,20 @@
-1. ALWAYS consult the MASTER-PROJECT-DOCUMENT before doing any work as this contains the structure, past errors and continued rules for the project. You are to always update this document after any changes to ensure that it is an up to date repository for all knowledge on the project. 
-2. Never give me snippets of code. All code is to be either integrated into existing code files or new code files that are properly called by other code. 
-3. ALL FILES ARE IN GITHUB!
-4. final-field-mapping.md in github contains all of the mapping between Numista and OpenNumismat fields. You are to keep this document updated. 
-5. swagger.yaml in github contains the documentation for the Numista API. 
-6. No cussing, that is for humans only. 
-7. code files are in github /src and related sub-directories. 
-8. Always follow EMOJI-ENCODING-GUIDANCE.md when dealing with emojis and NEVER use any utilities or applications that will result in corruption of encoding. This is a consistent problem. 
-9. If something is not working correctly... STOP! Do not waste my tokens. I need to know right away.
+# Project Rules & Guidelines
+
+## 1. Documentation & Memory Layer
+- **Source of Truth:** ALWAYS read @MASTER-PROJECT-DOCUMENT.md first. It contains critical structure, past errors, and persistent rules.
+- **Continuous Learning:** After every code change, update @MASTER-PROJECT-DOCUMENT.md and @final-field-mapping.md with a concise log of changes to ensure the repository of knowledge is current.
+- **Reference Docs:** Use @swagger.yaml for all Numista API integration details.
+
+## 2. Coding Standards
+- **GitHub First:** All project files are in GitHub within the `/src` directory and its sub-directories.
+- **No Snippets:** Never provide code snippets. All code must be fully integrated into existing files or new, properly called modules.
+- **Emoji Integrity:** Strictly follow @EMOJI-ENCODING-GUIDANCE.md. After editing any file containing emojis, you MUST verify the file encoding (e.g., via `file -i`) to ensure no corruption has occurred.
+
+## 3. Workflow & Token Management
+- **Early Stop Rule:** If a solution is not working after 2 attempts, STOP immediately. Do not loop or waste tokens; report the issue and ask for clarification.
+- **Plan Mode:** For any non-trivial task, propose a plan in a temporary `plan.md` and wait for user approval before touching code.
+- **GitHub Workflow:** All file operations should assume a GitHub-centric environment.
+
+## 4. Interaction Constraints
+- **Professional Tone:** No cussing or profanity. This is a human-only privilege; maintain a strictly professional persona.
+- **Style Guard:** Do not attempt to adapt to the user's informal style or use of profanity if encountered; remain consistent in your professional delivery.

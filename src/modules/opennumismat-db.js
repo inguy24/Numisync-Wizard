@@ -289,9 +289,9 @@ class OpenNumismatDB {
     for (const field of fields) {
       if (updatedCoin[field] === data[field]) {
         verified = true;
-        console.log(`âœ“ Field '${field}' verified: ${data[field]}`);
+        console.log(`✔ Field '${field}' verified: ${data[field]}`);
       } else {
-        console.warn(`âœ— Field '${field}' mismatch. Expected: ${data[field]}, Got: ${updatedCoin[field]}`);
+        console.warn(`✗ Field '${field}' mismatch. Expected: ${data[field]}, Got: ${updatedCoin[field]}`);
       }
     }
     
@@ -367,14 +367,99 @@ class OpenNumismatDB {
   }
 
   /**
-   * Get image data for a coin
-   * 
+   * Get image BLOB data from the images table by image ID
+   *
+   * @param {number} imageId - The image ID from the images table
+   * @returns {Buffer|null} Image data as buffer, or null if not found
+   */
+  getImageData(imageId) {
+    if (!imageId) {
+      return null;
+    }
+
+    try {
+      const result = this._queryOne('SELECT image FROM images WHERE id = ?', [imageId]);
+
+      if (!result || !result.image) {
+        return null;
+      }
+
+      // sql.js returns BLOB data as Uint8Array
+      return Buffer.from(result.image);
+    } catch (error) {
+      console.error(`Error reading image ${imageId}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Get photo BLOB data from the photos table by photo ID
+   * OpenNumismat stores user photos (from camera/scanner) in the photos table,
+   * referenced by photo1-photo6 columns in the coins table.
+   *
+   * @param {number} photoId - The photo ID from the photos table
+   * @returns {Buffer|null} Photo data as buffer, or null if not found
+   */
+  getPhotoData(photoId) {
+    if (!photoId) {
+      return null;
+    }
+
+    try {
+      const result = this._queryOne('SELECT image FROM photos WHERE id = ?', [photoId]);
+
+      if (!result || !result.image) {
+        return null;
+      }
+
+      // sql.js returns BLOB data as Uint8Array
+      return Buffer.from(result.image);
+    } catch (error) {
+      console.error(`Error reading photo ${photoId}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Get image data for a coin (returns actual BLOB data, not just IDs)
+   *
+   * OpenNumismat image storage:
+   *   - coins.obverseimg / coins.reverseimg → photos table (separate obverse/reverse)
+   *   - coins.image → images table (composite angel-wing thumbnail)
+   *
    * @param {number} coinId
-   * @returns {Object} Object with obverse and reverse image data (BLOBs)
+   * @returns {Object} Object with obverse, reverse, and edge image data (BLOBs)
    */
   getCoinImages(coinId) {
     const coin = this.getCoinById(coinId);
-    
+
+    if (!coin) {
+      return null;
+    }
+
+    // obverseimg/reverseimg reference the photos table (separate obverse/reverse images)
+    const obverse = this.getPhotoData(coin.obverseimg);
+    const reverse = this.getPhotoData(coin.reverseimg);
+
+    return {
+      obverse,
+      reverse,
+      edge: null,
+      obverseId: coin.obverseimg,
+      reverseId: coin.reverseimg,
+      edgeId: null
+    };
+  }
+
+  /**
+   * Get coin image IDs (without loading BLOB data)
+   *
+   * @param {number} coinId
+   * @returns {Object} Object with image IDs
+   */
+  getCoinImageIds(coinId) {
+    const coin = this.getCoinById(coinId);
+
     if (!coin) {
       return null;
     }
@@ -382,19 +467,56 @@ class OpenNumismatDB {
     return {
       obverse: coin.obverseimg,
       reverse: coin.reverseimg,
-      edge: coin.edgeimg
+      edge: null
     };
   }
 
   /**
-   * Update coin images
-   * 
+   * Insert image BLOB into images table
+   *
+   * @param {Buffer} imageData - Image data as buffer
+   * @param {string} title - Optional title for the image
+   * @returns {number} The ID of the inserted image
+   */
+  insertImage(imageData, title = '') {
+    if (!imageData || !Buffer.isBuffer(imageData)) {
+      throw new Error('Invalid image data');
+    }
+
+    try {
+      // Convert Buffer to Uint8Array for sql.js
+      const uint8Array = new Uint8Array(imageData);
+
+      // Insert the image (images table only has id and image columns)
+      const stmt = this.db.prepare('INSERT INTO images (image) VALUES (?)');
+      stmt.bind([uint8Array]);
+      stmt.step();
+      stmt.free();
+
+      // Get the last inserted ID
+      const result = this.db.exec('SELECT last_insert_rowid() as id');
+      const imageId = result[0].values[0][0];
+
+      // Save to file
+      this._saveToFile();
+
+      console.log(`Image inserted with ID: ${imageId}`);
+      return imageId;
+    } catch (error) {
+      console.error('Error inserting image:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update coin images (using image IDs)
+   *
    * @param {number} coinId
-   * @param {Object} images - Object with obverse, reverse, and/or edge properties
+   * @param {Object} images - Object with obverse, reverse, and/or edge properties (image IDs)
    */
   updateCoinImages(coinId, images) {
     const updates = {};
-    
+
     if (images.obverse !== undefined) {
       updates.obverseimg = images.obverse;
     }
@@ -407,6 +529,44 @@ class OpenNumismatDB {
 
     if (Object.keys(updates).length > 0) {
       this.updateCoin(coinId, updates);
+    }
+  }
+
+  /**
+   * Download and store images for a coin
+   *
+   * @param {number} coinId - The coin ID
+   * @param {Object} imageBuffers - Object with obverse, reverse, and/or edge Buffers
+   * @returns {Object} Object with the image IDs that were created
+   */
+  async storeImagesForCoin(coinId, imageBuffers) {
+    const imageIds = {};
+
+    try {
+      if (imageBuffers.obverse && Buffer.isBuffer(imageBuffers.obverse)) {
+        console.log(`Storing obverse image for coin ${coinId}`);
+        imageIds.obverse = this.insertImage(imageBuffers.obverse, `Coin ${coinId} - Obverse`);
+      }
+
+      if (imageBuffers.reverse && Buffer.isBuffer(imageBuffers.reverse)) {
+        console.log(`Storing reverse image for coin ${coinId}`);
+        imageIds.reverse = this.insertImage(imageBuffers.reverse, `Coin ${coinId} - Reverse`);
+      }
+
+      if (imageBuffers.edge && Buffer.isBuffer(imageBuffers.edge)) {
+        console.log(`Storing edge image for coin ${coinId}`);
+        imageIds.edge = this.insertImage(imageBuffers.edge, `Coin ${coinId} - Edge`);
+      }
+
+      // Update the coin record with the new image IDs
+      if (Object.keys(imageIds).length > 0) {
+        this.updateCoinImages(coinId, imageIds);
+      }
+
+      return imageIds;
+    } catch (error) {
+      console.error('Error storing images for coin:', error);
+      throw error;
     }
   }
 

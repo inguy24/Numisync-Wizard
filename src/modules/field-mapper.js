@@ -121,7 +121,7 @@ class FieldMapper {
         if (value !== null && value !== undefined && value !== '') {
           mapped[onField] = value;
           addedCount++;
-          console.log(`    âœ“ Added '${onField}' = '${value}'`);
+          console.log(`    ✔ Added '${onField}' = '${value}'`);
         } else {
           skippedNoValue++;
         }
@@ -270,9 +270,9 @@ class FieldMapper {
       
       if (shouldUpdate && mapped[field] !== undefined) {
         updates[field] = mapped[field];
-        console.log(`  âœ“ Adding '${field}' = '${mapped[field]}'`);
+        console.log(`  ✔ Adding '${field}' = '${mapped[field]}'`);
       } else {
-        console.log(`  âœ— Skipping '${field}' (shouldUpdate=${shouldUpdate}, hasValue=${mapped[field] !== undefined})`);
+        console.log(`  ✗ Skipping '${field}' (shouldUpdate=${shouldUpdate}, hasValue=${mapped[field] !== undefined})`);
       }
     }
 

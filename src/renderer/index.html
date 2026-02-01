@@ -13,7 +13,7 @@
       <h1>OpenNumismat - Numista Enrichment Tool</h1>
       <div class="header-actions">
         <button id="settingsBtn" class="btn btn-secondary">
-          ⚙️ Settings
+          ⚙️ Settings
         </button>
       </div>
     </header>
@@ -36,7 +36,7 @@
           <div class="welcome-info">
             <h3>Quick Start:</h3>
             <ol>
-              <li><strong>First time?</strong> Click ⚙️ Settings (top right) and add your Numista API key
+              <li><strong>First time?</strong> Click ⚙️ Settings (top right) and add your Numista API key
                 <br><small>Get a free key at <a href="https://en.numista.com/api/" target="_blank">numista.com/api</a></small>
               </li>
               <li><strong>Load your collection</strong> - Select your OpenNumismat .db file</li>
@@ -98,8 +98,28 @@
             <select id="statusFilter">
               <option value="all">All Coins</option>
               <option value="unprocessed">Unprocessed Only</option>
-              <option value="merged">Merged</option>
+              <option value="merged">Merged (Basic Data)</option>
               <option value="skipped">Skipped</option>
+              <optgroup label="Completeness">
+                <option value="complete">Complete (All Data)</option>
+                <option value="partial">Partial (Missing Some Data)</option>
+              </optgroup>
+              <optgroup label="Missing Data">
+                <option value="missing_basic">Missing Basic Data</option>
+                <option value="missing_issue">Missing Issue Data</option>
+                <option value="missing_pricing">Missing Pricing Data</option>
+              </optgroup>
+            </select>
+          </label>
+          <label>
+            Pricing Freshness:
+            <select id="freshnessFilter">
+              <option value="all">All Ages</option>
+              <option value="current">Current (&lt; 3 months)</option>
+              <option value="recent">Recent (3mo - 1yr)</option>
+              <option value="aging">Aging (1-2 years)</option>
+              <option value="outdated">Outdated (&gt; 2 years)</option>
+              <option value="never">Never Updated</option>
             </select>
           </label>
           <label>
@@ -108,8 +128,19 @@
               <option value="title">Title</option>
               <option value="year">Year</option>
               <option value="country">Country</option>
+              <option value="status">Status</option>
+              <option value="last_update">Last Updated</option>
+              <option value="pricing_freshness">Pricing Freshness</option>
             </select>
           </label>
+          <button id="resetFiltersBtn" class="btn btn-small" title="Reset all filters to default">
+            Reset Filters
+          </button>
+        </div>
+
+        <!-- Filter Summary -->
+        <div class="filter-summary" id="filterSummary" style="display: none;">
+          <!-- Filter counts will be populated here -->
         </div>
 
         <!-- Pagination Controls -->
@@ -139,7 +170,7 @@
             <p>Select a coin from the list to search Numista and enrich its data.</p>
             <p style="margin-top: 20px;">
               💡 <strong>How it works:</strong><br>
-              1. Click a coin â‚¬Â Ã¢â†’ 2. Review matches â‚¬Â Ã¢â†’ 3. Choose fields â‚¬Â Ã¢â†’ 4. Apply changes
+              1. Click a coin → 2. Review matches → 3. Choose fields → 4. Apply changes
             </p>
           </div>
         </div>
@@ -165,10 +196,10 @@
             </p>
           </div>
           <button id="searchAgainBtn" class="btn btn-secondary">
-            ðŸ”„Å¾ Search Again
+            🔄 Search Again
           </button>
           <button id="manualSearchBtn" class="btn btn-secondary">
-            ðŸ” Try Different Search
+            🔍 Try Different Search
           </button>
         </div>
 
@@ -344,7 +375,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h3 id="modalTitle"></h3>
-        <button id="modalClose" class="modal-close">Ã—</button>
+        <button id="modalClose" class="modal-close">×</button>
       </div>
       <div class="modal-body" id="modalBody"></div>
       <div class="modal-footer">
@@ -359,7 +390,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h3>⚙️ Data Fetch Settings</h3>
-        <button id="dataSettingsCloseBtn" class="modal-close">Ã—</button>
+        <button id="dataSettingsCloseBtn" class="modal-close">×</button>
       </div>
       
       <div class="modal-body">
@@ -369,12 +400,12 @@
         
         <div class="data-settings-options">
           
-          <!-- Basic Data - Always Required -->
-          <div class="data-setting-card disabled">
+          <!-- Basic Data -->
+          <div class="data-setting-card">
             <div class="data-setting-header">
               <label class="checkbox-label">
-                <input type="checkbox" id="fetchBasicData" checked disabled>
-                <strong>Basic Data</strong> <span class="required-badge">REQUIRED</span>
+                <input type="checkbox" id="fetchBasicData" checked>
+                <strong>Basic Data</strong> <span class="optional-badge">OPTIONAL</span>
               </label>
             </div>
             <div class="data-setting-details">
@@ -495,6 +526,37 @@
       <div class="modal-footer">
         <button id="saveDataSettingsBtn" class="btn btn-primary">Apply Settings</button>
         <button id="cancelDataSettingsBtn" class="btn btn-secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Issue Picker Modal -->
+  <div id="issuePickerModal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Select Issue for <span id="issuePickerCoinName"></span></h3>
+        <button id="issuePickerCloseBtn" class="modal-close">×</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="issue-picker-info">
+          <p>Multiple issues were found for this coin. Please select which one matches your coin:</p>
+          <div class="user-coin-info">
+            <strong>Your coin:</strong>
+            Year: <span id="issuePickerUserYear"></span>,
+            Mintmark: <span id="issuePickerUserMintmark"></span>,
+            Type: <span id="issuePickerUserType"></span>
+          </div>
+        </div>
+
+        <div id="issueOptionsList" class="issue-options-list">
+          <!-- Issue options will be populated dynamically -->
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button id="applyIssueSelectionBtn" class="btn btn-primary" disabled>Apply Selection</button>
+        <button id="skipIssueSelectionBtn" class="btn btn-secondary">Skip Issue Data</button>
       </div>
     </div>
   </div>

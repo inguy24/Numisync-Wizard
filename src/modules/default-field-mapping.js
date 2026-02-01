@@ -428,8 +428,8 @@ const DEFAULT_FIELD_MAPPING = {
       // Map Numista values to OpenNumismat values
       if (!value) return null;
       const mapping = {
-        'coin': '6',      // 6 o'clock (â†‘â†“)
-        'medal': '12',    // 12 o'clock (â†‘â†‘)
+        'coin': '6',      // 6 o'clock (↑↓)
+        'medal': '12',    // 12 o'clock (↑↑)
         'variable': null  // Can't map variable
       };
       return mapping[value] || null;
@@ -461,8 +461,8 @@ const DEFAULT_FIELD_MAPPING = {
     priority: 'MEDIUM',
     enabled: true,
     requiresIssueData: false,
-    catalogCode: 'SchÃ¶n',  // Default: SchÃ¶n
-    description: 'Secondary catalog number (SchÃ¶n by default)'
+    catalogCode: 'Schön',  // Default: Schön
+    description: 'Secondary catalog number (Schön by default)'
   },
   
   catalognum3: {
@@ -510,7 +510,7 @@ const DEFAULT_FIELD_MAPPING = {
  * Helper function to extract catalog number from references array
  * 
  * @param {Array} references - Numista references array
- * @param {string} catalogCode - Catalog code to search for (e.g., 'KM', 'SchÃ¶n')
+ * @param {string} catalogCode - Catalog code to search for (e.g., 'KM', 'Schön')
  * @returns {string|null} - Catalog number or null if not found
  */
 function getCatalogNumber(references, catalogCode) {
@@ -552,14 +552,14 @@ function getNestedValue(obj, path) {
  * Map catalog codes to full names for user-friendly display
  * Used when showing catalog numbers in the UI
  * 
- * @param {string} code - Catalog code (e.g., 'KM', 'SchÃ¶n')
- * @returns {string} - Full name (e.g., 'Krause', 'SchÃ¶n')
+ * @param {string} code - Catalog code (e.g., 'KM', 'Schön')
+ * @returns {string} - Full name (e.g., 'Krause', 'Schön')
  */
 function getCatalogDisplayName(code) {
   const nameMap = {
     'KM': 'Krause',
-    'SchÃ¶n': 'SchÃ¶n',
-    'Sch': 'SchÃ¶n',
+    'Schön': 'Schön',
+    'Sch': 'Schön',
     'Y': 'Yeoman',
     'Numista': 'Numista',
     'N': 'Numista'

@@ -170,6 +170,7 @@ class ProgressTracker {
         merged: 0,
         pending: 0,
         notQueried: 0,
+        skipped: 0,
         error: 0,
         noData: 0
       },
@@ -177,6 +178,7 @@ class ProgressTracker {
         merged: 0,
         pending: 0,
         notQueried: 0,
+        skipped: 0,
         error: 0,
         noMatch: 0,
         noData: 0
@@ -185,6 +187,7 @@ class ProgressTracker {
         merged: 0,
         pending: 0,
         notQueried: 0,
+        skipped: 0,
         error: 0,
         noData: 0,
         current: 0,
@@ -293,7 +296,7 @@ class ProgressTracker {
       'PENDING': 'pending',
       'NOT_QUERIED': 'notQueried',
       'ERROR': 'error',
-      'SKIPPED': 'pending', // Skipped coins count as pending for data type stats
+      'SKIPPED': 'skipped',
       'NO_MATCH': 'noMatch',
       'NO_DATA': 'noData'
     };

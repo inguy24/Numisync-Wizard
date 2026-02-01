@@ -44,9 +44,9 @@ class SettingsManager {
       },
       
       fetchSettings: {
-        basicData: true,      // REQUIRED - always true
-        issueData: false,     // Optional
-        pricingData: false    // Optional
+        basicData: true,      // Optional - can be independently fetched
+        issueData: false,     // Optional - can be independently fetched
+        pricingData: false    // Optional - can be independently fetched
       },
       
       // Pricing currency preference
@@ -105,9 +105,7 @@ class SettingsManager {
       
       fetchSettings: {
         ...defaults.fetchSettings,
-        ...(loaded.fetchSettings || {}),
-        // Enforce that basicData is always true
-        basicData: true
+        ...(loaded.fetchSettings || {})
       },
       
       fieldMappings: {
@@ -185,8 +183,7 @@ class SettingsManager {
    */
   setFetchSettings(fetchSettings) {
     this.settings.fetchSettings = {
-      // Always keep basicData true
-      basicData: true,
+      basicData: fetchSettings.basicData !== undefined ? fetchSettings.basicData : this.settings.fetchSettings.basicData,
       issueData: fetchSettings.issueData !== undefined ? fetchSettings.issueData : this.settings.fetchSettings.issueData,
       pricingData: fetchSettings.pricingData !== undefined ? fetchSettings.pricingData : this.settings.fetchSettings.pricingData
     };
@@ -212,16 +209,20 @@ class SettingsManager {
    * Calculate API calls per coin based on fetch settings
    */
   getCallsPerCoin() {
-    let calls = 2; // Basic data always requires 2 calls (search + type details)
-    
+    let calls = 0;
+
+    if (this.settings.fetchSettings.basicData) {
+      calls += 2; // Basic data requires 2 calls (search + type details)
+    }
+
     if (this.settings.fetchSettings.issueData) {
       calls += 1; // Issues endpoint
     }
-    
+
     if (this.settings.fetchSettings.pricingData) {
       calls += 1; // Pricing endpoint
     }
-    
+
     return calls;
   }
 

@@ -1,0 +1,1314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenNumismat Enrichment Tool - User Manual</title>
+  <style>
+    :root {
+      --primary: #2c3e50;
+      --accent: #3498db;
+      --accent-dark: #2980b9;
+      --bg: #ffffff;
+      --bg-alt: #f8f9fa;
+      --bg-code: #f4f4f4;
+      --border: #dee2e6;
+      --text: #333333;
+      --text-light: #666666;
+      --green: #27ae60;
+      --yellow: #f39c12;
+      --orange: #e67e22;
+      --red: #e74c3c;
+      --sidebar-width: 300px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: var(--text);
+      line-height: 1.7;
+      background: var(--bg);
+    }
+
+    /* ── Sidebar / Table of Contents ── */
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: var(--sidebar-width);
+      height: 100vh;
+      overflow-y: auto;
+      background: var(--primary);
+      color: #ecf0f1;
+      padding: 20px 0;
+      z-index: 100;
+      transition: transform 0.3s;
+    }
+
+    .sidebar h2 {
+      font-size: 15px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 0 20px 15px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      margin-bottom: 10px;
+    }
+
+    .sidebar ul { list-style: none; }
+
+    .sidebar > ul > li > a {
+      display: block;
+      padding: 8px 20px;
+      color: #bdc3c7;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .sidebar > ul > li > a:hover,
+    .sidebar > ul > li > a.active {
+      background: rgba(255,255,255,0.08);
+      color: #ffffff;
+    }
+
+    .sidebar ul ul { padding-left: 0; }
+
+    .sidebar ul ul li a {
+      display: block;
+      padding: 5px 20px 5px 36px;
+      color: #95a5a6;
+      text-decoration: none;
+      font-size: 13px;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .sidebar ul ul li a:hover {
+      background: rgba(255,255,255,0.05);
+      color: #ecf0f1;
+    }
+
+    /* ── Toggle button for mobile ── */
+    .sidebar-toggle {
+      display: none;
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 200;
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      font-size: 18px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    @media (max-width: 900px) {
+      .sidebar { transform: translateX(-100%); }
+      .sidebar.open { transform: translateX(0); }
+      .sidebar-toggle { display: block; }
+      .main-content { margin-left: 0 !important; }
+    }
+
+    /* ── Main Content ── */
+    .main-content {
+      margin-left: var(--sidebar-width);
+      padding: 40px 60px 80px;
+      max-width: 960px;
+    }
+
+    /* ── Typography ── */
+    h1 {
+      font-size: 32px;
+      color: var(--primary);
+      margin-bottom: 8px;
+      padding-bottom: 12px;
+      border-bottom: 3px solid var(--accent);
+    }
+
+    .subtitle {
+      font-size: 16px;
+      color: var(--text-light);
+      margin-bottom: 40px;
+    }
+
+    h2 {
+      font-size: 24px;
+      color: var(--primary);
+      margin-top: 50px;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--border);
+      scroll-margin-top: 20px;
+    }
+
+    h3 {
+      font-size: 18px;
+      color: var(--primary);
+      margin-top: 30px;
+      margin-bottom: 10px;
+      scroll-margin-top: 20px;
+    }
+
+    h4 {
+      font-size: 15px;
+      color: var(--text);
+      margin-top: 20px;
+      margin-bottom: 8px;
+      scroll-margin-top: 20px;
+    }
+
+    p { margin-bottom: 12px; }
+
+    ul, ol {
+      margin: 8px 0 16px 24px;
+    }
+
+    li { margin-bottom: 6px; }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Tables ── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0 24px;
+      font-size: 14px;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+    }
+
+    th {
+      background: var(--primary);
+      color: white;
+      font-weight: 600;
+    }
+
+    tr:nth-child(even) { background: var(--bg-alt); }
+
+    /* ── Code / Inline ── */
+    code {
+      background: var(--bg-code);
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 13px;
+      font-family: 'Consolas', 'Courier New', monospace;
+    }
+
+    pre {
+      background: var(--bg-code);
+      padding: 16px;
+      border-radius: 6px;
+      overflow-x: auto;
+      margin: 12px 0 20px;
+      font-size: 13px;
+      line-height: 1.5;
+      border: 1px solid var(--border);
+    }
+
+    pre code { background: none; padding: 0; }
+
+    /* ── Callout boxes ── */
+    .callout {
+      padding: 16px 20px;
+      border-radius: 6px;
+      margin: 16px 0 20px;
+      border-left: 4px solid;
+    }
+
+    .callout-info {
+      background: #eaf4fc;
+      border-color: var(--accent);
+    }
+
+    .callout-warning {
+      background: #fef9e7;
+      border-color: var(--yellow);
+    }
+
+    .callout-danger {
+      background: #fdedec;
+      border-color: var(--red);
+    }
+
+    .callout-success {
+      background: #eafaf1;
+      border-color: var(--green);
+    }
+
+    .callout strong { display: block; margin-bottom: 4px; }
+
+    /* ── Status badge ── */
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-size: 12px;
+      font-weight: 600;
+      color: white;
+    }
+
+    .badge-green { background: var(--green); }
+    .badge-yellow { background: var(--yellow); }
+    .badge-orange { background: var(--orange); }
+    .badge-red { background: var(--red); }
+    .badge-gray { background: #95a5a6; }
+
+    /* ── Keyboard key styling ── */
+    kbd {
+      background: var(--bg-alt);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 2px 6px;
+      font-size: 12px;
+      font-family: 'Consolas', monospace;
+      box-shadow: 0 1px 0 rgba(0,0,0,0.1);
+    }
+
+    /* ── Screenshot placeholder ── */
+    .screenshot {
+      background: var(--bg-alt);
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      padding: 30px;
+      text-align: center;
+      color: var(--text-light);
+      margin: 16px 0;
+      font-style: italic;
+    }
+
+    /* ── Step-by-step instructions ── */
+    .steps { counter-reset: step; list-style: none; margin-left: 0; }
+    .steps li {
+      counter-increment: step;
+      padding: 12px 0 12px 50px;
+      position: relative;
+      border-bottom: 1px solid var(--border);
+    }
+    .steps li:last-child { border-bottom: none; }
+    .steps li::before {
+      content: counter(step);
+      position: absolute;
+      left: 0;
+      top: 12px;
+      width: 32px;
+      height: 32px;
+      background: var(--accent);
+      color: white;
+      border-radius: 50%;
+      text-align: center;
+      line-height: 32px;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    /* ── Back to top ── */
+    .back-to-top {
+      display: block;
+      text-align: right;
+      font-size: 13px;
+      margin-top: 30px;
+      color: var(--accent);
+    }
+
+    /* ── Horizontal rule ── */
+    hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 40px 0;
+    }
+
+    /* ── Print styles ── */
+    @media print {
+      .sidebar, .sidebar-toggle, .back-to-top { display: none !important; }
+      .main-content { margin-left: 0; padding: 20px; max-width: 100%; }
+      h2 { page-break-before: always; }
+      h2:first-of-type { page-break-before: avoid; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Mobile sidebar toggle -->
+<button class="sidebar-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')">&#9776; Menu</button>
+
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<!-- SIDEBAR / TABLE OF CONTENTS                                            -->
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<nav class="sidebar">
+  <h2>User Manual</h2>
+  <ul>
+    <li><a href="#introduction">1. Introduction</a>
+      <ul>
+        <li><a href="#what-is">What Is This Tool?</a></li>
+        <li><a href="#key-concepts">Key Concepts</a></li>
+        <li><a href="#system-requirements">System Requirements</a></li>
+      </ul>
+    </li>
+    <li><a href="#getting-started">2. Getting Started</a>
+      <ul>
+        <li><a href="#installation">Installation</a></li>
+        <li><a href="#api-key">Getting a Numista API Key</a></li>
+        <li><a href="#first-launch">First Launch &amp; Setup</a></li>
+      </ul>
+    </li>
+    <li><a href="#loading-collection">3. Loading a Collection</a>
+      <ul>
+        <li><a href="#open-db">Opening a Database File</a></li>
+        <li><a href="#collection-overview">Collection Overview</a></li>
+        <li><a href="#progress-summary">Progress Summary</a></li>
+      </ul>
+    </li>
+    <li><a href="#data-settings">4. Data Settings</a>
+      <ul>
+        <li><a href="#data-types">Data Types Explained</a></li>
+        <li><a href="#currency-selection">Currency Selection</a></li>
+        <li><a href="#api-cost">API Call Costs</a></li>
+      </ul>
+    </li>
+    <li><a href="#enriching-coins">5. Enriching Coins</a>
+      <ul>
+        <li><a href="#workflow-overview">Workflow Overview</a></li>
+        <li><a href="#automatic-search">Automatic Search</a></li>
+        <li><a href="#manual-search">Manual Search</a></li>
+        <li><a href="#confidence-scores">Confidence Scores</a></li>
+        <li><a href="#selecting-match">Selecting a Match</a></li>
+        <li><a href="#skipping-coins">Skipping Coins</a></li>
+      </ul>
+    </li>
+    <li><a href="#field-comparison">6. Field Comparison</a>
+      <ul>
+        <li><a href="#reviewing-fields">Reviewing Fields</a></li>
+        <li><a href="#selection-tools">Selection Tools</a></li>
+        <li><a href="#image-comparison">Image Comparison</a></li>
+        <li><a href="#applying-changes">Applying Changes</a></li>
+      </ul>
+    </li>
+    <li><a href="#issue-matching">7. Issue Matching</a>
+      <ul>
+        <li><a href="#auto-matching">Automatic Matching</a></li>
+        <li><a href="#issue-picker">Issue Picker Modal</a></li>
+      </ul>
+    </li>
+    <li><a href="#pricing">8. Pricing Data</a>
+      <ul>
+        <li><a href="#pricing-grades">Pricing Grades</a></li>
+        <li><a href="#freshness-tracking">Freshness Tracking</a></li>
+        <li><a href="#fast-pricing">Fast Pricing Update</a></li>
+      </ul>
+    </li>
+    <li><a href="#filtering-sorting">9. Filtering &amp; Sorting</a>
+      <ul>
+        <li><a href="#status-filters">Status Filters</a></li>
+        <li><a href="#freshness-filters">Freshness Filters</a></li>
+        <li><a href="#sort-options">Sort Options</a></li>
+        <li><a href="#filter-summary">Filter Summary</a></li>
+        <li><a href="#pagination">Pagination</a></li>
+      </ul>
+    </li>
+    <li><a href="#status-tracking">10. Status Tracking</a>
+      <ul>
+        <li><a href="#coin-statuses">Coin Statuses</a></li>
+        <li><a href="#data-status-icons">Data Status Icons</a></li>
+        <li><a href="#metadata-persistence">Metadata Persistence</a></li>
+      </ul>
+    </li>
+    <li><a href="#images">11. Image Handling</a>
+      <ul>
+        <li><a href="#image-display">Image Display</a></li>
+        <li><a href="#image-modes">Storage Modes</a></li>
+      </ul>
+    </li>
+    <li><a href="#settings-reference">12. Settings Reference</a>
+      <ul>
+        <li><a href="#api-key-setting">API Key</a></li>
+        <li><a href="#search-settings">Search Settings</a></li>
+        <li><a href="#image-settings">Image Handling</a></li>
+        <li><a href="#safety-settings">Safety &amp; Backups</a></li>
+      </ul>
+    </li>
+    <li><a href="#backups">13. Backups &amp; Safety</a></li>
+    <li><a href="#status-bar">14. Status Bar</a></li>
+    <li><a href="#troubleshooting">15. Troubleshooting</a></li>
+    <li><a href="#faq">16. FAQ</a></li>
+    <li><a href="#appendix-fields">Appendix A: Field Reference</a></li>
+    <li><a href="#appendix-statuses">Appendix B: Status Reference</a></li>
+  </ul>
+</nav>
+
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<!-- MAIN CONTENT                                                           -->
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<div class="main-content">
+
+<!-- ──────────────────────────────────────────────────────────────────────── -->
+<h1>OpenNumismat Enrichment Tool</h1>
+<p class="subtitle">Complete User Manual &mdash; v1.0</p>
+
+<!-- ──────────────────────────────────────────────────────────────────────── -->
+<h2 id="introduction">1. Introduction</h2>
+
+<h3 id="what-is">What Is This Tool?</h3>
+<p>
+  The <strong>OpenNumismat Enrichment Tool</strong> is a desktop application that enhances your
+  <a href="https://opennumismat.github.io/" target="_blank">OpenNumismat</a> coin collection
+  with comprehensive data from the
+  <a href="https://en.numista.com/" target="_blank">Numista</a> online coin database.
+</p>
+<p>
+  It allows you to search Numista for each coin in your collection, compare the data side-by-side,
+  and selectively import fields such as descriptions, specifications, catalog numbers, mintage
+  figures, and current market prices &mdash; all while keeping full control over what gets written
+  to your database.
+</p>
+
+<h3 id="key-concepts">Key Concepts</h3>
+<ul>
+  <li><strong>OpenNumismat</strong> &mdash; A free, open-source coin collecting application that stores your collection in an SQLite <code>.db</code> file.</li>
+  <li><strong>Numista</strong> &mdash; A large online database of coins from around the world, with a public API for searching and retrieving coin data.</li>
+  <li><strong>Enrichment</strong> &mdash; The process of filling in or updating fields in your OpenNumismat database with authoritative data from Numista.</li>
+  <li><strong>Coin Type</strong> &mdash; A general coin design (e.g., "1 Penny, George V"). Multiple issues (years, mints) share one type.</li>
+  <li><strong>Issue</strong> &mdash; A specific striking of a coin type in a particular year, at a particular mint, with a particular mintage.</li>
+  <li><strong>API Key</strong> &mdash; A personal key that grants access to the Numista API. Free for personal use.</li>
+  <li><strong>API Call</strong> &mdash; Each request to the Numista servers. The tool tracks how many calls you make per session.</li>
+</ul>
+
+<h3 id="system-requirements">System Requirements</h3>
+<table>
+  <tr><th>Requirement</th><th>Details</th></tr>
+  <tr><td>Operating System</td><td>Windows 10/11, macOS 10.15+, or Linux</td></tr>
+  <tr><td>OpenNumismat</td><td>Any version that produces a standard <code>.db</code> collection file</td></tr>
+  <tr><td>Internet Connection</td><td>Required for Numista API access</td></tr>
+  <tr><td>Numista Account</td><td>Free account needed to obtain an API key</td></tr>
+</table>
+
+<a href="#introduction" class="back-to-top">Back to top &uarr;</a>
+
+<!-- ──────────────────────────────────────────────────────────────────────── -->
+<h2 id="getting-started">2. Getting Started</h2>
+
+<h3 id="installation">Installation</h3>
+<p>Download the appropriate installer for your operating system and run it. The application installs as a standard desktop application.</p>
+
+<h3 id="api-key">Getting a Numista API Key</h3>
+<p>Before you can search and enrich coins, you need a free API key from Numista:</p>
+<ol class="steps">
+  <li>Go to <a href="https://en.numista.com/" target="_blank">numista.com</a> and create a free account (or log in if you already have one).</li>
+  <li>Visit the <a href="https://en.numista.com/api/" target="_blank">Numista API page</a>.</li>
+  <li>Generate your personal API key.</li>
+  <li>Copy the key &mdash; you will paste it into the tool's Settings screen.</li>
+</ol>
+
+<div class="callout callout-info">
+  <strong>Note:</strong>
+  The Numista API key is free for personal use. It allows you to search and retrieve coin data for your own collection.
+</div>
+
+<h3 id="first-launch">First Launch &amp; Setup</h3>
+<ol class="steps">
+  <li>Launch the application. You will see the <strong>Welcome screen</strong>.</li>
+  <li>Click the <strong>Settings</strong> button (gear icon in the top-right corner).</li>
+  <li>Paste your Numista API key into the <strong>API Key</strong> field.</li>
+  <li>Review the default settings (they work well for most users) and click <strong>Save Settings</strong>.</li>
+  <li>Click <strong>Close</strong> to return to the Welcome screen. You are now ready to load a collection.</li>
+</ol>
+
+<a href="#introduction" class="back-to-top">Back to top &uarr;</a>
+
+<!-- ──────────────────────────────────────────────────────────────────────── -->
+<h2 id="loading-collection">3. Loading a Collection</h2>
+
+<h3 id="open-db">Opening a Database File</h3>
+<p>
+  From the Welcome screen, click <strong>Load Collection</strong>. A file dialog will appear &mdash;
+  navigate to your OpenNumismat <code>.db</code> file and select it.
+</p>
+<p>
+  The tool reads the database and loads up to <strong>10,000 coins</strong>. A progress bar shows loading status.
+  Settings specific to this collection are stored alongside the database in a file named
+  <code>&lt;database&gt;_settings.json</code>.
+</p>
+
+<div class="callout callout-info">
+  <strong>Tip:</strong>
+  If you have previously enriched coins from this collection, the tool automatically detects and restores
+  your progress from metadata stored in each coin's notes field.
+</div>
+
+<h3 id="collection-overview">Collection Overview</h3>
+<p>
+  After loading, the <strong>Collection Overview</strong> screen displays all coins in a scrollable list.
+  Each coin entry shows:
+</p>
+<ul>
+  <li><strong>Thumbnail images</strong> &mdash; Obverse and reverse (if available in your database)</li>
+  <li><strong>Title</strong> &mdash; The coin's name</li>
+  <li><strong>Details</strong> &mdash; Country, year, denomination</li>
+  <li><strong>Status icons</strong> &mdash; Three icons showing the state of Basic [B], Issue [I], and Pricing [P] data</li>
+</ul>
+
+<h3 id="progress-summary">Progress Summary</h3>
+<p>At the top of the Collection Overview, four cards summarize your enrichment progress:</p>
+<table>
+  <tr><th>Card</th><th>Meaning</th></tr>
+  <tr><td><strong>Total Coins</strong></td><td>Number of coins in your collection</td></tr>
+  <tr><td><strong>Processed</strong></td><td>Coins you have interacted with (merged, skipped, or errored)</td></tr>
+  <tr><td><strong>Merged</strong></td><td>Coins that have had at least some data successfully imported</td></tr>
+  <tr><td><strong>Remaining</strong></td><td>Coins not yet processed</td></tr>
+</table>
+
+<a href="#introduction" class="back-to-top">Back to top &uarr;</a>
+
+<!-- ──────────────────────────────────────────────────────────────────────── -->
+<h2 id="data-settings">4. Data Settings</h2>
+
+<p>
+  Click the <strong>Data Settings</strong> button on the Collection Overview to configure what
+  data the tool fetches for each coin. This opens a modal dialog with toggle options.
+</p>
+
+<h3 id="data-types">Data Types Explained</h3>
+
+<h4>Basic Data (2 API calls)</h4>
+<p>Core information about the coin type:</p>
+<ul>
+  <li>Title, category, series</li>
+  <li>Country (issuer), period, ruler</li>
+  <li>Denomination (value and unit)</li>
+  <li>Material composition, weight, diameter, thickness, shape</li>
+  <li>Physical specifications (orientation, minting technique)</li>
+  <li>Descriptions (obverse, reverse, edge, lettering)</li>
+  <li>Catalog numbers (KM, Sch&ouml;n, Y, etc.)</li>
+</ul>
+
+<h4>Issue Data (+1 API call)</h4>
+<p>Mint-specific information for the exact year and mint of your coin:</p>
+<ul>
+  <li>Mintmark (mint letter, e.g., "D" for Denver)</li>
+  <li>Mintage (number of coins struck)</li>
+  <li>Comment (e.g., "Proof", special designations)</li>
+</ul>
+
+<div class="callout callout-warning">
+  <strong>Important:</strong>
+  Issue matching requires that your coin has a year recorded. If multiple issues exist for that year
+  (different mints, proof vs. regular), you may be asked to select the correct one.
+</div>
+
+<h4>Pricing Data (+1 API call)</h4>
+<p>Current market values in your chosen currency, across four grade levels:</p>
+<ul>
+  <li>Uncirculated (UNC)</li>
+  <li>Extremely Fine (XF)</li>
+  <li>Very Fine (VF)</li>
+  <li>Fine (F)</li>
+</ul>
+<p>Prices include a timestamp so you can track how current they are (see <a href="#freshness-tracking">Freshness Tracking</a>).</p>
+
+<h3 id="currency-selection">Currency Selection</h3>
+<p>When Pricing Data is enabled, choose from seven supported currencies:</p>
+<table>
+  <tr><th>Code</th><th>Currency</th></tr>
+  <tr><td>USD</td><td>US Dollar</td></tr>
+  <tr><td>EUR</td><td>Euro</td></tr>
+  <tr><td>GBP</td><td>British Pound</td></tr>
+  <tr><td>CAD</td><td>Canadian Dollar</td></tr>
+  <tr><td>AUD</td><td>Australian Dollar</td></tr>
+  <tr><td>JPY</td><td>Japanese Yen</td></tr>
+  <tr><td>CHF</td><td>Swiss Franc</td></tr>
+</table>
+
+<h3 id="api-cost">API Call Costs</h3>
+<p>The Data Settings modal shows how many API calls will be made per coin based on your selections:</p>
+<table>
+  <tr><th>Selection</th><th>Calls Per Coin</th></tr>
+  <tr><td>Basic Data only</td><td>2 calls</td></tr>
+  <tr><td>Basic + Issue</td><td>3 calls</td></tr>
+  <tr><td>Basic + Pricing</td><td>3 calls</td></tr>
+  <tr><td>Basic + Issue + Pricing</td><td>4 calls</td></tr>
+</table>
+<p>The session call counter in the status bar tracks your total API usage during the current session.</p>
+
+<a href="#introduction" class="back-to-top">Back to top &uarr;</a>
+
+<!-- ──────────────────────────────────────────────────────────────────────── -->
+<h2 id="enriching-coins">5. Enriching Coins</h2>
+
+<h3 id="workflow-overview">Workflow Overview</h3>
+<p>
+  The enrichment process works one coin at a time for maximum accuracy. The general flow is:
+</p>
+<ol class="steps">
+  <li><strong>Click a coin</strong> in the Collection Overview to begin enriching it.</li>
+  <li><strong>Review search results</strong> &mdash; The tool automatically searches Numista and shows matching coin types ranked by confidence.</li>
+  <li><strong>Select the correct match</strong> &mdash; Click the result that matches your coin.</li>
+  <li><strong>Compare fields</strong> &mdash; Review a side-by-side comparison of your data vs. Numista data.</li>
+  <li><strong>Choose fields to import</strong> &mdash; Check the boxes for the fields you want to update.</li>
+  <li><strong>Apply changes</strong> &mdash; The selected fields are written to your database.</li>
+</ol>
+
+<h3 id="automatic-search">Automatic Search</h3>
+<p>
+  When you click a coin, the tool builds a search query from your coin's existing data (title, year,
+  country, denomination) and sends it to the Numista API. Up to <strong>20 matches</strong> are
+  returned and displayed as cards.
+</p>
+<p>Each match card shows:</p>
+<ul>
+  <li>Coin type title</li>
+  <li>Country (issuer)</li>
+  <li>Date range (e.g., 1911&ndash;1936)</li>
+  <li>Confidence score (0&ndash;100%)</li>
+</ul>
+
+<h3 id="manual-search">Manual Search</h3>
+<p>
+  If the automatic search does not find a good match, click <strong>Try Different Search</strong>
+  to open the Manual Search panel. Enter custom search terms in the text field and click <strong>Search</strong>.
+</p>
+<p><strong>Search tips:</strong></p>
+<ul>
+  <li>Try shorter terms: <code>1 Penny 1912</code> instead of the full title</li>
+  <li>Try denomination and year: <code>Penny 1912</code></li>
+  <li>Try the ruler's name: <code>George V</code></li>
+  <li>Try a catalog number: <code>KM 23</code></li>
+  <li>Try country and year: <code>Australia 1912</code></li>
+</ul>
+
+<div class="callout callout-info">
+  <strong>Tip:</strong>
+  You can also click <strong>Search Again</strong> to retry the automatic search &mdash; useful if
+  you've edited the coin's data in OpenNumismat since the last search.
+</div>
+
+<h3 id="confidence-scores">Confidence Scores</h3>
+<p>
+  Each search result is assigned a confidence score based on how well it matches your coin's data.
+  The score considers title similarity, year overlap, country match, denomination, and catalog numbers.
+</p>
+<table>
+  <tr><th>Score Range</th><th>Color</th><th>Meaning</th></tr>
+  <tr><td>70&ndash;100%</td><td><span class="badge badge-green">Green</span></td><td>Strong match &mdash; likely correct</td></tr>
+  <tr><td>40&ndash;69%</td><td><span class="badge badge-yellow">Yellow</span></td><td>Possible match &mdash; review carefully</td></tr>
+  <tr><td>0&ndash;39%</td><td><span class="badge badge-red">Red</span></td><td>Weak match &mdash; probably not correct</td></tr>
+</table>
+
+<h3 id="selecting-match">Selecting a Match</h3>
+<p>
+  Click on any search result card to select it. The tool then fetches detailed data for that coin
+  type from Numista (using the API calls configured in Data Settings) and takes you to the
+  <a href="#field-comparison">Field Comparison</a> screen.
+</p>
+
+<h3 id="skipping-coins">Skipping Coins</h3>
+<p>
+  If none of the results match your coin, or you don't want to enrich this coin right now,
+  click <strong>Skip This Coin</strong>. The coin is marked as "Skipped" in your collection
+  and you return to the Collection Overview.
+</p>
+<p>You can return to a skipped coin later and try again at any time.</p>
+
+<a href="#introduction" class="back-to-top">Back to top &uarr;</a>
+
+<!-- ──────────────────────────────────────────────────────────────────────── -->
+<h2 id="field-comparison">6. Field Comparison &amp; Selection</h2>
+
+<h3 id="reviewing-fields">Reviewing Fields</h3>
+<p>
+  The Field Comparison screen shows a side-by-side view of your current data alongside the
+  Numista data. Each row represents one field (e.g., "Weight", "Composition", "Obverse Description").
+</p>
+<ul>
+  <li>Fields where your data <strong>differs</strong> from Numista are shown in <strong>bold</strong>.</li>
+  <li>Fields where your data is <strong>empty</strong> and Numista has a value are highlighted &mdash; these are prime candidates for import.</li>
+  <li>Fields are grouped by data type: Basic Data, Issue Data, and Pricing Data (depending on your settings).</li>
+</ul>
+
+<h3 id="selection-tools">Selection Tools</h3>
+<p>Four quick-selection buttons help you efficiently choose fields:</p>
+<table>
+  <tr><th>Button</th><th>Action</th></tr>
+  <tr><td><strong>Select All</strong></td><td>Checks every field</td></tr>
+  <tr><td><strong>Select None</strong></td><td>Unchecks every field</td></tr>
+  <tr><td><strong>Select Empty Only</strong></td><td>Checks only fields where your database has no value</td></tr>
+  <tr><td><strong>Select Different Only</strong></td><td>Checks only fields where the Numista value differs from yours</td></tr>
+</table>
+
+<div class="callout callout-success">
+  <strong>Recommended approach:</strong>
+  Use <strong>Select Empty Only</strong> to fill gaps in your data without overwriting anything you've
+  already entered. Then manually check any additional fields you want to update.
+</div>
+
+<h3 id="image-comparison">Image Comparison</h3>
+<p>
+  The comparison screen also displays images side-by-side:
+</p>
+<ul>
+  <li><strong>Your coin images</strong> &mdash; Obverse and reverse from your database (60&times;60px, hover to zoom 3&times;)</li>
+  <li><strong>Numista images</strong> &mdash; Reference images from Numista (80&times;80px, hover to zoom 2.5&times;)</li>
+</ul>
+<p>You can choose to import Numista images into your database (see <a href="#images">Image Handling</a>).</p>
+
+<h3 id="applying-changes">Applying Changes</h3>
+<p>
+  Once you've selected the fields you want, click <strong>Apply Changes to Coin</strong>.
+</p>
+<p>The tool will:</p>
+<ol>
+  <li>Create an automatic backup of your database (if enabled in Settings).</li>
+  <li>Write the selected field values to your coin's record in the database.</li>
+  <li>Store enrichment metadata in the coin's notes field (invisible to OpenNumismat users).</li>
+  <li>Update the coin's status to "Merged".</li>
+  <li>Return you to the Collection Overview with the coin's status updated.</li>
+</ol>
+
+<p>Click <strong>Cancel</strong> to return to the Match Selection screen without making changes.</p>
+
+<a href="#introduction" class="back-to-top">Back to top &uarr;</a>
+
+<!-- ──────────────────────────────────────────────────────────────────────── -->
+<h2 id="issue-matching">7. Issue Matching</h2>
+
+<p>
+  When you have Issue Data enabled in your Data Settings, the tool attempts to match your specific
+  coin to the correct <em>issue</em> (a particular year, mint, and type within a coin type).
+</p>
+
+<h3 id="auto-matching">Automatic Matching</h3>
+<p>The tool uses a smart multi-step algorithm to find the right issue:</p>
+<ol>
+  <li><strong>Filter by year</strong> &mdash; Only issues matching your coin's year are considered.</li>
+  <li><strong>Filter by mintmark</strong> &mdash; If mintmarks vary across issues and your coin has one, further narrow the results.</li>
+  <li><strong>Filter by type</strong> &mdash; If there are still multiple matches (e.g., regular vs. Proof), filter by comment/type.</li>
+  <li><strong>Result:</strong>
+    <ul>
+      <li>If exactly <strong>one match</strong> remains &rarr; automatically selected.</li>
+      <li>If <strong>multiple matches</strong> remain &rarr; the Issue Picker modal opens.</li>
+      <li>If <strong>no matches</strong> &rarr; status set to "No Match".</li>
+    </ul>
+  </li>
+</ol>
+
+<h3 id="issue-picker">Issue Picker Modal</h3>
+<p>
+  When the automatic matching cannot determine a single issue, a modal dialog appears showing:
+</p>
+<ul>
+  <li><strong>Your coin's details</strong> &mdash; Year, mintmark, and type for reference.</li>
+  <li><strong>All candidate issues</strong> &mdash; Listed with year, mintmark, mintage, and any type/comment information.</li>
+  <li><strong>Match indicators</strong> &mdash; Visual badges showing "Exact Match" or "Partial Match" for each field.</li>
+</ul>
+<p>Select the correct issue using the radio buttons, then click <strong>Apply Selection</strong>.</p>
+<p>
+  If you're unsure or don't want issue data for this coin, click <strong>Skip Issue Data</strong>.
+  The basic data will still be imported; only the issue-specific fields will be skipped.
+</p>
+
+<a href="#introduction" class="back-to-top">Back to top &uarr;</a>
+
+<!-- ──────────────────────────────────────────────────────────────────────── -->
+<h2 id="pricing">8. Pricing Data</h2>
+
+<h3 id="pricing-grades">Pricing Grades</h3>
+<p>When Pricing Data is enabled, the tool fetches current market values in four standard numismatic grades:</p>
+<table>
+  <tr><th>Grade</th><th>Abbreviation</th><th>Description</th></tr>
+  <tr><td>Uncirculated</td><td>UNC</td><td>No wear from circulation; may have minor bag marks</td></tr>
+  <tr><td>Extremely Fine</td><td>XF / EF</td><td>Very slight wear on highest points only</td></tr>
+  <tr><td>Very Fine</td><td>VF</td><td>Light to moderate wear; all major features sharp</td></tr>
+  <tr><td>Fine</td><td>F</td><td>Moderate to heavy even wear; all design elements visible</td></tr>
+</table>
+<p>Prices are returned from Numista in your selected currency.</p>
+
+<h3 id="freshness-tracking">Freshness Tracking</h3>
+<p>
+  Coin prices change over time. The tool tracks <em>when</em> pricing data was last fetched
+  and categorizes it by age:
+</p>
+<table>
+  <tr><th>Icon</th><th>Category</th><th>Age</th></tr>
+  <tr><td><span class="badge badge-green">&#x1F7E2;</span></td><td>Current</td><td>Less than 3 months old</td></tr>
+  <tr><td><span class="badge badge-yellow">&#x1F7E1;</span></td><td>Recent</td><td>3 months to 1 year old</td></tr>
+  <tr><td><span class="badge badge-orange">&#x1F7E0;</span></td><td>Aging</td><td>1 to 2 years old</td></tr>
+  <tr><td><span class="badge badge-red">&#x1F534;</span></td><td>Outdated</td><td>More than 2 years old</td></tr>
+  <tr><td><span class="badge badge-gray">&#x26AA;</span></td><td>Never Updated</td><td>No pricing data fetched</td></tr>
+</table>
+<p>Freshness is displayed as a colored icon on the [P] status indicator in the coin list.</p>
+
+<h3 id="fast-pricing">Fast Pricing Update</h3>
+<p>
+  The <strong>Fast Pricing Update</strong> button on the Collection Overview allows you to
+  refresh pricing data for coins that have already been matched to a Numista type &mdash; without
+  needing to re-search or re-match. This is useful for updating outdated prices across your collection.
+</p>
+
+<a href="#introduction" class="back-to-top">Back to top &uarr;</a>
+
+<!-- ──────────────────────────────────────────────────────────────────────── -->
+<h2 id="filtering-sorting">9. Filtering &amp; Sorting</h2>
+
+<p>
+  The Collection Overview provides powerful filtering and sorting controls to help you navigate
+  large collections and focus on the coins that need attention.
+</p>
+
+<h3 id="status-filters">Status Filters</h3>
+<p>The <strong>Show</strong> dropdown filters coins by their enrichment status:</p>
+<table>
+  <tr><th>Filter</th><th>Shows</th></tr>
+  <tr><td><strong>All Coins</strong></td><td>Every coin in the collection (default)</td></tr>
+  <tr><td><strong>Unprocessed Only</strong></td><td>Coins that have not been enriched or skipped</td></tr>
+  <tr><td><strong>Merged (Basic Data)</strong></td><td>Coins with basic data successfully imported</td></tr>
+  <tr><td><strong>Skipped</strong></td><td>Coins you chose to skip</td></tr>
+  <tr><td colspan="2" style="background: var(--bg-alt); font-weight: 600;">Completeness</td></tr>
+  <tr><td><strong>Complete (All Data)</strong></td><td>Coins with all requested data types successfully merged</td></tr>
+  <tr><td><strong>Partial (Missing Some Data)</strong></td><td>Coins where some data types succeeded and others failed or were skipped</td></tr>
+  <tr><td colspan="2" style="background: var(--bg-alt); font-weight: 600;">Missing Data</td></tr>
+  <tr><td><strong>Missing Basic Data</strong></td><td>Coins without basic type data</td></tr>
+  <tr><td><strong>Missing Issue Data</strong></td><td>Coins without issue-specific data (mintmark, mintage)</td></tr>
+  <tr><td><strong>Missing Pricing Data</strong></td><td>Coins without pricing information</td></tr>
+</table>
+
+<h3 id="freshness-filters">Freshness Filters</h3>
+<p>The <strong>Pricing Freshness</strong> dropdown filters coins by the age of their pricing data:</p>
+<table>
+  <tr><th>Filter</th><th>Shows</th></tr>
+  <tr><td><strong>All Ages</strong></td><td>All coins regardless of pricing age (default)</td></tr>
+  <tr><td><strong>Current (&lt; 3 months)</strong></td><td>Coins with very recent pricing</td></tr>
+  <tr><td><strong>Recent (3mo &ndash; 1yr)</strong></td><td>Coins with reasonably current pricing</td></tr>
+  <tr><td><strong>Aging (1&ndash;2 years)</strong></td><td>Coins with pricing that may need updating</td></tr>
+  <tr><td><strong>Outdated (&gt; 2 years)</strong></td><td>Coins with stale pricing that should be refreshed</td></tr>
+  <tr><td><strong>Never Updated</strong></td><td>Coins that have never had pricing data fetched</td></tr>
+</table>
+
+<h3 id="sort-options">Sort Options</h3>
+<p>The <strong>Sort by</strong> dropdown controls the order of the coin list:</p>
+<table>
+  <tr><th>Option</th><th>Order</th></tr>
+  <tr><td><strong>Title</strong></td><td>Alphabetical by coin title (default)</td></tr>
+  <tr><td><strong>Year</strong></td><td>Chronological by year</td></tr>
+  <tr><td><strong>Country</strong></td><td>Alphabetical by country/issuer</td></tr>
+  <tr><td><strong>Status</strong></td><td>By enrichment status (complete &rarr; partial &rarr; unprocessed)</td></tr>
+  <tr><td><strong>Last Updated</strong></td><td>Most recently enriched coins first</td></tr>
+  <tr><td><strong>Pricing Freshness</strong></td><td>Oldest pricing first (so you can prioritize updates)</td></tr>
+</table>
+
+<p>Click <strong>Reset Filters</strong> to return all filters and sorting to their default values.</p>
+
+<h3 id="filter-summary">Filter Summary</h3>
+<p>
+  When a filter is active, a summary bar appears below the filter controls showing count statistics
+  for each filter category. This gives you a quick overview of your collection's enrichment status.
+</p>
+
+<h3 id="pagination">Pagination</h3>
+<p>
+  Large collections are paginated at <strong>100 coins per page</strong>. Navigation controls appear
+  above the coin list:
+</p>
+<table>
+  <tr><th>Button</th><th>Action</th></tr>
+  <tr><td>&#x23EE;&#xFE0F; First</td><td>Jump to the first page</td></tr>
+  <tr><td>&#x25C0;&#xFE0F; Previous</td><td>Go back one page</td></tr>
+  <tr><td>&#x25B6;&#xFE0F; Next</td><td>Go forward one page</td></tr>
+  <tr><td>&#x23ED;&#xFE0F; Last</td><td>Jump to the last page</td></tr>
+</table>
+<p>The page indicator shows your current position (e.g., "Page 3 of 12").</p>
+
+<a href="#introduction" class="back-to-top">Back to top &uarr;</a>
+
+<!-- ──────────────────────────────────────────────────────────────────────── -->
+<h2 id="status-tracking">10. Status Tracking</h2>
+
+<h3 id="coin-statuses">Coin Statuses</h3>
+<p>
+  Each coin has an overall status as well as individual statuses for each data type (Basic, Issue, Pricing).
+</p>
+
+<h4>Overall Coin Status</h4>
+<table>
+  <tr><th>Status</th><th>Meaning</th></tr>
+  <tr><td><strong>Complete</strong></td><td>All requested data types have been successfully merged</td></tr>
+  <tr><td><strong>Partial</strong></td><td>Some data types merged, but others failed or were skipped</td></tr>
+  <tr><td><strong>Pending</strong></td><td>Coin has not been processed yet</td></tr>
+  <tr><td><strong>Skipped</strong></td><td>User chose to skip this coin entirely</td></tr>
+  <tr><td><strong>Error</strong></td><td>A critical failure occurred during processing</td></tr>
+</table>
+
+<h3 id="data-status-icons">Data Status Icons</h3>
+<p>In the coin list, three icons ([B] [I] [P]) indicate the status of each data type:</p>
+<table>
+  <tr><th>Icon</th><th>Status</th><th>Meaning</th></tr>
+  <tr><td>&#x2705;</td><td>Merged</td><td>Data successfully imported from Numista</td></tr>
+  <tr><td>&#x26AA;</td><td>Not Queried</td><td>This data type was not requested in settings</td></tr>
+  <tr><td>&#x23F3;</td><td>Pending</td><td>Currently being fetched</td></tr>
+  <tr><td>&#x274C;</td><td>Error</td><td>API call failed for this data type</td></tr>
+  <tr><td>&#x2753;</td><td>No Match</td><td>Issue matching failed (Issue data only)</td></tr>
+  <tr><td>&#x1F4ED;</td><td>No Data</td><td>Numista returned no results for this data type</td></tr>
+  <tr><td>&#x1F6AB;</td><td>Skipped</td><td>User chose to skip this data type</td></tr>
+</table>
+
+<h3 id="metadata-persistence">Metadata Persistence</h3>
+<p>
+  Enrichment progress is stored directly inside your OpenNumismat database as an invisible HTML comment
+  in each coin's <code>note</code> field. This means:
+</p>
+<ul>
+  <li><strong>Progress survives reinstalls</strong> &mdash; Reinstalling the tool does not lose your work.</li>
+  <li><strong>Progress travels with the database</strong> &mdash; Copy your <code>.db</code> file anywhere and the enrichment data goes with it.</li>
+  <li><strong>Your notes are preserved</strong> &mdash; Any personal notes you've written in the Notes field are untouched; the metadata is appended as a hidden comment.</li>
+  <li><strong>OpenNumismat compatibility</strong> &mdash; The metadata is invisible when viewing coins in OpenNumismat.</li>
+</ul>
+
+<a href="#introduction" class="back-to-top">Back to top &uarr;</a>
+
+<!-- ──────────────────────────────────────────────────────────────────────── -->
+<h2 id="images">11. Image Handling</h2>
+
+<h3 id="image-display">Image Display</h3>
+<p>Images appear throughout the application at various sizes:</p>
+<table>
+  <tr><th>Context</th><th>Size</th><th>Interaction</th></tr>
+  <tr><td>Coin list (Collection Overview)</td><td>40 &times; 40 px</td><td>Lazy-loaded thumbnails</td></tr>
+  <tr><td>Match Selection (your coin)</td><td>60 &times; 60 px</td><td>Hover to zoom 3&times;</td></tr>
+  <tr><td>Field Comparison (Numista images)</td><td>80 &times; 80 px</td><td>Hover to zoom 2.5&times;</td></tr>
+</table>
+<p>Both obverse and reverse images are shown where available. Coins without images display a placeholder.</p>
+
+<h3 id="image-modes">Storage Modes</h3>
+<p>Configure image handling in Settings. Two modes are available:</p>
+
+<h4>URL Mode (Recommended)</h4>
+<ul>
+  <li>Stores image URLs from Numista in your database.</li>
+  <li>OpenNumismat downloads the images automatically when you open the collection.</li>
+  <li>Requires internet when viewing in OpenNumismat.</li>
+  <li>Keeps your database file smaller.</li>
+  <li>Uses zero additional API calls (images served from Numista CDN).</li>
+</ul>
+
+<h4>BLOB Mode</h4>
+<ul>
+  <li>Downloads images immediately and stores them as binary data in your database.</li>
+  <li>Works offline &mdash; no internet needed to view images in OpenNumismat.</li>
+  <li>Increases database file size.</li>
+  <li>Images are downloaded at 400 &times; 400 px resolution.</li>
+</ul>
+
+<a href="#introduction" class="back-to-top">Back to top &uarr;</a>
+
+<!-- ──────────────────────────────────────────────────────────────────────── -->
+<h2 id="settings-reference">12. Settings Reference</h2>
+
+<p>
+  Access Settings by clicking the <strong>gear icon</strong> in the top-right corner of the application header.
+  Settings are saved per-collection in a <code>&lt;database&gt;_settings.json</code> file next to your database.
+</p>
+
+<h3 id="api-key-setting">API Key</h3>
+<table>
+  <tr><th>Setting</th><th>Details</th></tr>
+  <tr><td><strong>Numista API Key</strong></td><td>Your personal API key from Numista. Required for all operations. Stored securely as a password field.</td></tr>
+</table>
+
+<h3 id="search-settings">Search Settings</h3>
+<table>
+  <tr><th>Setting</th><th>Default</th><th>Range</th><th>Description</th></tr>
+  <tr><td><strong>Request Delay</strong></td><td>2000 ms</td><td>1000&ndash;10000 ms</td><td>Time between API requests. Prevents overloading Numista's servers. Lower values are faster but riskier.</td></tr>
+</table>
+
+<div class="callout callout-warning">
+  <strong>Caution:</strong>
+  Setting the request delay below 2000 ms may result in rate limiting from Numista.
+  The default of 2000 ms (2 seconds) is recommended.
+</div>
+
+<h3 id="image-settings">Image Handling</h3>
+<table>
+  <tr><th>Option</th><th>Description</th></tr>
+  <tr><td><strong>Store image URLs</strong> (default)</td><td>Only saves the URL. OpenNumismat downloads images on next open. Requires internet.</td></tr>
+  <tr><td><strong>Download and store as BLOBs</strong></td><td>Downloads images now and embeds them in the database. Works offline.</td></tr>
+</table>
+
+<h3 id="safety-settings">Safety &amp; Backups</h3>
+<table>
+  <tr><th>Setting</th><th>Default</th><th>Description</th></tr>
+  <tr><td><strong>Auto-backup before changes</strong></td><td>Enabled</td><td>Creates a timestamped backup of your entire database before any data is modified.</td></tr>
+</table>
+
+<p>
+  Click <strong>Save Settings</strong> to persist your changes, or <strong>Reset to Defaults</strong> to
+  restore all settings to their original values.
+</p>
+
+<a href="#introduction" class="back-to-top">Back to top &uarr;</a>
+
+<!-- ──────────────────────────────────────────────────────────────────────── -->
+<h2 id="backups">13. Backups &amp; Safety</h2>
+
+<p>
+  When the auto-backup setting is enabled (recommended), the tool creates a full copy of your
+  database before making any changes. Backups are stored in a <code>backups</code> folder
+  located in the same directory as your database file.
+</p>
+
+<h4>Backup File Naming</h4>
+<pre><code>&lt;database-name&gt;.db.backup.&lt;timestamp&gt;</code></pre>
+<p>Example: <code>MyCoins.db.backup.2025-06-15T143022</code></p>
+
+<h4>Restoring a Backup</h4>
+<ol>
+  <li>Close the Enrichment Tool.</li>
+  <li>Navigate to the <code>backups</code> folder next to your database.</li>
+  <li>Find the backup you want to restore (sorted by date).</li>
+  <li>Rename or delete your current <code>.db</code> file.</li>
+  <li>Rename the backup file, removing the <code>.backup.&lt;timestamp&gt;</code> suffix.</li>
+  <li>Reopen the collection in the Enrichment Tool or OpenNumismat.</li>
+</ol>
+
+<div class="callout callout-danger">
+  <strong>Warning:</strong>
+  Disabling automatic backups means there is no safety net if something goes wrong during enrichment.
+  It is strongly recommended to keep this setting enabled.
+</div>
+
+<a href="#introduction" class="back-to-top">Back to top &uarr;</a>
+
+<!-- ──────────────────────────────────────────────────────────────────────── -->
+<h2 id="status-bar">14. Status Bar</h2>
+
+<p>The status bar at the bottom of the application provides real-time information:</p>
+<table>
+  <tr><th>Element</th><th>Description</th></tr>
+  <tr><td><strong>Status Message</strong></td><td>Dynamic messages about current operations (e.g., "Searching Numista...", "Changes applied successfully").</td></tr>
+  <tr><td><strong>Fetch Settings Summary</strong></td><td>Shows your current data settings (e.g., "Fetch: Basic + Pricing (3 calls)").</td></tr>
+  <tr><td><strong>Session API Calls</strong></td><td>Running total of API calls made this session (e.g., "Session: 47 calls").</td></tr>
+  <tr><td><strong>Progress Bar</strong></td><td>Animated bar shown during operations like loading collections or fetching data.</td></tr>
+</table>
+
+<a href="#introduction" class="back-to-top">Back to top &uarr;</a>
+
+<!-- ──────────────────────────────────────────────────────────────────────── -->
+<h2 id="troubleshooting">15. Troubleshooting</h2>
+
+<h3>Common Issues</h3>
+
+<h4>"No results found" when searching</h4>
+<ul>
+  <li>Try the <strong>Manual Search</strong> with different terms.</li>
+  <li>Use shorter, simpler search terms (denomination + year often works well).</li>
+  <li>Try searching by catalog number (e.g., "KM 23").</li>
+  <li>Ensure your coin's title in OpenNumismat is not too generic or contains special characters.</li>
+</ul>
+
+<h4>"API Key invalid" error</h4>
+<ul>
+  <li>Open Settings and verify your API key is entered correctly.</li>
+  <li>Ensure there are no leading or trailing spaces in the key.</li>
+  <li>Visit <a href="https://en.numista.com/api/" target="_blank">numista.com/api</a> to verify your key is active.</li>
+</ul>
+
+<h4>Issue matching says "No Match"</h4>
+<ul>
+  <li>Ensure your coin has a <strong>year</strong> recorded in OpenNumismat. Issue matching requires a year.</li>
+  <li>The specific year may not exist in the Numista database for this coin type.</li>
+  <li>You can still import Basic Data even if issue matching fails.</li>
+</ul>
+
+<h4>Pricing data returns empty</h4>
+<ul>
+  <li>Not all coins in the Numista database have pricing data.</li>
+  <li>Try a different currency &mdash; pricing availability varies by currency.</li>
+  <li>Modern common coins and very rare coins may lack market pricing data.</li>
+</ul>
+
+<h4>Images not appearing in OpenNumismat</h4>
+<ul>
+  <li>If using <strong>URL mode</strong>, ensure you have an internet connection when opening the collection in OpenNumismat.</li>
+  <li>If using <strong>BLOB mode</strong>, images should appear immediately.</li>
+  <li>Some coin types on Numista do not have images available.</li>
+</ul>
+
+<h4>Database file appears locked</h4>
+<ul>
+  <li>Close OpenNumismat before loading the collection in the Enrichment Tool.</li>
+  <li>Only one application should access the <code>.db</code> file at a time.</li>
+</ul>
+
+<h4>Application seems slow</h4>
+<ul>
+  <li>The request delay (default 2000 ms) means each API call waits 2 seconds. This is intentional to respect Numista's servers.</li>
+  <li>Loading very large collections (5,000+ coins) may take a moment. The progress bar shows loading status.</li>
+</ul>
+
+<a href="#introduction" class="back-to-top">Back to top &uarr;</a>
+
+<!-- ──────────────────────────────────────────────────────────────────────── -->
+<h2 id="faq">16. Frequently Asked Questions</h2>
+
+<h4>Is the Numista API free?</h4>
+<p>Yes. Numista provides free API access for personal use. You just need to create a free account and generate an API key.</p>
+
+<h4>Will this tool modify my OpenNumismat data?</h4>
+<p>Only when you explicitly click "Apply Changes to Coin" and only for the fields you select. An automatic backup is created before any changes (if enabled). No data is ever overwritten without your approval.</p>
+
+<h4>Can I undo changes?</h4>
+<p>Yes. Restore from the automatic backup created before the changes were made (see <a href="#backups">Backups &amp; Safety</a>).</p>
+
+<h4>Can I use this tool with multiple collections?</h4>
+<p>Yes. Close the current collection and load a different <code>.db</code> file. Each collection has its own settings file.</p>
+
+<h4>How is my progress saved?</h4>
+<p>Progress is stored as invisible metadata inside each coin's notes field in your database. This means your progress travels with the database file and survives application reinstalls.</p>
+
+<h4>Can I enrich the same coin again?</h4>
+<p>Yes. You can click on any previously enriched coin to search again, select a different match, or import additional fields.</p>
+
+<h4>Do I need to be online?</h4>
+<p>Yes, an internet connection is required to search Numista and fetch data. However, once data has been merged into your database, it is stored locally and available offline.</p>
+
+<h4>How many API calls do I get?</h4>
+<p>The Numista API has generous limits for personal use. The tool displays your session call count in the status bar so you can monitor usage. Each coin costs 2&ndash;4 API calls depending on your data settings.</p>
+
+<h4>What happens if I lose internet mid-session?</h4>
+<p>Any data already merged into your database is saved. Coins in progress when the connection dropped will show an "Error" status. You can retry them when your connection is restored.</p>
+
+<h4>Does this tool upload my data anywhere?</h4>
+<p>No. The tool only <em>reads</em> from Numista. It never uploads your collection data, personal information, or any other data to external servers.</p>
+
+<a href="#introduction" class="back-to-top">Back to top &uarr;</a>
+
+<!-- ──────────────────────────────────────────────────────────────────────── -->
+<h2 id="appendix-fields">Appendix A: Field Reference</h2>
+
+<p>The following table lists all fields that can be imported from Numista into your OpenNumismat database:</p>
+
+<h4>Basic Data Fields</h4>
+<table>
+  <tr><th>Field</th><th>Description</th></tr>
+  <tr><td>Title</td><td>Official name of the coin type</td></tr>
+  <tr><td>Category</td><td>Classification (e.g., coin, token, medal)</td></tr>
+  <tr><td>Series</td><td>Series name if part of a set</td></tr>
+  <tr><td>Country</td><td>Issuing country or authority</td></tr>
+  <tr><td>Period</td><td>Historical period</td></tr>
+  <tr><td>Ruler</td><td>Monarch or head of state (if applicable)</td></tr>
+  <tr><td>Type</td><td>Coin type designation</td></tr>
+  <tr><td>Value</td><td>Face value (numeric)</td></tr>
+  <tr><td>Unit</td><td>Currency unit (e.g., Cents, Pence)</td></tr>
+  <tr><td>Composition / Material</td><td>Metal composition (e.g., Silver .925, Copper-Nickel)</td></tr>
+  <tr><td>Weight</td><td>Weight in grams</td></tr>
+  <tr><td>Diameter</td><td>Diameter in millimeters</td></tr>
+  <tr><td>Thickness</td><td>Thickness in millimeters</td></tr>
+  <tr><td>Shape</td><td>Coin shape (e.g., Round, Heptagonal)</td></tr>
+  <tr><td>Orientation</td><td>Die orientation (medal or coin alignment)</td></tr>
+  <tr><td>Technique</td><td>Minting technique (e.g., Milled, Cast)</td></tr>
+  <tr><td>Obverse Description</td><td>Description of the obverse (heads) design</td></tr>
+  <tr><td>Reverse Description</td><td>Description of the reverse (tails) design</td></tr>
+  <tr><td>Edge Description</td><td>Description of the edge (e.g., Reeded, Plain)</td></tr>
+  <tr><td>Edge Lettering</td><td>Text inscribed on the edge</td></tr>
+  <tr><td>Catalog Numbers</td><td>Standard references (KM, Sch&ouml;n, Y, etc.)</td></tr>
+  <tr><td>Tags</td><td>Descriptive tags from Numista</td></tr>
+</table>
+
+<h4>Issue Data Fields</h4>
+<table>
+  <tr><th>Field</th><th>Description</th></tr>
+  <tr><td>Mintmark</td><td>Mint identification letter or symbol</td></tr>
+  <tr><td>Mintage</td><td>Number of coins struck for this issue</td></tr>
+  <tr><td>Comment</td><td>Additional issue information (e.g., "Proof", "Restrike")</td></tr>
+</table>
+
+<h4>Pricing Data Fields</h4>
+<table>
+  <tr><th>Field</th><th>Description</th></tr>
+  <tr><td>Price (UNC)</td><td>Market value in Uncirculated grade</td></tr>
+  <tr><td>Price (XF)</td><td>Market value in Extremely Fine grade</td></tr>
+  <tr><td>Price (VF)</td><td>Market value in Very Fine grade</td></tr>
+  <tr><td>Price (Fine)</td><td>Market value in Fine grade</td></tr>
+</table>
+
+<a href="#introduction" class="back-to-top">Back to top &uarr;</a>
+
+<!-- ──────────────────────────────────────────────────────────────────────── -->
+<h2 id="appendix-statuses">Appendix B: Status Reference</h2>
+
+<h4>Per-Data-Type Statuses</h4>
+<table>
+  <tr><th>Status</th><th>Icon</th><th>Meaning</th></tr>
+  <tr><td>MERGED</td><td>&#x2705;</td><td>Data was successfully fetched and written to the database.</td></tr>
+  <tr><td>NOT_QUERIED</td><td>&#x26AA;</td><td>User did not request this data type in settings.</td></tr>
+  <tr><td>PENDING</td><td>&#x23F3;</td><td>Data fetch is currently in progress.</td></tr>
+  <tr><td>ERROR</td><td>&#x274C;</td><td>API call failed (network error, server error, etc.).</td></tr>
+  <tr><td>NO_MATCH</td><td>&#x2753;</td><td>Issue matching failed &mdash; no issue found for this coin's year. (Issue data only.)</td></tr>
+  <tr><td>NO_DATA</td><td>&#x1F4ED;</td><td>API returned successfully but with no data for this field.</td></tr>
+  <tr><td>SKIPPED</td><td>&#x1F6AB;</td><td>User explicitly chose to skip this data type for this coin.</td></tr>
+</table>
+
+<h4>Overall Coin Statuses</h4>
+<table>
+  <tr><th>Status</th><th>Meaning</th></tr>
+  <tr><td>COMPLETE</td><td>All requested data types have status MERGED.</td></tr>
+  <tr><td>PARTIAL</td><td>At least one data type is MERGED, but others are not.</td></tr>
+  <tr><td>PENDING</td><td>Coin has not been processed by the user yet.</td></tr>
+  <tr><td>SKIPPED</td><td>User chose to skip this coin entirely (no data types fetched).</td></tr>
+  <tr><td>ERROR</td><td>A critical error prevented processing.</td></tr>
+</table>
+
+<a href="#introduction" class="back-to-top">Back to top &uarr;</a>
+
+<hr>
+
+<p style="text-align: center; color: var(--text-light); font-size: 13px; margin-top: 40px;">
+  OpenNumismat Enrichment Tool &mdash; User Manual v1.0<br>
+  For issues and feedback, please visit the project repository.
+</p>
+
+</div><!-- /.main-content -->
+
+<!-- ── Smooth scrolling & active sidebar link highlighting ── -->
+<script>
+  // Smooth scrolling for all anchor links
+  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+      e.preventDefault();
+      const target = document.querySelector(this.getAttribute('href'));
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth' });
+        // Close mobile sidebar
+        document.querySelector('.sidebar').classList.remove('open');
+      }
+    });
+  });
+
+  // Highlight active sidebar link on scroll
+  const sections = document.querySelectorAll('h2[id], h3[id]');
+  const navLinks = document.querySelectorAll('.sidebar a');
+
+  window.addEventListener('scroll', () => {
+    let current = '';
+    sections.forEach(section => {
+      const sectionTop = section.offsetTop;
+      if (window.pageYOffset >= sectionTop - 60) {
+        current = section.getAttribute('id');
+      }
+    });
+
+    navLinks.forEach(link => {
+      link.classList.remove('active');
+      if (link.getAttribute('href') === '#' + current) {
+        link.classList.add('active');
+      }
+    });
+  });
+</script>
+
+</body>
+</html>

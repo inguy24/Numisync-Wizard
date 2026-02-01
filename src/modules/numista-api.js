@@ -166,52 +166,121 @@ class NumistaAPI {
   }
 
   /**
-   * Match issue by year and mintmark
+   * Smart issue matching - adapts to available differentiating fields
    *
-   * @param {Object} coin - User's coin data
+   * @param {Object} coin - User's coin data from OpenNumismat
    * @param {Object} issuesResponse - Response from getTypeIssues
    * @returns {Object} - { type: 'AUTO_MATCHED'|'USER_PICK'|'NO_MATCH'|'NO_ISSUES', issue?, options? }
    */
   matchIssue(coin, issuesResponse) {
-    console.log('matchIssue - issuesResponse:', issuesResponse);
+    console.log('\n=== SMART ISSUE MATCHING ===');
+    console.log('User coin data:', { year: coin.year, mintmark: coin.mintmark, type: coin.type });
+
     // API returns array directly, not wrapped in object
     const issues = Array.isArray(issuesResponse) ? issuesResponse : (issuesResponse?.issues || []);
-    console.log('matchIssue - issues array length:', issues.length);
+    console.log(`Total issues available: ${issues.length}`);
 
     if (issues.length === 0) {
-      console.log('matchIssue - NO_ISSUES (empty issues array)');
+      console.log('Result: NO_ISSUES (empty array)');
       return { type: 'NO_ISSUES' };
     }
-    
+
+    // Parse user's year
     const userYear = coin.year ? parseInt(coin.year) : null;
-    const userMintmark = coin.mintmark?.trim() || null;
-    
-    // Strategy 1: Match BOTH year AND mintmark
-    if (userYear && userMintmark) {
-      const exactMatch = issues.find(i => 
-        i.year == userYear && 
-        (i.mint_letter === userMintmark || i.mint?.letter === userMintmark)
-      );
-      if (exactMatch) {
-        return { type: 'AUTO_MATCHED', issue: exactMatch };
+
+    // STEP 1: Filter by year (required)
+    if (!userYear) {
+      console.log('Result: USER_PICK (no year in user coin - cannot auto-match)');
+      return { type: 'USER_PICK', options: issues };
+    }
+
+    let candidates = issues.filter(i => i.year == userYear);
+    console.log(`After year filter (${userYear}): ${candidates.length} matches`);
+
+    if (candidates.length === 0) {
+      console.log('Result: USER_PICK (no issues match year - showing all for user to pick)');
+      return { type: 'USER_PICK', options: issues };
+    }
+
+    if (candidates.length === 1) {
+      console.log('Result: AUTO_MATCHED (only one issue for this year)');
+      return { type: 'AUTO_MATCHED', issue: candidates[0] };
+    }
+
+    // STEP 2: Multiple matches for year - check which fields differentiate them
+    console.log('\nMultiple issues for year - analyzing differentiating fields...');
+
+    // Check if mint_letter varies
+    const mintLetters = new Set(candidates.map(c => c.mint_letter).filter(m => m));
+    const hasMintVariation = mintLetters.size > 1;
+    console.log(`Mint variation: ${hasMintVariation} (unique values: ${Array.from(mintLetters).join(', ') || 'none'})`);
+
+    // Check if comment varies (Proof vs regular)
+    const comments = new Set(candidates.map(c => c.comment).filter(c => c));
+    const hasCommentVariation = candidates.some(c => c.comment) && candidates.some(c => !c.comment);
+    console.log(`Comment variation: ${hasCommentVariation} (values: ${Array.from(comments).join(', ') || 'none'})`);
+
+    // STEP 3: Apply filters based on user's data and field variations
+
+    // Filter by mintmark if it varies AND user has mintmark
+    if (hasMintVariation && coin.mintmark) {
+      const userMintmark = coin.mintmark.trim();
+      const beforeCount = candidates.length;
+      candidates = candidates.filter(i => i.mint_letter === userMintmark);
+      console.log(`Applied mintmark filter (${userMintmark}): ${beforeCount} -> ${candidates.length}`);
+
+      if (candidates.length === 1) {
+        console.log('Result: AUTO_MATCHED (after mintmark filter)');
+        return { type: 'AUTO_MATCHED', issue: candidates[0] };
+      }
+
+      if (candidates.length === 0) {
+        // User's mintmark didn't match - reset to year matches and let user pick
+        candidates = issues.filter(i => i.year == userYear);
+        console.log('Mintmark filter yielded no matches - reset to year matches');
       }
     }
-    
-    // Strategy 2: Match by year only
-    if (userYear) {
-      const yearMatches = issues.filter(i => i.year == userYear);
-      
-      if (yearMatches.length === 1) {
-        return { type: 'AUTO_MATCHED', issue: yearMatches[0] };
+
+    // Filter by type/comment if it varies AND user has type field
+    if (hasCommentVariation) {
+      const userType = coin.type?.trim() || null;
+      const beforeCount = candidates.length;
+
+      if (!userType || userType === '') {
+        // User has blank/undefined type → match issues with NO comment (regular circulation)
+        candidates = candidates.filter(i => !i.comment || i.comment.trim() === '');
+        console.log(`Applied type filter (blank/regular): ${beforeCount} -> ${candidates.length}`);
+      } else if (userType.toLowerCase() === 'proof') {
+        // User has type="Proof" → match issues with comment containing "Proof"
+        candidates = candidates.filter(i => i.comment && i.comment.toLowerCase().includes('proof'));
+        console.log(`Applied type filter (Proof): ${beforeCount} -> ${candidates.length}`);
+      } else {
+        // User has other type value → try to match comment
+        candidates = candidates.filter(i => i.comment && i.comment.toLowerCase().includes(userType.toLowerCase()));
+        console.log(`Applied type filter (${userType}): ${beforeCount} -> ${candidates.length}`);
       }
-      
-      if (yearMatches.length > 1) {
-        return { type: 'USER_PICK', options: yearMatches };
+
+      if (candidates.length === 1) {
+        console.log('Result: AUTO_MATCHED (after type/comment filter)');
+        return { type: 'AUTO_MATCHED', issue: candidates[0] };
+      }
+
+      if (candidates.length === 0) {
+        // User's type didn't match - reset to year matches and let user pick
+        candidates = issues.filter(i => i.year == userYear);
+        console.log('Type filter yielded no matches - reset to year matches');
       }
     }
-    
-    // Strategy 3: No year match - let user pick from all
-    return { type: 'USER_PICK', options: issues };
+
+    // STEP 4: Final result
+    if (candidates.length === 1) {
+      console.log('Result: AUTO_MATCHED (after all filters)');
+      return { type: 'AUTO_MATCHED', issue: candidates[0] };
+    }
+
+    console.log(`Result: USER_PICK (${candidates.length} candidates remain after filtering)`);
+    console.log('=== END MATCHING ===\n');
+    return { type: 'USER_PICK', options: candidates };
   }
 
   /**
@@ -231,25 +300,31 @@ class NumistaAPI {
       matchedIssue: null,
       issueMatchResult: null
     };
-    
-    // Always fetch basic data (required)
-    console.log('Fetching basic data for type:', typeId);
-    result.basicData = await this.getType(typeId);
-    
-    // Fetch issue data if requested
+
+    // Fetch basic data if requested
+    if (fetchSettings.basicData) {
+      console.log('Fetching basic data for type:', typeId);
+      result.basicData = await this.getType(typeId);
+    }
+
+    // Fetch issue data if requested OR if pricing is requested (pricing requires issue data)
     if (fetchSettings.issueData || fetchSettings.pricingData) {
       console.log('Fetching issues for type:', typeId);
       const issuesResponse = await this.getTypeIssues(typeId);
-      
+
       // Try to auto-match issue
       const matchResult = this.matchIssue(coin, issuesResponse);
       result.issueMatchResult = matchResult;
       console.log('Issue match result:', matchResult.type);
-      
+
       if (matchResult.type === 'AUTO_MATCHED') {
         result.matchedIssue = matchResult.issue;
-        result.issueData = matchResult.issue;
-        
+
+        // Set issue data if explicitly requested
+        if (fetchSettings.issueData) {
+          result.issueData = matchResult.issue;
+        }
+
         // Fetch pricing if we have a matched issue and pricing is requested
         if (fetchSettings.pricingData && matchResult.issue.id) {
           console.log('Fetching pricing for issue:', matchResult.issue.id);
@@ -263,9 +338,10 @@ class NumistaAPI {
       } else if (matchResult.type === 'USER_PICK') {
         // Store options for UI to present
         result.issueOptions = matchResult.options;
+        // Note: UI will need to let user pick, then call a separate method to fetch pricing for selected issue
       }
     }
-    
+
     return result;
   }
 
