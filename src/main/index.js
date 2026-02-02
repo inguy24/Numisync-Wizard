@@ -297,11 +297,6 @@ ipcMain.handle('fetch-pricing-for-issue', async (event, { typeId, issueId }) => 
     const pricingData = await api.getIssuePricing(typeId, issueId, currency);
     console.log('Pricing fetched:', !!pricingData);
 
-    // Increment API call counter
-    if (settingsManager) {
-      settingsManager.incrementApiCalls(1);
-    }
-
     return { success: true, pricingData };
   } catch (error) {
     console.error('Error fetching pricing for issue:', error);

@@ -19,6 +19,7 @@ const AppState = {
   fieldComparison: null,
   selectedFields: {},
   settings: null,
+  fetchSettings: null,
   progressStats: null,
   pagination: {
     currentPage: 1,
@@ -159,6 +160,15 @@ async function loadCollectionScreen() {
   const filename = AppState.collectionPath.split(/[\\/]/).pop();
   document.getElementById('collectionTitle').textContent = filename;
 
+  // Load collection-specific fetch settings for counter strip
+  try {
+    const collectionSettings = await window.api.getSettings();
+    AppState.fetchSettings = collectionSettings.fetchSettings || { basicData: true, issueData: false, pricingData: false };
+  } catch (e) {
+    console.error('Error loading fetch settings:', e);
+    AppState.fetchSettings = { basicData: true, issueData: false, pricingData: false };
+  }
+
   // Update statistics
   updateProgressStats();
 
@@ -173,19 +183,52 @@ function updateProgressStats() {
     partial: 0,
     pending: 0,
     skipped: 0,
-    error: 0
+    error: 0,
+    basicData: { merged: 0, pending: 0, notQueried: 0, skipped: 0, error: 0, noData: 0 },
+    issueData: { merged: 0, pending: 0, notQueried: 0, skipped: 0, error: 0, noMatch: 0, noData: 0 },
+    pricingData: { merged: 0, pending: 0, notQueried: 0, skipped: 0, error: 0, noData: 0 }
   };
 
-  // processed = complete + partial + skipped + error (anything that's been touched)
-  const processed = (stats.complete || 0) + (stats.partial || 0) + (stats.skipped || 0) + (stats.error || 0);
-  // merged = complete (all requested data types successfully merged)
-  const merged = stats.complete || 0;
-  const remaining = (stats.total || 0) - processed;
+  const total = stats.total || 0;
 
-  document.getElementById('statTotal').textContent = stats.total || 0;
-  document.getElementById('statProcessed').textContent = processed;
-  document.getElementById('statMerged').textContent = merged;
-  document.getElementById('statRemaining').textContent = remaining;
+  document.getElementById('statTotal').textContent = total;
+
+  const dataTypes = [
+    { key: 'basicData', cardId: 'cardBasicData', mergedId: 'statBasicMerged', totalId: 'statBasicTotal', barId: 'barBasicData', secId: 'secBasicData', errId: 'errBasicData', skipId: 'skipBasicData' },
+    { key: 'issueData', cardId: 'cardIssueData', mergedId: 'statIssueMerged', totalId: 'statIssueTotal', barId: 'barIssueData', secId: 'secIssueData', errId: 'errIssueData', skipId: 'skipIssueData' },
+    { key: 'pricingData', cardId: 'cardPricingData', mergedId: 'statPricingMerged', totalId: 'statPricingTotal', barId: 'barPricingData', secId: 'secPricingData', errId: 'errPricingData', skipId: 'skipPricingData' }
+  ];
+
+  dataTypes.forEach(dt => {
+    const typeStats = stats[dt.key] || {};
+    const merged = typeStats.merged || 0;
+    const errors = (typeStats.error || 0) + (typeStats.noData || 0) + (typeStats.noMatch || 0);
+    const skipped = typeStats.skipped || 0;
+    const pct = total > 0 ? Math.round((merged / total) * 100) : 0;
+
+    document.getElementById(dt.mergedId).textContent = merged;
+    document.getElementById(dt.totalId).textContent = total;
+    document.getElementById(dt.barId).style.width = pct + '%';
+
+    const errEl = document.getElementById(dt.errId);
+    const skipEl = document.getElementById(dt.skipId);
+    const secEl = document.getElementById(dt.secId);
+
+    errEl.textContent = errors + ' error' + (errors !== 1 ? 's' : '');
+    skipEl.textContent = skipped + ' skipped';
+
+    if (errors > 0) {
+      errEl.classList.add('has-errors');
+    } else {
+      errEl.classList.remove('has-errors');
+    }
+
+    if (errors > 0 || skipped > 0) {
+      secEl.classList.add('visible');
+    } else {
+      secEl.classList.remove('visible');
+    }
+  });
 }
 
 /**
@@ -1894,6 +1937,20 @@ document.getElementById('sortBy').addEventListener('change', (e) => {
   loadCoins();
 });
 
+// Click handlers for stat card error/skipped counts
+document.querySelectorAll('.stat-clickable').forEach(el => {
+  el.addEventListener('click', () => {
+    const filterValue = el.dataset.filter;
+    if (filterValue) {
+      const statusFilter = document.getElementById('statusFilter');
+      statusFilter.value = filterValue;
+      AppState.filterSort.statusFilter = filterValue;
+      AppState.pagination.currentPage = 1;
+      loadCoins();
+    }
+  });
+});
+
 document.getElementById('resetFiltersBtn').addEventListener('click', () => {
   // Reset all filters to default values
   AppState.filterSort.statusFilter = 'all';
@@ -2169,9 +2226,11 @@ class DataSettingsUI {
         await window.api.saveCurrency(currencySelect.value);
       }
       
-      // Update status bar
+      // Update status bar and counter strip
       this.updateStatusBarDisplay(newSettings);
-      
+      AppState.fetchSettings = newSettings;
+      updateProgressStats();
+
       // Close modal
       this.closeModal();
       

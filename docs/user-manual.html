@@ -366,6 +366,7 @@
         <li><a href="#progress-summary">Progress Summary</a></li>
       </ul>
     </li>
+    <!-- Closing a Collection is in Section 16 -->
     <li><a href="#data-settings">4. Data Settings</a>
       <ul>
         <li><a href="#data-types">Data Types Explained</a></li>
@@ -436,8 +437,10 @@
     </li>
     <li><a href="#backups">13. Backups &amp; Safety</a></li>
     <li><a href="#status-bar">14. Status Bar</a></li>
-    <li><a href="#troubleshooting">15. Troubleshooting</a></li>
-    <li><a href="#faq">16. FAQ</a></li>
+    <li><a href="#keyboard-shortcuts">15. Keyboard Shortcuts</a></li>
+    <li><a href="#closing-collection">16. Closing a Collection</a></li>
+    <li><a href="#troubleshooting">17. Troubleshooting</a></li>
+    <li><a href="#faq">18. FAQ</a></li>
     <li><a href="#appendix-fields">Appendix A: Field Reference</a></li>
     <li><a href="#appendix-statuses">Appendix B: Status Reference</a></li>
   </ul>
@@ -555,14 +558,16 @@
 </ul>
 
 <h3 id="progress-summary">Progress Summary</h3>
-<p>At the top of the Collection Overview, four cards summarize your enrichment progress:</p>
+<p>At the top of the Collection Overview, a set of cards summarize your enrichment progress per data type:</p>
 <table>
   <tr><th>Card</th><th>Meaning</th></tr>
   <tr><td><strong>Total Coins</strong></td><td>Number of coins in your collection</td></tr>
-  <tr><td><strong>Processed</strong></td><td>Coins you have interacted with (merged, skipped, or errored)</td></tr>
-  <tr><td><strong>Merged</strong></td><td>Coins that have had at least some data successfully imported</td></tr>
-  <tr><td><strong>Remaining</strong></td><td>Coins not yet processed</td></tr>
+  <tr><td><strong>Basic Data</strong></td><td>Shows how many coins have basic type data merged out of the total (e.g., "42 / 521"), with a blue progress bar</td></tr>
+  <tr><td><strong>Issue Data</strong></td><td>Shows how many coins have issue-specific data (mintmark, mintage) merged, with a blue progress bar</td></tr>
+  <tr><td><strong>Pricing Data</strong></td><td>Shows how many coins have pricing data merged, with a blue progress bar</td></tr>
 </table>
+<p>Each data-type card also displays a secondary line with error and skipped counts when either is greater than zero. Error counts appear in <strong style="color: #dc2626;">red</strong> to draw attention. These counts are clickable &mdash; clicking an error count filters the coin list to show coins missing that data type, and clicking a skipped count filters to skipped coins.</p>
+<p>All three data-type cards are always visible regardless of which data types are currently enabled in Data Settings, giving you a complete view of your collection's enrichment status at all times.</p>
 
 <a href="#introduction" class="back-to-top">Back to top &uarr;</a>
 
@@ -671,7 +676,8 @@
 <h3 id="manual-search">Manual Search</h3>
 <p>
   If the automatic search does not find a good match, click <strong>Try Different Search</strong>
-  to open the Manual Search panel. Enter custom search terms in the text field and click <strong>Search</strong>.
+  to open the Manual Search panel. Enter custom search terms in the text field and click
+  <strong>Search</strong> (or press <kbd>Enter</kbd>).
 </p>
 <p><strong>Search tips:</strong></p>
 <ul>
@@ -845,10 +851,17 @@
 
 <h3 id="fast-pricing">Fast Pricing Update</h3>
 <p>
-  The <strong>Fast Pricing Update</strong> button on the Collection Overview allows you to
-  refresh pricing data for coins that have already been matched to a Numista type &mdash; without
-  needing to re-search or re-match. This is useful for updating outdated prices across your collection.
+  The <strong>Fast Pricing Update</strong> button is visible on the Collection Overview toolbar.
+  When fully implemented, this feature will allow you to refresh pricing data for coins that have
+  already been matched to a Numista type &mdash; without needing to re-search or re-match. This will
+  be useful for batch-updating outdated prices across your collection.
 </p>
+
+<div class="callout callout-warning">
+  <strong>Planned Feature:</strong>
+  Fast Pricing Update is currently a planned feature and is not yet active. To update pricing for a
+  specific coin today, click on it, re-select the match, and apply changes with Pricing Data enabled.
+</div>
 
 <a href="#introduction" class="back-to-top">Back to top &uarr;</a>
 
@@ -956,6 +969,12 @@
   <tr><td>&#x1F6AB;</td><td>Skipped</td><td>User chose to skip this data type</td></tr>
 </table>
 
+<div class="callout callout-info">
+  <strong>Tooltips:</strong>
+  Hover over any status icon in the coin list to see a tooltip describing its current state
+  and, for pricing icons, the freshness age of the data.
+</div>
+
 <h3 id="metadata-persistence">Metadata Persistence</h3>
 <p>
   Enrichment progress is stored directly inside your OpenNumismat database as an invisible HTML comment
@@ -1010,8 +1029,18 @@
 
 <p>
   Access Settings by clicking the <strong>gear icon</strong> in the top-right corner of the application header.
-  Settings are saved per-collection in a <code>&lt;database&gt;_settings.json</code> file next to your database.
+  Settings are saved per-collection in a <code>&lt;database&gt;_settings.json</code> file stored in the same
+  directory as your database.
 </p>
+
+<div class="callout callout-info">
+  <strong>Settings File Location:</strong>
+  If your database is at <code>C:\Coins\MyCollection.db</code>, settings are saved to
+  <code>C:\Coins\MyCollection.db_settings.json</code>. If you move or copy your database
+  to another location, copy the settings file alongside it to preserve your configuration.
+  If the settings file is missing or deleted, the application uses default values and you
+  will need to re-enter your API key.
+</div>
 
 <h3 id="api-key-setting">API Key</h3>
 <table>
@@ -1097,7 +1126,47 @@
 <a href="#introduction" class="back-to-top">Back to top &uarr;</a>
 
 <!-- ──────────────────────────────────────────────────────────────────────── -->
-<h2 id="troubleshooting">15. Troubleshooting</h2>
+<h2 id="keyboard-shortcuts">15. Keyboard Shortcuts</h2>
+
+<p>The following keyboard shortcuts are available within the application:</p>
+<table>
+  <tr><th>Key</th><th>Context</th><th>Action</th></tr>
+  <tr><td><kbd>Enter</kbd></td><td>Manual Search input field</td><td>Executes the search (same as clicking the Search button)</td></tr>
+</table>
+
+<div class="callout callout-info">
+  <strong>Tip:</strong>
+  When using the Manual Search, type your search terms and press <kbd>Enter</kbd> to quickly
+  run the search without needing to click the button.
+</div>
+
+<a href="#introduction" class="back-to-top">Back to top &uarr;</a>
+
+<!-- ──────────────────────────────────────────────────────────────────────── -->
+<h2 id="closing-collection">16. Closing a Collection</h2>
+
+<p>
+  To close the currently loaded collection, click the <strong>&larr; Close Collection</strong>
+  button in the Collection Overview toolbar. This returns you to the Welcome screen.
+</p>
+<p>When you close a collection:</p>
+<ul>
+  <li>All enrichment progress that has been <strong>applied</strong> (merged) is already saved in your database and is preserved.</li>
+  <li>Any in-progress work on a coin that has <strong>not yet been applied</strong> is discarded.</li>
+  <li>The session API call counter resets.</li>
+  <li>You can load a different collection or re-open the same one.</li>
+</ul>
+
+<div class="callout callout-info">
+  <strong>Note:</strong>
+  There is no "unsaved changes" warning when closing. All changes are committed to the database
+  immediately when you click "Apply Changes to Coin", so there is nothing to lose by closing.
+</div>
+
+<a href="#introduction" class="back-to-top">Back to top &uarr;</a>
+
+<!-- ──────────────────────────────────────────────────────────────────────── -->
+<h2 id="troubleshooting">17. Troubleshooting</h2>
 
 <h3>Common Issues</h3>
 
@@ -1152,7 +1221,7 @@
 <a href="#introduction" class="back-to-top">Back to top &uarr;</a>
 
 <!-- ──────────────────────────────────────────────────────────────────────── -->
-<h2 id="faq">16. Frequently Asked Questions</h2>
+<h2 id="faq">18. Frequently Asked Questions</h2>
 
 <h4>Is the Numista API free?</h4>
 <p>Yes. Numista provides free API access for personal use. You just need to create a free account and generate an API key.</p>
@@ -1183,6 +1252,12 @@
 
 <h4>Does this tool upload my data anywhere?</h4>
 <p>No. The tool only <em>reads</em> from Numista. It never uploads your collection data, personal information, or any other data to external servers.</p>
+
+<h4>What if I move my database file to a different folder or computer?</h4>
+<p>Copy the settings file (<code>&lt;database&gt;_settings.json</code>) alongside your <code>.db</code> file. Your enrichment progress is stored inside the database itself (in the coin notes), so it travels automatically. The settings file contains your API key and preferences.</p>
+
+<h4>Can I change the number of coins shown per page?</h4>
+<p>The page size is fixed at 100 coins per page and is not currently configurable.</p>
 
 <a href="#introduction" class="back-to-top">Back to top &uarr;</a>
 

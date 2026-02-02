@@ -199,10 +199,18 @@ body {
 }
 
 .progress-summary {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  display: flex;
   gap: 1rem;
   margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.progress-summary .stat-card-total {
+  flex: 0 0 130px;
+}
+
+.progress-summary .data-type-card {
+  flex: 1 1 180px;
 }
 
 .stat-card {
@@ -213,6 +221,13 @@ body {
   text-align: center;
 }
 
+.stat-card-total {
+  min-width: 120px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
 .stat-value {
   font-size: 2rem;
   font-weight: 700;
@@ -220,11 +235,73 @@ body {
   margin-bottom: 0.5rem;
 }
 
+.data-type-value {
+  font-size: 1.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.stat-of {
+  font-size: 1rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
 .stat-label {
   font-size: 0.875rem;
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+}
+
+.data-type-card .stat-label {
+  margin-bottom: 0.25rem;
+}
+
+.data-type-card.data-type-hidden {
+  display: none;
+}
+
+.progress-bar {
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: var(--primary-color);
+  border-radius: 3px;
+  width: 0%;
+  transition: width 0.4s ease;
+}
+
+.stat-secondary {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  display: none;
+}
+
+.stat-secondary.visible {
+  display: block;
+}
+
+.stat-sep {
+  margin: 0 0.25rem;
+}
+
+.stat-clickable {
+  cursor: pointer;
+}
+
+.stat-clickable:hover {
+  text-decoration: underline;
+}
+
+.stat-error-count.has-errors {
+  color: #dc2626;
+  font-weight: 600;
 }
 
 .filters {

@@ -73,21 +73,39 @@
 
         <!-- Progress Summary -->
         <div class="progress-summary">
-          <div class="stat-card">
+          <div class="stat-card stat-card-total">
             <div class="stat-value" id="statTotal">0</div>
             <div class="stat-label">Total Coins</div>
           </div>
-          <div class="stat-card">
-            <div class="stat-value" id="statProcessed">0</div>
-            <div class="stat-label">Processed</div>
+          <div class="stat-card data-type-card" id="cardBasicData">
+            <div class="stat-label">Basic Data</div>
+            <div class="stat-value data-type-value"><span id="statBasicMerged">0</span> <span class="stat-of">/ <span id="statBasicTotal">0</span></span></div>
+            <div class="progress-bar"><div class="progress-bar-fill" id="barBasicData"></div></div>
+            <div class="stat-secondary" id="secBasicData">
+              <span class="stat-clickable stat-error-count" id="errBasicData" data-filter="missing_basic">0 errors</span>
+              <span class="stat-sep">&middot;</span>
+              <span class="stat-clickable stat-skip-count" id="skipBasicData" data-filter="skipped">0 skipped</span>
+            </div>
           </div>
-          <div class="stat-card">
-            <div class="stat-value" id="statMerged">0</div>
-            <div class="stat-label">Merged</div>
+          <div class="stat-card data-type-card" id="cardIssueData">
+            <div class="stat-label">Issue Data</div>
+            <div class="stat-value data-type-value"><span id="statIssueMerged">0</span> <span class="stat-of">/ <span id="statIssueTotal">0</span></span></div>
+            <div class="progress-bar"><div class="progress-bar-fill" id="barIssueData"></div></div>
+            <div class="stat-secondary" id="secIssueData">
+              <span class="stat-clickable stat-error-count" id="errIssueData" data-filter="missing_issue">0 errors</span>
+              <span class="stat-sep">&middot;</span>
+              <span class="stat-clickable stat-skip-count" id="skipIssueData" data-filter="skipped">0 skipped</span>
+            </div>
           </div>
-          <div class="stat-card">
-            <div class="stat-value" id="statRemaining">0</div>
-            <div class="stat-label">Remaining</div>
+          <div class="stat-card data-type-card" id="cardPricingData">
+            <div class="stat-label">Pricing Data</div>
+            <div class="stat-value data-type-value"><span id="statPricingMerged">0</span> <span class="stat-of">/ <span id="statPricingTotal">0</span></span></div>
+            <div class="progress-bar"><div class="progress-bar-fill" id="barPricingData"></div></div>
+            <div class="stat-secondary" id="secPricingData">
+              <span class="stat-clickable stat-error-count" id="errPricingData" data-filter="missing_pricing">0 errors</span>
+              <span class="stat-sep">&middot;</span>
+              <span class="stat-clickable stat-skip-count" id="skipPricingData" data-filter="skipped">0 skipped</span>
+            </div>
           </div>
         </div>
 

@@ -1,6 +1,6 @@
 # OpenNumismat Enrichment Tool - Master Project Document
 
-**Last Updated:** January 31, 2026 (Evening Session)
+**Last Updated:** February 1, 2026
 **Purpose:** Single source of truth for project state, fixes, and lessons learned
 **Replaces:** All individual fix documents (see deletion list at end)
 
@@ -198,17 +198,13 @@ n### Coin List Pagination u2705 COMPLETE (January 31, 2026)
 
 ---
 
-## CURRENT STATUS - All Issues Resolved (Jan 31, 2026)
+## CURRENT STATUS - All Issues Resolved (Feb 1, 2026)
 
-### Pricing and Mintage Fields Not Writing to Database
+### Pricing and Mintage Fields - RESOLVED
 
-**Problem:**  
-When user selects pricing fields (price_xf, price_vf, price_f) and mintage, the merge process skips them and writes 0 fields to the database.
+All pricing and issue data flows are now working correctly. See fix log entries for details.
 
-**Root Cause:**  
-The `mergeFields` function in field-mapper.js calls `mapToOpenNumismat` without passing `issueData` and `pricingData` parameters. This causes fields with `requiresIssueData` or `requiresPricingData` flags to be skipped.
-
-**Status:** CURRENTLY BEING DEBUGGED
+**Previous Status:** FIXED (was CURRENTLY BEING DEBUGGED)
 
 **What's Happening:**
 1. Ã¢Å“â€¦ fetch-coin-data correctly fetches data from Numista
@@ -405,22 +401,13 @@ Type has no issue data Ã¢â€ â€™ NO_ISSUES
 
 ---
 
-## CURRENT FIX NEEDED
+## PREVIOUSLY NEEDED FIXES (NOW RESOLVED)
 
-### In index.js - merge-data handler
+### merge-data handler - FIXED (Jan 31, 2026)
+mergeFields now correctly receives issueData and pricingData parameters.
 
-**Current (BROKEN):**
-```javascript
-const updatedData = mapper.mergeFields(selectedFields, numistaData);
-```
-
-**Needed (FIX):**
-```javascript
-const updatedData = mapper.mergeFields(selectedFields, numistaData, issueData, pricingData);
-```
-
-**Where to get issueData and pricingData:**
-Need to check app.js to see if it passes fetchResult to merge-data call, or if we need to extract from compareFields result.
+### fetch-pricing-for-issue handler - FIXED (Feb 1, 2026)
+Removed dead `settingsManager.incrementApiCalls(1)` call that was throwing TypeError and preventing pricing data from being returned to the renderer.
 
 ### In field-mapper.js
 
@@ -482,17 +469,10 @@ Once this master document is in place, these can be deleted:
 
 ## NEXT STEPS
 
-1. **Fix the merge-data issue:**
-   - Determine how app.js calls merge-data
-   - Ensure issueData and pricingData are passed
-   - Test that pricing/mintage fields write to database
+1. **Continue Phase 2:**
+   - Task 2.7 - Fetch More Data feature (NOT STARTED)
 
-2. **Continue Phase 2:**
-   - Task 2.6 - Filter & Sort enhancements
-   - Task 2.7 - Fetch More Data feature
-   - Task 2.8 - Image support
-
-3. **Update this master document:**
+2. **Update this master document:**
    - After each fix, update the relevant section
    - Do not create new fix documents
    - Keep lessons learned section up to date
@@ -1062,12 +1042,11 @@ const isPartialMatch = matchesYear && (matchesMintmark || matchesType);
 - `src/main/index.js` - Added IPC handler `fetch-pricing-for-issue`
 - `src/main/preload.js` - Exposed `fetchPricingForIssue()` API method
 
-**IPC Handler:** (lines 284-310 in index.js)
+**IPC Handler:** (lines 284-306 in index.js)
 ```javascript
 ipcMain.handle('fetch-pricing-for-issue', async (event, { typeId, issueId }) => {
   // Get currency from settings
   // Call api.getIssuePricing(typeId, issueId, currency)
-  // Increment API call counter
   // Return pricing data
 });
 ```
@@ -1075,7 +1054,6 @@ ipcMain.handle('fetch-pricing-for-issue', async (event, { typeId, issueId }) => 
 **Purpose:**
 - Allows fetching pricing for a manually selected issue
 - Respects currency settings
-- Updates API call tracking
 - Used after user selects from issue picker
 
 ### Files Modified Summary
@@ -1417,5 +1395,115 @@ coins.image      → images table (composite angel-wing thumbnail)
 ### Key Learning
 
 7. **OpenNumismat image column mapping is non-obvious**: `obverseimg`/`reverseimg` reference the `photos` table, NOT the `images` table. The `images` table stores composite thumbnails referenced by `coins.image`. Always verify which table foreign keys actually point to via row counts and ID ranges.
+
+---
+
+## SESSION: February 1, 2026 (Evening) - Pricing Data Not Returned to Renderer
+
+**Date:** February 1, 2026 (Evening)
+**Focus:** Fixed pricing data fetch error preventing all pricing fields from populating
+
+### Issue Reported
+
+Pricing data was not being displayed or merged. All four price fields (price1-4) were being skipped with "requires pricing data" during field mapping. The pricingData was always null throughout the entire flow.
+
+### Root Cause
+
+**File:** `src/main/index.js` (line 302 in `fetch-pricing-for-issue` IPC handler)
+
+The handler successfully fetched pricing data from the Numista API, but then called `settingsManager.incrementApiCalls(1)` - a method that **does not exist** on the SettingsManager class. This threw a TypeError which was caught by the catch block, causing the handler to return `{ success: false, error: "settingsManager.incrementApiCalls is not a function" }` instead of `{ success: true, pricingData }`.
+
+**Debug Evidence:**
+
+    Pricing fetched: true
+    Error fetching pricing for issue: TypeError: settingsManager.incrementApiCalls is not a function
+
+The pricing was fetched but never returned to the renderer.
+
+### Fix Applied
+
+**File Modified:** `src/main/index.js`
+
+**Change:** Removed the dead code call to non-existent `settingsManager.incrementApiCalls(1)` (lines 300-303).
+
+    // REMOVED:
+    // Increment API call counter
+    if (settingsManager) {
+      settingsManager.incrementApiCalls(1);
+    }
+
+The SettingsManager class has no API call counting functionality. This was likely a leftover from a planned feature that was never implemented.
+
+### Result
+
+- Pricing data now flows correctly from API through IPC to renderer
+- All four price fields (price1-4) populate in field comparison view
+- Users can select and merge pricing data into their collection
+
+### Lesson Learned
+
+8. **Dead code referencing non-existent methods can silently break features**: The `incrementApiCalls` call was guarded by `if (settingsManager)` which passed (settingsManager existed), but the method itself didn't exist. Because this was inside a try/catch, the error was caught and the entire handler returned failure, silently discarding the successfully-fetched pricing data. Always verify that called methods actually exist on their target objects.
+
+---
+
+## SESSION: February 1, 2026 (Late Evening) - Counter Strip Redesign
+
+**Date:** February 1, 2026 (Late Evening)
+**Focus:** Redesigned progress counter strip to show per-data-type status
+
+### Problem
+
+The original counter strip had 4 generic cards (Total Coins, Processed, Merged, Remaining) that incremented by 1 when ANY of the three data types were pulled. This did not give the user meaningful visibility into the status of each data type (Basic, Issue, Pricing) independently.
+
+### Solution
+
+Replaced the 4 generic cards with a **Total card + 3 data-type cards** layout:
+
+```
+┌──────────┐  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
+│   521    │  │  BASIC DATA     │  │  ISSUE DATA     │  │  PRICING DATA   │
+│  TOTAL   │  │  1 / 521        │  │  1 / 521        │  │  1 / 521        │
+│  COINS   │  │  ██░░░░░░░░░░░  │  │  ██░░░░░░░░░░░  │  │  ██░░░░░░░░░░░  │
+│          │  │  0 err · 0 skip │  │  0 err · 0 skip │  │  0 err · 0 skip │
+└──────────┘  └─────────────────┘  └─────────────────┘  └─────────────────┘
+```
+
+Each data-type card shows:
+- Label (BASIC DATA / ISSUE DATA / PRICING DATA)
+- Merged / Total count as primary number
+- Blue progress bar proportional to merged/total
+- Secondary line with error count (red if > 0) and skipped count (hidden when both are 0)
+- Clickable error/skipped counts that filter the coin list
+
+All three data-type cards are always visible regardless of current fetch settings, since the purpose is to track overall collection status.
+
+### Files Modified
+
+1. **`src/renderer/index.html`** (lines 74-106) - Replaced 4 generic stat cards with Total + 3 data-type cards. Each card has progress bar div, merged/total spans, and error/skipped count spans with data-filter attributes.
+
+2. **`src/renderer/styles/main.css`** (lines 201-290) - Changed `.progress-summary` from CSS grid to flexbox layout. Added styles for `.data-type-card`, `.progress-bar` (6px height, border-radius), `.progress-bar-fill` (blue with transition animation), `.stat-secondary` (hidden by default, shown via `.visible` class), `.stat-error-count.has-errors` (red #dc2626), `.stat-clickable` (cursor pointer, hover underline).
+
+3. **`src/renderer/app.js`**:
+   - Added `AppState.fetchSettings` property (line 22)
+   - `loadCollectionScreen()` now fetches collection-specific settings via `window.api.getSettings()` and stores on `AppState.fetchSettings`
+   - Rewrote `updateProgressStats()` to iterate over three data types, reading per-type stats from `AppState.progressStats.basicData/.issueData/.pricingData`, setting progress bar widths and error/skipped counts
+   - Added click handlers on `.stat-clickable` elements that set the status filter dropdown and reload the coin list
+   - Updated `DataSettingsUI.saveSettings()` to sync `AppState.fetchSettings` and refresh counter strip
+
+### Key Design Decisions
+
+1. **Always show all three cards** - Cards are never hidden based on fetch settings. The counter strip tracks overall collection status regardless of what's currently enabled.
+2. **"Processed" and "Remaining" removed** - These were ambiguous with three data types. Each card now shows merged/total which is more precise.
+3. **Progress bars** - Provide instant visual sense of completion per data type.
+4. **Error counts in red** - Only when > 0, via `.has-errors` CSS class toggle.
+5. **Clickable counts** - Error clicks filter to `missing_basic`/`missing_issue`/`missing_pricing`; skipped clicks filter to `skipped`. Uses existing filter infrastructure.
+
+### Bug Fixed During Implementation
+
+**`AppState.settings` vs `AppState.fetchSettings`** - Initially used `AppState.settings?.fetchSettings` to determine card visibility, but `AppState.settings` stores Phase 1 app-level settings (API key, delay) which has no `fetchSettings` property. Collection-specific fetch settings come from a separate IPC call (`window.api.getSettings()` / `get-settings` handler). Added `AppState.fetchSettings` populated during `loadCollectionScreen()`. Ultimately made moot by deciding to always show all three cards.
+
+### Lesson Learned
+
+9. **Understand the two settings systems**: Phase 1 app settings (`window.electronAPI.getAppSettings()` → `AppState.settings`) and Phase 2 collection settings (`window.api.getSettings()` → separate object) are completely different IPC channels with different data structures. Never assume one contains the other's properties.
 
 ---
