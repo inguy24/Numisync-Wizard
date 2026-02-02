@@ -556,19 +556,19 @@ Sort:
 **Estimated Time:** 1 day
 
 **Tasks:**
-- [ ] Add buttons to comparison screen
-  - [ ] "Fetch Issue Data" button (if not already fetched)
-  - [ ] "Fetch Pricing Data" button (if not already fetched)
-  - [ ] Show API call cost warning
-- [ ] Implement individual fetch logic
-  - [ ] Fetch for single coin only
-  - [ ] Update metadata after fetch
-  - [ ] Refresh comparison display
-- [ ] Handle already-fetched state
-  - [ ] Hide button if data already exists
-  - [ ] Show "Last fetched: X days ago" for pricing
-  - [ ] Offer "Refresh Pricing" if outdated
-- [ ] Update session call counter
+- [x] Add buttons to comparison screen
+  - [x] "Fetch Issue Data" button (if not already fetched)
+  - [x] "Fetch Pricing Data" button (if not already fetched)
+  - [x] Show API call cost warning
+- [x] Implement individual fetch logic
+  - [x] Fetch for single coin only
+  - [x] Update metadata after fetch
+  - [x] Refresh comparison display
+- [x] Handle already-fetched state
+  - [x] Hide button if data already exists
+  - [x] Show "Last fetched: X days ago" for pricing
+  - [x] Offer "Refresh Pricing" if outdated
+- [x] Update session call counter
 
 **Files to Create/Modify:**
 - `src/renderer/app.js` (ADD fetch buttons)
@@ -1062,8 +1062,8 @@ Features to consider for Phase 3:
 
 ---
 
-**Document Status:** IN PROGRESS - Task 2.4 COMPLETE, Task 2.8 COMPLETE
-**Next Action:** Begin Task 2.7 - Fetch More Data, or Task 2.1 - Metadata Storage System
+**Document Status:** IN PROGRESS - Task 2.4 COMPLETE, Task 2.7 COMPLETE, Task 2.8 COMPLETE, Task 2.9 COMPLETE
+**Next Action:** All Phase 2 tasks complete
 
 ---
 
@@ -1198,5 +1198,5 @@ When multiple issues match (e.g., 1943 Lincoln Cent from P/D/S mints):
 
 ---
 
-**Document Status:** IN PROGRESS - Task 2.4 COMPLETE, Task 2.8 COMPLETE
-**Next Action:** Begin Task 2.7 - Fetch More Data, or Task 2.1 - Metadata Storage System
+**Document Status:** IN PROGRESS - Task 2.4 COMPLETE, Task 2.7 COMPLETE, Task 2.8 COMPLETE, Task 2.9 COMPLETE
+**Next Action:** All Phase 2 tasks complete

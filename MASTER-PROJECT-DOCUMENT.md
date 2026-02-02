@@ -187,6 +187,16 @@ n**image-handler.js** (Task 2.8)
 - Images download from Numista at 400x400 resolution
 - Stored in OpenNumismat images table with proper foreign key relationships
 - Zero API calls - images are free (direct HTTP from Numista CDN)
+### Task 2.9 - Settings File Management COMPLETE (February 1, 2026)
+- Updated getApiKey() to check collection settings first, Phase 1 fallback
+- Auto-migrate API key from Phase 1 to collection settings on load
+- Sync API key and rate limit saves from Phase 1 settings to collection settings
+- Populated fieldMappings defaults from default-field-mapping.js
+- Fixed currency field missing from mergeWithDefaults
+- Added Reset to Defaults button to Data Settings modal
+- Added reset-settings IPC handler and preload method
+- Wired Phase 1 and Phase 2 reset buttons
+
 n### Coin List Pagination u2705 COMPLETE (January 31, 2026)
 - Added pagination state to AppState (currentPage, pageSize, totalPages)
 - Created pagination UI controls with navigation buttons
@@ -1507,3 +1517,110 @@ All three data-type cards are always visible regardless of current fetch setting
 9. **Understand the two settings systems**: Phase 1 app settings (`window.electronAPI.getAppSettings()` → `AppState.settings`) and Phase 2 collection settings (`window.api.getSettings()` → separate object) are completely different IPC channels with different data structures. Never assume one contains the other's properties.
 
 ---
+
+---
+
+## SESSION: February 1, 2026 (Night) - Task 2.9 Settings File Management
+
+**Date:** February 1, 2026 (Night)
+**Focus:** Completed Phase 2 Task 2.9 - Settings File Management
+
+### Changes Made
+
+#### 1. API Key Migration to Collection Settings
+
+**File Modified:** `src/main/index.js`
+
+- **getApiKey():** Now checks `settingsManager.getApiKey()` first, falls back to Phase 1 app-wide settings
+- **load-collection handler:** Auto-migrates API key from Phase 1 (`userData/settings.json`) to collection-specific settings on first load
+- **save-app-settings handler:** Syncs API key and rate limit to collection settings when Phase 1 settings are saved
+
+This means the API key is now portable with the collection database.
+
+#### 2. Field Mappings Populated from Defaults
+
+**File Modified:** `src/modules/settings-manager.js`
+
+- Imported `DEFAULT_FIELD_MAPPING` from `default-field-mapping.js`
+- Added `buildDefaultFieldMappings()` method that creates serializable mapping: `{ fieldName: { enabled, priority, description } }`
+- Transform functions are NOT stored (not serializable); they remain in `default-field-mapping.js`
+- Fixed `currency` field missing from `mergeWithDefaults()` - was silently lost on reload
+
+#### 3. Reset to Defaults UI
+
+**Files Modified:**
+- `src/renderer/index.html` - Added "Reset to Defaults" button to Data Settings modal
+- `src/renderer/app.js` - Added `resetToDefaults()` method to DataSettingsUI class, wired Phase 1 reset button
+- `src/main/index.js` - Added `reset-settings` IPC handler
+- `src/main/preload.js` - Exposed `resetSettings()` API method
+
+**Behavior:**
+- Phase 2 Reset: Calls `settingsManager.resetToDefaults()`, preserves API key, repopulates modal with defaults
+- Phase 1 Reset: Resets search delay, image handling, backup settings to defaults, preserves API key
+
+### Files Modified Summary
+
+1. `src/main/index.js` - getApiKey() update, API key migration, save sync, reset handler
+2. `src/main/preload.js` - resetSettings method
+3. `src/modules/settings-manager.js` - Import default mappings, buildDefaultFieldMappings(), currency in merge
+4. `src/renderer/index.html` - Reset button in Data Settings modal
+5. `src/renderer/app.js` - resetToDefaults() method, Phase 1 reset wiring
+
+### Task 2.9 Checklist
+
+- [x] Create settings-manager.js (already existed)
+- [x] Implement loadSettings / saveSettings (already existed)
+- [x] Generate filename {dbname}_settings.json (already existed)
+- [x] Store next to database file (already existed)
+- [x] Define settings structure (already existed)
+- [x] Fall back to default-field-mapping.js (NEW - populated fieldMappings)
+- [x] Handle multiple collections (already worked)
+- [x] Switch settings when switching databases (already worked)
+- [x] Settings UI - allow editing (fetch settings + currency existed, reset added)
+- [x] Save on change (already existed)
+- [x] Reset to defaults option (method existed, UI added)
+- [x] API key in collection settings (NEW - migration + sync)
+
+**Phase 2 Task 2.9 - Settings File Management: 100% COMPLETE**
+
+---
+
+## SESSION: February 1, 2026 (Late Night) - Status Bar API Call Estimate Fix
+
+**Date:** February 1, 2026 (Late Night)
+**Focus:** Fixed incorrect API call estimate display in status bar
+
+### Issue Reported
+
+Status bar at the bottom of the screen always showed "Fetch: Basic (2 calls)" even when all three data types (Basic, Issue, Pricing) were selected in Data Settings.
+
+### Root Cause
+
+Two bugs combined to produce the incorrect display:
+
+1. **Status bar never updated after collection load**: `updateStatusBarDisplay()` was called on DOMContentLoaded, but that call failed with "Error: No collection loaded" because no collection is open at app startup. When the collection later loaded via `loadCollectionScreen()`, the status bar was never refreshed, so it stayed at the HTML default text "Fetch: Basic (2 calls)".
+
+2. **Basic data hardcoded in call count**: Both `updateStatusBarDisplay()` and `updateCostDisplay()` always started with `parts = ['Basic']` and `callCount = 2`, ignoring whether `settings.basicData` was actually enabled. Issue and Pricing were conditionally added, but Basic was assumed always-on (leftover from when Basic was required).
+
+### Fix Applied
+
+**File Modified:** `src/renderer/app.js`
+
+**Changes:**
+
+1. **`updateStatusBarDisplay()` (line ~2299)** - Changed from hardcoded `parts = ['Basic']` / `callCount = 2` to checking `settings.basicData` before including Basic and adding 2 to call count. Added fallback for zero selections showing "Fetch: None (0 calls)".
+
+2. **`updateCostDisplay()` (line ~2203)** - Changed from hardcoded `callsPerCoin = 2` to checking the `fetchBasicData` checkbox, starting at 0.
+
+3. **`loadCollectionScreen()` (line ~164)** - Added call to `dataSettingsUI.updateStatusBarDisplay(AppState.fetchSettings)` after loading collection settings, so the status bar reflects actual settings immediately.
+
+### Result
+
+- Status bar now correctly shows "Fetch: Basic + Issue + Pricing (4 calls)" when all three types are selected
+- Status bar updates immediately when a collection is loaded
+- Call count accurately reflects which data types are enabled
+
+### Lesson Learned
+
+10. **Always update UI after async data loads**: If a UI element depends on data that isn't available at DOMContentLoaded (like collection-specific settings), ensure the UI is updated again after the data actually loads. Relying solely on initialization-time updates leaves stale defaults visible.
+

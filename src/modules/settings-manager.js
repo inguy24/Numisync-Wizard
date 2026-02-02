@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { DEFAULT_FIELD_MAPPING } = require('./default-field-mapping');
 
 /**
  * Settings Manager - Phase 2
@@ -52,10 +53,7 @@ class SettingsManager {
       // Pricing currency preference
       currency: 'USD',
       
-      fieldMappings: {
-        // User can customize these later
-        // For now, use defaults from default-field-mapping.js
-      },
+      fieldMappings: this.buildDefaultFieldMappings(),
       
       uiPreferences: {
         defaultView: 'list',
@@ -66,6 +64,22 @@ class SettingsManager {
         imageHandling: 'url' // 'url' or 'blob'
       }
     };
+  }
+
+  /**
+   * Build serializable field mappings from default-field-mapping.js
+   * Only stores enabled/disabled state per field (transforms are not serializable)
+   */
+  buildDefaultFieldMappings() {
+    const mappings = {};
+    for (const [fieldName, config] of Object.entries(DEFAULT_FIELD_MAPPING)) {
+      mappings[fieldName] = {
+        enabled: config.enabled !== false,
+        priority: config.priority || 'MEDIUM',
+        description: config.description || fieldName
+      };
+    }
+    return mappings;
   }
 
   /**
@@ -97,22 +111,24 @@ class SettingsManager {
     return {
       version: loaded.version || defaults.version,
       collectionPath: this.collectionPath,
-      
+
       apiConfiguration: {
         ...defaults.apiConfiguration,
         ...(loaded.apiConfiguration || {})
       },
-      
+
       fetchSettings: {
         ...defaults.fetchSettings,
         ...(loaded.fetchSettings || {})
       },
-      
+
+      currency: loaded.currency || defaults.currency,
+
       fieldMappings: {
         ...defaults.fieldMappings,
         ...(loaded.fieldMappings || {})
       },
-      
+
       uiPreferences: {
         ...defaults.uiPreferences,
         ...(loaded.uiPreferences || {})

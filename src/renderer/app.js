@@ -169,6 +169,11 @@ async function loadCollectionScreen() {
     AppState.fetchSettings = { basicData: true, issueData: false, pricingData: false };
   }
 
+  // Update status bar with loaded fetch settings
+  if (dataSettingsUI) {
+    dataSettingsUI.updateStatusBarDisplay(AppState.fetchSettings);
+  }
+
   // Update statistics
   updateProgressStats();
 
@@ -1491,12 +1496,250 @@ async function handleImageDownload() {
   }
 }
 
+// =============================================================================
+// Fetch More Data (Task 2.7)
+// =============================================================================
+
+function createFetchCard({ title, description, cost, buttonText, buttonId, handler, warning }) {
+  const card = document.createElement('div');
+  card.className = 'fetch-more-card';
+
+  const info = document.createElement('div');
+  info.className = 'fetch-more-info';
+
+  const titleEl = document.createElement('strong');
+  titleEl.textContent = title;
+  info.appendChild(titleEl);
+
+  const descEl = document.createElement('span');
+  descEl.className = 'fetch-more-description';
+  descEl.textContent = description;
+  info.appendChild(descEl);
+
+  const costEl = document.createElement('span');
+  costEl.className = 'fetch-more-cost';
+  costEl.textContent = 'Cost: ' + cost;
+  info.appendChild(costEl);
+
+  if (warning) {
+    const warnEl = document.createElement('span');
+    warnEl.className = 'fetch-more-warning';
+    warnEl.textContent = warning;
+    info.appendChild(warnEl);
+  }
+
+  const btn = document.createElement('button');
+  btn.className = 'btn btn-secondary';
+  btn.id = buttonId;
+  btn.textContent = buttonText;
+  btn.addEventListener('click', handler);
+
+  card.appendChild(info);
+  card.appendChild(btn);
+
+  return card;
+}
+
+function renderFetchMoreDataSection(container) {
+  const hasIssueData = AppState.issueData !== null && AppState.issueData !== undefined;
+  const hasPricingData = AppState.pricingData !== null && AppState.pricingData !== undefined;
+  const hasMatchedType = AppState.selectedMatch && AppState.selectedMatch.id;
+
+  if (!hasMatchedType) return;
+
+  // Check metadata for previously fetched pricing (for "Refresh" scenario)
+  const pricingMetadata = AppState.currentCoin?.statusInfo?.pricingData;
+  const pricingTimestamp = pricingMetadata?.timestamp;
+
+  const cards = [];
+
+  // Issue Data button - show if not already fetched in this session
+  if (!hasIssueData) {
+    cards.push(createFetchCard({
+      title: 'Issue Data',
+      description: 'Fetch mintmark & mintage from Numista',
+      cost: '1 API call',
+      buttonText: 'Fetch Issue Data',
+      buttonId: 'fetchIssueDataBtn',
+      handler: handleFetchIssueData
+    }));
+  }
+
+  // Pricing Data button
+  if (!hasPricingData) {
+    cards.push(createFetchCard({
+      title: 'Pricing Data',
+      description: 'Fetch current market values from Numista',
+      cost: hasIssueData ? '1 API call' : '2 API calls (issue lookup + pricing)',
+      buttonText: 'Fetch Pricing Data',
+      buttonId: 'fetchPricingDataBtn',
+      handler: handleFetchPricingData,
+      warning: !hasIssueData ? 'Requires issue lookup first' : null
+    }));
+  } else if (pricingTimestamp) {
+    // Pricing exists in this session - check freshness for refresh option
+    const freshness = calculatePricingFreshness(pricingTimestamp);
+    if (freshness.status === 'AGING' || freshness.status === 'OUTDATED') {
+      cards.push(createFetchCard({
+        title: freshness.icon + ' Refresh Pricing',
+        description: 'Last fetched: ' + freshness.text + ' (' + new Date(pricingTimestamp).toLocaleDateString() + ')',
+        cost: '1 API call',
+        buttonText: 'Refresh Pricing Data',
+        buttonId: 'refreshPricingDataBtn',
+        handler: handleFetchPricingData
+      }));
+    }
+  }
+
+  if (cards.length === 0) return;
+
+  const section = document.createElement('div');
+  section.className = 'fetch-more-data-section';
+  section.id = 'fetchMoreDataSection';
+
+  const heading = document.createElement('h3');
+  heading.textContent = 'Additional Data Available';
+  section.appendChild(heading);
+
+  cards.forEach(card => section.appendChild(card));
+  container.appendChild(section);
+}
+
+async function handleFetchIssueData() {
+  const typeId = AppState.selectedMatch.id;
+  const coin = AppState.currentCoin;
+
+  try {
+    showStatus('Fetching issue data...');
+
+    const btn = document.getElementById('fetchIssueDataBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Fetching...'; }
+
+    const result = await window.electronAPI.fetchIssueData({
+      typeId: typeId,
+      coin: coin
+    });
+
+    if (!result.success) {
+      throw new Error(result.error);
+    }
+
+    if (result.issueMatchResult?.type === 'USER_PICK' && result.issueOptions?.length > 0) {
+      showStatus('Multiple issues found. Please select the correct one...');
+      const pickerResult = await showIssuePicker(result.issueOptions, coin);
+
+      if (pickerResult.action === 'selected' && pickerResult.issue) {
+        AppState.issueData = pickerResult.issue;
+        AppState.issueMatchResult = { type: 'USER_SELECTED', issue: pickerResult.issue };
+      } else if (pickerResult.action === 'skip') {
+        AppState.issueData = null;
+        showStatus('Issue data skipped.');
+        await showFieldComparison();
+        return;
+      } else {
+        showStatus('Issue selection cancelled.');
+        if (btn) { btn.disabled = false; btn.textContent = 'Fetch Issue Data'; }
+        return;
+      }
+    } else if (result.issueMatchResult?.type === 'AUTO_MATCHED') {
+      AppState.issueData = result.issueData;
+      AppState.issueMatchResult = result.issueMatchResult;
+    } else if (result.issueMatchResult?.type === 'NO_ISSUES' || result.issueMatchResult?.type === 'NO_MATCH') {
+      showStatus('No matching issues found for this coin.');
+      if (btn) { btn.disabled = false; btn.textContent = 'Fetch Issue Data'; }
+      return;
+    }
+
+    showStatus('Issue data fetched. Refreshing comparison...');
+    await showFieldComparison();
+
+  } catch (error) {
+    showStatus('Error fetching issue data: ' + error.message, 'error');
+    const btn = document.getElementById('fetchIssueDataBtn');
+    if (btn) { btn.disabled = false; btn.textContent = 'Fetch Issue Data'; }
+  }
+}
+
+async function handleFetchPricingData() {
+  const typeId = AppState.selectedMatch.id;
+  const coin = AppState.currentCoin;
+
+  try {
+    showStatus('Fetching pricing data...');
+
+    const btn = document.getElementById('fetchPricingDataBtn') || document.getElementById('refreshPricingDataBtn');
+    const originalText = btn ? btn.textContent : '';
+    if (btn) { btn.disabled = true; btn.textContent = 'Fetching...'; }
+
+    let issueId = null;
+
+    if (AppState.issueData && AppState.issueData.id) {
+      issueId = AppState.issueData.id;
+    } else {
+      // Need to fetch issues first to get an issue ID for pricing
+      showStatus('Looking up issue data first (required for pricing)...');
+
+      const issueResult = await window.electronAPI.fetchIssueData({
+        typeId: typeId,
+        coin: coin
+      });
+
+      if (!issueResult.success) {
+        throw new Error('Failed to look up issue: ' + issueResult.error);
+      }
+
+      if (issueResult.issueMatchResult?.type === 'USER_PICK' && issueResult.issueOptions?.length > 0) {
+        const pickerResult = await showIssuePicker(issueResult.issueOptions, coin);
+
+        if (pickerResult.action === 'selected' && pickerResult.issue) {
+          AppState.issueData = pickerResult.issue;
+          issueId = pickerResult.issue.id;
+        } else {
+          showStatus('Cannot fetch pricing without selecting an issue.');
+          if (btn) { btn.disabled = false; btn.textContent = originalText; }
+          return;
+        }
+      } else if (issueResult.issueMatchResult?.type === 'AUTO_MATCHED') {
+        AppState.issueData = issueResult.issueData;
+        issueId = issueResult.issueData.id;
+      } else {
+        showStatus('No matching issue found. Cannot fetch pricing without an issue.');
+        if (btn) { btn.disabled = false; btn.textContent = originalText; }
+        return;
+      }
+    }
+
+    showStatus('Fetching pricing for issue...');
+    const pricingResult = await window.electronAPI.fetchPricingForIssue({
+      typeId: typeId,
+      issueId: issueId
+    });
+
+    if (pricingResult.success) {
+      AppState.pricingData = pricingResult.pricingData;
+    } else {
+      throw new Error('Pricing fetch failed: ' + (pricingResult.error || 'Unknown error'));
+    }
+
+    showStatus('Pricing data fetched. Refreshing comparison...');
+    await showFieldComparison();
+
+  } catch (error) {
+    showStatus('Error fetching pricing: ' + error.message, 'error');
+    const btn = document.getElementById('fetchPricingDataBtn') || document.getElementById('refreshPricingDataBtn');
+    if (btn) { btn.disabled = false; }
+  }
+}
+
 function renderFieldComparison() {
   const container = document.getElementById('fieldComparison');
   container.innerHTML = '';
 
   // Add image comparison section at the top
   renderImageComparison(container);
+
+  // Add "Fetch More Data" section if additional data types are available
+  renderFetchMoreDataSection(container);
 
   for (const [fieldName, data] of Object.entries(AppState.fieldComparison)) {
     const row = document.createElement('div');
@@ -2040,6 +2283,24 @@ document.getElementById('closeSettingsBtn').addEventListener('click', () => {
   showScreen(AppState.collectionPath ? 'collection' : 'welcome');
 });
 
+document.getElementById('resetSettingsBtn').addEventListener('click', async () => {
+  const defaultSettings = {
+    apiKey: AppState.settings?.apiKey || '',  // Preserve API key
+    searchDelay: 2000,
+    imageHandling: 'url',
+    autoBackup: true
+  };
+
+  const result = await window.electronAPI.saveAppSettings(defaultSettings);
+  if (result.success) {
+    AppState.settings = defaultSettings;
+    loadSettingsScreen();
+    showModal('Success', 'Settings reset to defaults (API key preserved)');
+  } else {
+    showModal('Error', 'Failed to reset settings');
+  }
+});
+
 // =============================================================================
 // Initialization
 // =============================================================================
@@ -2088,6 +2349,12 @@ class DataSettingsUI {
     const saveBtn = document.getElementById('saveDataSettingsBtn');
     if (saveBtn) {
       saveBtn.addEventListener('click', () => this.saveSettings());
+    }
+
+    // Reset to defaults button
+    const resetBtn = document.getElementById('resetDataSettingsBtn');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', () => this.resetToDefaults());
     }
 
     // Checkboxes - update display when changed
@@ -2180,12 +2447,17 @@ class DataSettingsUI {
     const issueCheckbox = document.getElementById('fetchIssueData');
     const pricingCheckbox = document.getElementById('fetchPricingData');
     
-    let callsPerCoin = 2; // Basic data always
-    
+    const basicCheckbox = document.getElementById('fetchBasicData');
+    let callsPerCoin = 0;
+
+    if (basicCheckbox && basicCheckbox.checked) {
+      callsPerCoin += 2;
+    }
+
     if (issueCheckbox && issueCheckbox.checked) {
       callsPerCoin += 1;
     }
-    
+
     if (pricingCheckbox && pricingCheckbox.checked) {
       callsPerCoin += 1;
     }
@@ -2244,26 +2516,61 @@ class DataSettingsUI {
   }
 
   /**
+   * Reset data settings to defaults
+   */
+  async resetToDefaults() {
+    try {
+      const result = await window.api.resetSettings();
+      if (result.success) {
+        // Repopulate the modal with reset values
+        this.currentSettings = result.settings;
+        this.populateSettings(result.settings.fetchSettings, result.settings.currency || 'USD');
+
+        // Update status bar and counter strip
+        this.updateStatusBarDisplay(result.settings.fetchSettings);
+        AppState.fetchSettings = result.settings.fetchSettings;
+        updateProgressStats();
+
+        this.showSuccess('Settings reset to defaults');
+      } else {
+        this.showError('Failed to reset settings: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Error resetting settings:', error);
+      this.showError('Failed to reset settings');
+    }
+  }
+
+  /**
    * Update status bar to show current fetch settings
    */
   updateStatusBarDisplay(settings) {
     const statusText = document.getElementById('fetchSettingsText');
     if (!statusText) return;
     
-    const parts = ['Basic'];
-    let callCount = 2;
-    
+    const parts = [];
+    let callCount = 0;
+
+    if (settings.basicData) {
+      parts.push('Basic');
+      callCount += 2;
+    }
+
     if (settings.issueData) {
       parts.push('Issue');
       callCount += 1;
     }
-    
+
     if (settings.pricingData) {
       parts.push('Pricing');
       callCount += 1;
     }
-    
-    statusText.textContent = `Fetch: ${parts.join(' + ')} (${callCount} calls)`;
+
+    if (parts.length === 0) {
+      statusText.textContent = 'Fetch: None (0 calls)';
+    } else {
+      statusText.textContent = `Fetch: ${parts.join(' + ')} (${callCount} calls)`;
+    }
   }
 
   /**

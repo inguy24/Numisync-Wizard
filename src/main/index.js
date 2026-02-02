@@ -96,6 +96,22 @@ ipcMain.handle('load-collection', async (event, filePath) => {
     // Initialize settings manager for this collection
     settingsManager = new SettingsManager(filePath);
     console.log('Settings loaded:', settingsManager.getFetchSettings());
+
+    // Auto-migrate API key from Phase 1 app settings if collection has none
+    if (!settingsManager.getApiKey()) {
+      try {
+        const phase1Path = path.join(app.getPath('userData'), 'settings.json');
+        if (fs.existsSync(phase1Path)) {
+          const phase1Settings = JSON.parse(fs.readFileSync(phase1Path, 'utf8'));
+          if (phase1Settings.apiKey) {
+            settingsManager.setApiKey(phase1Settings.apiKey);
+            console.log('API key migrated from Phase 1 app settings to collection settings');
+          }
+        }
+      } catch (migrationError) {
+        console.error('API key migration failed (non-fatal):', migrationError.message);
+      }
+    }
     
     // Initialize progress tracker for this collection
     progressTracker = new ProgressTracker(filePath);
@@ -175,17 +191,24 @@ ipcMain.handle('get-coin-details', async (event, coinId) => {
 // ============================================================================
 
 /**
- * Load API key from settings
+ * Load API key - checks collection settings first, falls back to Phase 1 app settings
  */
 function getApiKey() {
+  // Phase 2: Check collection-specific settings first
+  if (settingsManager) {
+    const key = settingsManager.getApiKey();
+    if (key) return key;
+  }
+
+  // Phase 1 fallback: Read from app-wide settings
   try {
     const settingsPath = path.join(app.getPath('userData'), 'settings.json');
-    
+
     if (fs.existsSync(settingsPath)) {
       const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
       return settings.apiKey || null;
     }
-    
+
     return null;
   } catch (error) {
     console.error('Error loading API key:', error);
@@ -300,6 +323,48 @@ ipcMain.handle('fetch-pricing-for-issue', async (event, { typeId, issueId }) => 
     return { success: true, pricingData };
   } catch (error) {
     console.error('Error fetching pricing for issue:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('fetch-issue-data', async (event, { typeId, coin }) => {
+  try {
+    console.log('=== fetch-issue-data called ===');
+    console.log('typeId:', typeId);
+
+    const apiKey = getApiKey();
+    const api = new NumistaAPI(apiKey);
+
+    // Fetch issues for this type (1 API call)
+    const issuesResponse = await api.getTypeIssues(typeId);
+
+    // Try to auto-match (local logic, no API call)
+    const matchResult = api.matchIssue(coin, issuesResponse);
+    console.log('Issue match result type:', matchResult.type);
+
+    if (matchResult.type === 'AUTO_MATCHED') {
+      return {
+        success: true,
+        issueData: matchResult.issue,
+        issueMatchResult: matchResult
+      };
+    } else if (matchResult.type === 'USER_PICK') {
+      return {
+        success: true,
+        issueData: null,
+        issueMatchResult: matchResult,
+        issueOptions: matchResult.options
+      };
+    } else {
+      // NO_MATCH or NO_ISSUES
+      return {
+        success: true,
+        issueData: null,
+        issueMatchResult: matchResult
+      };
+    }
+  } catch (error) {
+    console.error('Error fetching issue data:', error);
     return { success: false, error: error.message };
   }
 });
@@ -527,7 +592,19 @@ ipcMain.handle('save-app-settings', async (event, settings) => {
   try {
     const settingsPath = path.join(app.getPath('userData'), 'settings.json');
     fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
-    
+
+    // Sync API key to collection-specific settings if a collection is loaded
+    if (settingsManager && settings.apiKey) {
+      settingsManager.setApiKey(settings.apiKey);
+      console.log('API key synced to collection settings');
+    }
+
+    // Sync rate limit to collection settings if a collection is loaded
+    if (settingsManager && settings.searchDelay) {
+      settingsManager.setRateLimit(settings.searchDelay);
+      console.log('Rate limit synced to collection settings');
+    }
+
     return { success: true };
   } catch (error) {
     console.error('Error saving app settings:', error);
@@ -597,6 +674,28 @@ ipcMain.handle('get-currency', async () => {
   } catch (error) {
     console.error('Error getting currency:', error);
     return 'USD';
+  }
+});
+
+ipcMain.handle('reset-settings', async () => {
+  try {
+    if (!settingsManager) {
+      throw new Error('No collection loaded');
+    }
+
+    settingsManager.resetToDefaults();
+    console.log('Settings reset to defaults');
+
+    // Rebuild progress with reset settings
+    if (progressTracker && db) {
+      const fetchSettings = settingsManager.getFetchSettings();
+      await progressTracker.rebuildFromDatabase(db, fetchSettings);
+    }
+
+    return { success: true, settings: settingsManager.getSettings() };
+  } catch (error) {
+    console.error('Error resetting settings:', error);
+    return { success: false, error: error.message };
   }
 });
 

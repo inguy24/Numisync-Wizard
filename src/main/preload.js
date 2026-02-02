@@ -15,6 +15,7 @@ const apiMethods = {
   getNumistaType: (typeId) => ipcRenderer.invoke('get-numista-type', typeId),
   fetchCoinData: (data) => ipcRenderer.invoke('fetch-coin-data', data),
   fetchPricingForIssue: (data) => ipcRenderer.invoke('fetch-pricing-for-issue', data),
+  fetchIssueData: (data) => ipcRenderer.invoke('fetch-issue-data', data),
   
   // Field mapping and merge
   compareFields: (data) => ipcRenderer.invoke('compare-fields', data),
@@ -34,6 +35,9 @@ const apiMethods = {
   saveCurrency: (currency) => ipcRenderer.invoke('save-currency', currency),
   getCurrency: () => ipcRenderer.invoke('get-currency'),
   
+  // Phase 2 - Settings reset
+  resetSettings: () => ipcRenderer.invoke('reset-settings'),
+
   // Phase 2 - Statistics and API tracking
   getStatistics: () => ipcRenderer.invoke('get-statistics'),
   incrementApiCalls: (count) => ipcRenderer.invoke('increment-api-calls', count),
