@@ -2,6 +2,16 @@ const initSqlJs = require('sql.js');
 const path = require('path');
 const fs = require('fs');
 
+// Fields that must never be overwritten by merge operations.
+// These are primary keys or foreign keys referencing other tables.
+const PROTECTED_FIELDS = new Set([
+  'id',           // Primary key
+  'obverseimg',   // FK -> photos table
+  'reverseimg',   // FK -> photos table
+  'edgeimg',      // FK -> photos table
+  'image',        // FK -> images table (composite thumbnail)
+]);
+
 /**
  * OpenNumismat Database Handler (sql.js version)
  * 
@@ -263,8 +273,14 @@ class OpenNumismatDB {
    * @param {Object} data - Object containing field names and values to update
    */
   updateCoin(coinId, data) {
-    // Build the UPDATE statement dynamically
-    const fields = Object.keys(data);
+    // Filter out protected fields (primary key, foreign keys)
+    const fields = Object.keys(data).filter(field => {
+      if (PROTECTED_FIELDS.has(field)) {
+        console.warn(`Blocked attempt to update protected field: ${field}`);
+        return false;
+      }
+      return true;
+    });
     if (fields.length === 0) {
       console.log('No fields to update');
       return false;
@@ -335,6 +351,44 @@ class OpenNumismatDB {
     fs.copyFileSync(this.filePath, backupPath);
 
     return backupPath;
+  }
+
+  /**
+   * Remove old backups that exceed the maximum count.
+   *
+   * @param {number} maxCount - Maximum backups to keep. 0 = unlimited (no pruning).
+   * @returns {string[]} - Paths of deleted backup files
+   */
+  pruneOldBackups(maxCount) {
+    if (maxCount <= 0) return []; // 0 = unlimited
+
+    const backupDir = path.join(path.dirname(this.filePath), 'backups');
+    if (!fs.existsSync(backupDir)) return [];
+
+    const dbBasename = path.basename(this.filePath, '.db');
+    const pattern = `${dbBasename}_backup_`;
+
+    // List matching backup files and sort alphabetically (timestamp in name = chronological)
+    const backups = fs.readdirSync(backupDir)
+      .filter(f => f.startsWith(pattern) && f.endsWith('.db'))
+      .sort();
+
+    if (backups.length <= maxCount) return [];
+
+    // Delete oldest files (beginning of sorted list)
+    const toDelete = backups.slice(0, backups.length - maxCount);
+    const deleted = [];
+    for (const filename of toDelete) {
+      const fullPath = path.join(backupDir, filename);
+      try {
+        fs.unlinkSync(fullPath);
+        deleted.push(fullPath);
+        console.log(`Pruned old backup: ${filename}`);
+      } catch (err) {
+        console.warn(`Failed to delete backup ${filename}:`, err.message);
+      }
+    }
+    return deleted;
   }
 
   /**

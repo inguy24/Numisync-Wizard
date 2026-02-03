@@ -1,19 +1,76 @@
 const axios = require('axios');
+const { mintmarksMatch } = require('./mintmark-normalizer');
 
 /**
  * Numista API Client
- * 
+ *
  * Handles all communication with the Numista API v3.
  * Implements rate limiting, caching, and error handling.
- * 
+ *
  * API Documentation: https://en.numista.com/api/doc/index.php
  * Base URL: https://api.numista.com/v3/
  */
+
+// Common country name aliases to Numista issuer codes
+const ISSUER_ALIASES = {
+  'usa': 'united-states',
+  'us': 'united-states',
+  'u.s.': 'united-states',
+  'u.s.a.': 'united-states',
+  'united states': 'united-states',
+  'united states of america': 'united-states',
+  'uk': 'united-kingdom',
+  'u.k.': 'united-kingdom',
+  'great britain': 'united-kingdom',
+  'england': 'united-kingdom',
+  'ussr': 'ussr',
+  'soviet union': 'ussr',
+  'west germany': 'germany-federal-republic',
+  'east germany': 'germany-democratic-republic',
+  'south korea': 'korea-south',
+  'north korea': 'korea-north',
+};
+
+/**
+ * Dice's coefficient string similarity (0.0 to 1.0).
+ * Compares bigrams (pairs of consecutive characters) between two strings.
+ *
+ * @param {string} a - First string
+ * @param {string} b - Second string
+ * @returns {number} - Similarity score between 0 and 1
+ */
+function diceCoefficient(a, b) {
+  a = a.toLowerCase().trim();
+  b = b.toLowerCase().trim();
+
+  if (a === b) return 1.0;
+  if (a.length < 2 || b.length < 2) return 0.0;
+
+  const bigramsA = new Map();
+  for (let i = 0; i < a.length - 1; i++) {
+    const bigram = a.substring(i, i + 2);
+    bigramsA.set(bigram, (bigramsA.get(bigram) || 0) + 1);
+  }
+
+  let intersectionSize = 0;
+  for (let i = 0; i < b.length - 1; i++) {
+    const bigram = b.substring(i, i + 2);
+    const count = bigramsA.get(bigram) || 0;
+    if (count > 0) {
+      bigramsA.set(bigram, count - 1);
+      intersectionSize++;
+    }
+  }
+
+  return (2.0 * intersectionSize) / ((a.length - 1) + (b.length - 1));
+}
+
 class NumistaAPI {
   constructor(apiKey = null) {
     this.baseURL = 'https://api.numista.com/v3';
     this.apiKey = apiKey;
     this.cache = new Map();  // Simple in-memory cache
+    this.issuerCodeCache = new Map();  // country name -> issuer code cache
     this.lastRequestTime = 0;
     this.minRequestDelay = 2000;  // 2 seconds between requests (respectful rate limiting)
   }
@@ -210,10 +267,11 @@ class NumistaAPI {
     // STEP 2: Multiple matches for year - check which fields differentiate them
     console.log('\nMultiple issues for year - analyzing differentiating fields...');
 
-    // Check if mint_letter varies
-    const mintLetters = new Set(candidates.map(c => c.mint_letter).filter(m => m));
-    const hasMintVariation = mintLetters.size > 1;
-    console.log(`Mint variation: ${hasMintVariation} (unique values: ${Array.from(mintLetters).join(', ') || 'none'})`);
+    // Check if mint_letter varies (include null/empty as a distinct value)
+    const mintLetterValues = candidates.map(c => c.mint_letter || null);
+    const uniqueMints = new Set(mintLetterValues);
+    const hasMintVariation = uniqueMints.size > 1;
+    console.log(`Mint variation: ${hasMintVariation} (unique values: ${Array.from(uniqueMints).join(', ') || 'none'})`);
 
     // Check if comment varies (Proof vs regular)
     const comments = new Set(candidates.map(c => c.comment).filter(c => c));
@@ -222,12 +280,18 @@ class NumistaAPI {
 
     // STEP 3: Apply filters based on user's data and field variations
 
-    // Filter by mintmark if it varies AND user has mintmark
-    if (hasMintVariation && coin.mintmark) {
-      const userMintmark = coin.mintmark.trim();
+    // Filter by mintmark if it varies
+    if (hasMintVariation) {
+      const userMintmark = coin.mintmark ? coin.mintmark.trim() : null;
       const beforeCount = candidates.length;
-      candidates = candidates.filter(i => i.mint_letter === userMintmark);
-      console.log(`Applied mintmark filter (${userMintmark}): ${beforeCount} -> ${candidates.length}`);
+      if (userMintmark) {
+        // User has a mintmark - match issues using normalized comparison
+        candidates = candidates.filter(i => i.mint_letter && mintmarksMatch(userMintmark, i.mint_letter));
+      } else {
+        // User has no mintmark - match issues with no mint letter (regular/Philadelphia)
+        candidates = candidates.filter(i => !i.mint_letter || i.mint_letter.trim() === '');
+      }
+      console.log(`Applied mintmark filter (${userMintmark || 'none/blank'}): ${beforeCount} -> ${candidates.length}`);
 
       if (candidates.length === 1) {
         console.log('Result: AUTO_MATCHED (after mintmark filter)');
@@ -380,16 +444,10 @@ class NumistaAPI {
   calculateMatchConfidence(coin, numistaType) {
     let score = 0;
 
-    // Title match (30 points)
+    // Title match (30 points) - uses Dice coefficient for fuzzy comparison
     if (coin.title && numistaType.title) {
-      const coinTitle = coin.title.toLowerCase().trim();
-      const numistaTitle = numistaType.title.toLowerCase().trim();
-      
-      if (coinTitle === numistaTitle) {
-        score += 30;
-      } else if (numistaTitle.includes(coinTitle) || coinTitle.includes(numistaTitle)) {
-        score += 21;
-      }
+      const similarity = diceCoefficient(coin.title, numistaType.title);
+      score += Math.round(similarity * 30);
     }
 
     // Year match (25 points)
@@ -431,9 +489,98 @@ class NumistaAPI {
     return Math.min(score, 100);
   }
 
+  /**
+   * Get the full list of issuers from Numista API.
+   * Cached permanently for the session (issuers don't change).
+   *
+   * @returns {Promise<Array>} - Array of issuer objects { code, name, ... }
+   */
+  async getIssuers() {
+    const cacheKey = 'issuers:all';
+
+    if (this.cache.has(cacheKey)) {
+      return this.cache.get(cacheKey);
+    }
+
+    const result = await this.request('/issuers', { lang: 'en' });
+    const issuers = result.issuers || [];
+    this.cache.set(cacheKey, issuers);
+
+    return issuers;
+  }
+
+  /**
+   * Resolve a country name (from OpenNumismat) to a Numista issuer code.
+   * Uses alias map first, then fuzzy matches against the full issuer list.
+   * Results are cached per country name for the session.
+   *
+   * @param {string} countryName - Country name from OpenNumismat coin data
+   * @returns {Promise<string|null>} - Numista issuer code or null if no match
+   */
+  async resolveIssuerCode(countryName) {
+    if (!countryName || typeof countryName !== 'string') return null;
+
+    const normalized = countryName.trim().toLowerCase();
+    if (!normalized) return null;
+
+    // Check resolved cache first
+    if (this.issuerCodeCache.has(normalized)) {
+      return this.issuerCodeCache.get(normalized);
+    }
+
+    // Check alias map
+    if (ISSUER_ALIASES[normalized]) {
+      const code = ISSUER_ALIASES[normalized];
+      this.issuerCodeCache.set(normalized, code);
+      return code;
+    }
+
+    // Fetch issuers list and find best match
+    try {
+      const issuers = await this.getIssuers();
+
+      // Exact name match (case-insensitive)
+      const exactMatch = issuers.find(i => i.name.toLowerCase() === normalized);
+      if (exactMatch) {
+        this.issuerCodeCache.set(normalized, exactMatch.code);
+        return exactMatch.code;
+      }
+
+      // Fuzzy match — find the issuer with the highest Dice similarity
+      let bestScore = 0;
+      let bestCode = null;
+      for (const issuer of issuers) {
+        const score = diceCoefficient(normalized, issuer.name.toLowerCase());
+        if (score > bestScore) {
+          bestScore = score;
+          bestCode = issuer.code;
+        }
+      }
+
+      // Only accept matches above a reasonable threshold
+      if (bestScore >= 0.6) {
+        console.log(`Resolved issuer: "${countryName}" -> "${bestCode}" (score: ${bestScore.toFixed(2)})`);
+        this.issuerCodeCache.set(normalized, bestCode);
+        return bestCode;
+      }
+
+      // No good match found
+      console.log(`Could not resolve issuer for: "${countryName}" (best score: ${bestScore.toFixed(2)})`);
+      this.issuerCodeCache.set(normalized, null);
+      return null;
+    } catch (error) {
+      console.warn('Failed to resolve issuer code:', error.message);
+      return null;
+    }
+  }
+
   clearCache() {
     this.cache.clear();
+    this.issuerCodeCache.clear();
   }
 }
+
+// Export diceCoefficient for use in renderer via preload
+NumistaAPI.diceCoefficient = diceCoefficient;
 
 module.exports = NumistaAPI;

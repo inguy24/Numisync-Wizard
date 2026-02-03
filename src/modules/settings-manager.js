@@ -47,7 +47,8 @@ class SettingsManager {
       fetchSettings: {
         basicData: true,      // Optional - can be independently fetched
         issueData: false,     // Optional - can be independently fetched
-        pricingData: false    // Optional - can be independently fetched
+        pricingData: false,   // Optional - can be independently fetched
+        searchCategory: 'all' // 'all', 'default', 'coin', 'banknote', 'exonumia'
       },
       
       // Pricing currency preference
@@ -61,6 +62,7 @@ class SettingsManager {
         defaultFilter: 'all',
         showThumbnails: true,
         autoBackup: true,
+        maxBackups: 5,        // 0 = unlimited (no pruning), positive int = keep that many
         imageHandling: 'url' // 'url' or 'blob'
       }
     };
@@ -201,7 +203,8 @@ class SettingsManager {
     this.settings.fetchSettings = {
       basicData: fetchSettings.basicData !== undefined ? fetchSettings.basicData : this.settings.fetchSettings.basicData,
       issueData: fetchSettings.issueData !== undefined ? fetchSettings.issueData : this.settings.fetchSettings.issueData,
-      pricingData: fetchSettings.pricingData !== undefined ? fetchSettings.pricingData : this.settings.fetchSettings.pricingData
+      pricingData: fetchSettings.pricingData !== undefined ? fetchSettings.pricingData : this.settings.fetchSettings.pricingData,
+      searchCategory: fetchSettings.searchCategory !== undefined ? fetchSettings.searchCategory : this.settings.fetchSettings.searchCategory
     };
     this.saveSettings();
   }
@@ -287,6 +290,22 @@ class SettingsManager {
    */
   setAutoBackup(enabled) {
     this.settings.uiPreferences.autoBackup = enabled;
+    this.saveSettings();
+  }
+
+  /**
+   * Get maximum backups to keep (0 = unlimited)
+   */
+  getMaxBackups() {
+    const val = this.settings.uiPreferences.maxBackups;
+    return (val !== undefined && val !== null) ? val : 5;
+  }
+
+  /**
+   * Set maximum backups to keep (0 = unlimited)
+   */
+  setMaxBackups(count) {
+    this.settings.uiPreferences.maxBackups = Math.max(0, Math.floor(count));
     this.saveSettings();
   }
 

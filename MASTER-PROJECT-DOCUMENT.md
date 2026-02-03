@@ -489,7 +489,7 @@ Once this master document is in place, these can be deleted:
 
 ---
 
-**Document Version:** 1.0  
+**Document Version:** 1.1
 **Maintainer:** Update this file, not scattered fix docs
 
 ---
@@ -1623,4 +1623,535 @@ Two bugs combined to produce the incorrect display:
 ### Lesson Learned
 
 10. **Always update UI after async data loads**: If a UI element depends on data that isn't available at DOMContentLoaded (like collection-specific settings), ensure the UI is updated again after the data actually loads. Relying solely on initialization-time updates leaves stale defaults visible.
+
+---
+
+## SESSION: February 2, 2026 - Session Call Counter Fix (Task 1.1)
+
+**Date:** February 2, 2026
+**Focus:** Fixed session call counter staying at 0, not tracking API calls
+
+### Issue Reported
+
+Session call counter remained at 0 and never incremented when making API calls to Numista. The display infrastructure existed (footer + Data Settings modal), but the counter was never updated.
+
+### Root Cause
+
+The session counter infrastructure existed in both backend and frontend, but was never called:
+
+1. **Backend**: API handlers (`search-numista`, `fetch-coin-data`, `fetch-pricing-for-issue`, `fetch-issue-data`) were making API calls but never calling `progressTracker.incrementSessionCalls()`
+2. **Frontend**: After API operations completed, the frontend never called `refreshSessionCounter()` to update the display
+3. **Session reset**: Counter was loaded from progress file on collection load, not reset to 0
+
+### Files Fixed
+
+1. `src/main/index.js` - Added session counter increments to API handlers
+2. `src/renderer/app.js` - Added `refreshSessionCounter()` helper and calls after API operations
+
+### Changes Made
+
+#### Backend Session Counter Increments (index.js)
+
+Added `progressTracker.incrementSessionCalls(count)` to all API handlers:
+
+1. **search-numista** (line 235) - Increments by 1 after successful search
+2. **manual-search-numista** (line 264) - Increments by 1 after successful search
+3. **fetch-coin-data** (lines 320-333) - Increments based on actual API calls made:
+   - +1 if `result.basicData` exists (getType was called)
+   - +1 if issueData or pricingData was requested (getTypeIssues was called)
+   - +1 if `result.pricingData` exists (getIssuePricing was called)
+4. **fetch-pricing-for-issue** (line 361) - Increments by 1 after successful pricing fetch
+5. **fetch-issue-data** (line 387) - Increments by 1 after successful issue fetch
+6. **load-collection** (line 127) - Calls `progressTracker.resetSessionCallCount()` to reset counter to 0 on collection load
+
+#### Frontend Session Counter Refresh (app.js)
+
+1. **Added helper function** `refreshSessionCounter()` (line 2646) - Fetches statistics from backend and updates display
+2. **Added refresh calls** after all API operations:
+   - After automatic search (line 1011)
+   - After manual search (line 2154)
+   - After fetching coin data in match selection (line 1269)
+   - After fetching issue data (line 1663)
+   - After fetching pricing data (line 1733)
+
+### Expected Behavior (Now Working)
+
+- ✅ Counter starts at 0 when collection loads
+- ✅ Increments by 1 for each search operation
+- ✅ Increments based on data actually fetched:
+  - +1 when fetching basic data (getType)
+  - +1 when fetching issue data (getTypeIssues)
+  - +1 when fetching pricing data (getIssuePricing)
+- ✅ Displays correctly in footer: "Session: X calls"
+- ✅ Displays correctly in Data Settings modal: "X call(s) used"
+- ✅ Updates in real-time as API calls are made
+
+### Testing Verification
+
+**Test Case 1: Single coin with all data types enabled**
+1. Load collection → Counter shows 0
+2. Select coin, automatic search runs → Counter shows 1
+3. Select match, fetch basic + issue + pricing → Counter shows 4 (1 search + 3 data fetches)
+4. Result: ✅ Counter tracks all API calls correctly
+
+**Test Case 2: Multiple searches**
+1. Load collection → Counter shows 0
+2. Search for coin 1 → Counter shows 1
+3. Search for coin 2 → Counter shows 2
+4. Result: ✅ Counter accumulates across multiple operations
+
+**Test Case 3: Session reset on collection load**
+1. Load collection → Counter shows 0
+2. Make several API calls → Counter shows N
+3. Close and reopen same collection → Counter shows 0
+4. Result: ✅ Counter resets properly
+
+### Lesson Learned
+
+11. **Infrastructure without integration is invisible**: Having all the pieces (backend counter methods, frontend display functions, IPC handlers) doesn't matter if they're never connected. Always trace the complete flow from trigger → backend → frontend → display to ensure functionality works end-to-end.
+
+---
+
+## SESSION: February 2, 2026 - Search Results Display Improvements (Task 1.2)
+
+**Date:** February 2, 2026
+**Focus:** Improved search results display with confidence sorting and better field display
+
+### Changes Made
+
+#### 1. Confidence Score Sorting
+
+**File Modified:** `src/renderer/app.js` (renderMatches function, lines 1060-1130)
+
+**Problem:** Search results were displayed in the order returned by the Numista API, with no regard for relevance to the user's coin.
+
+**Solution:** Added pre-sort of search results by confidence score (high to low) before rendering. The existing `calculateConfidence()` function scores each result based on title similarity, year match, country match, and value match.
+
+**Implementation:**
+- Map each match with its original index and pre-calculated confidence score
+- Sort by confidence descending
+- Render in sorted order
+- Use `originalIndex` for click handlers and data attributes so `handleMatchSelection()` still correctly references `AppState.currentMatches`
+
+**Result:** Best matches now appear at the top of the results list, making it faster for users to find the correct coin.
+
+#### 2. Replaced "Value" Field with "Category"
+
+**File Modified:** `src/renderer/app.js` (renderMatches function)
+
+**Problem:** The "Value" field (denomination) shown in search result cards was often not useful for distinguishing between results. The Numista search API returns minimal data per result - the `value` field was frequently N/A.
+
+**Solution:** Replaced "Value" with "Category" which shows the object type (Coin, Banknote, Exonumia). This field IS available in search results as `object_type.name` with fallback to `category`.
+
+**Design Decision:** The work plan suggested showing Material/Composition and Catalog Numbers, but these fields are NOT available in Numista search results. They require fetching full type details per result (20 extra API calls per search), which would be too expensive. The Category field provides useful filtering information that IS available in the search response.
+
+### Files Modified
+
+1. `src/renderer/app.js` - renderMatches() function: confidence sorting + Value->Category replacement
+
+### Notes
+
+- No emoji content was modified in this change
+- The confidence badge was already rendering but results were unsorted - now they're sorted by that score
+- Category field uses `match.object_type?.name` with fallback to `match.category` for compatibility
+
+---
+
+## SESSION: February 2, 2026 - Select Issue Screen Enhancements (Task 1.3)
+
+**Date:** February 2, 2026
+**Focus:** Three improvements to the Issue Picker modal: user coin images, Numista link, mint registration fix
+
+### Changes Made
+
+#### 1. User's Coin Images in Issue Picker (Task 1.3A)
+
+**Problem:** When the issue picker modal appeared, users had no visual reference of their own coin to help them choose the correct issue.
+
+**Solution:** Added user's coin images (obverse + reverse) to the "Your coin" section of the issue picker modal.
+
+**Files Modified:**
+- `src/renderer/index.html` - Restructured `.user-coin-info` to include image container and detail columns side-by-side
+- `src/renderer/app.js` - Added `getCoinImages()` call in `showIssuePicker()` to fetch and display user's coin images
+- `src/renderer/styles/main.css` - Added styles for `.user-coin-info-content`, `.user-coin-images`, `.issue-picker-coin-img` (80x80px), `.no-images-text`
+
+**Implementation:**
+- Uses existing `getCoinImages` IPC call (same as other image display locations)
+- Shows obverse and reverse side-by-side at 80x80px
+- Graceful fallback to "No images available" text if images don't exist
+- Error handling for failed image loads
+
+#### 2. "View on Numista" Link (Task 1.3B)
+
+**Problem:** Users had no way to view the coin type on the Numista website from the issue picker, making it harder to verify their selection.
+
+**Solution:** Added a "View on Numista" link that opens the coin type page in the user's default browser.
+
+**Files Modified:**
+- `src/main/index.js` - Added `open-external` IPC handler with URL protocol validation (https/http only)
+- `src/main/preload.js` - Exposed `openExternal()` API method
+- `src/renderer/app.js` - Dynamically creates Numista link in issue picker header
+- `src/renderer/styles/main.css` - Styled `.numista-link` as a button-style link with hover effect
+
+**Implementation:**
+- URL format: `https://en.numista.com/catalogue/pieces{typeId}.html`
+- Opens in default browser via `electron.shell.openExternal()`
+- Security: Only allows https:// and http:// URLs
+- `showIssuePicker()` now accepts `typeId` as third parameter
+- All three call sites updated to pass `typeId`
+
+#### 3. Mint Registration Fix (Task 1.3C)
+
+**Problem:** In `handleMatchSelection()`, after user selected an issue from the picker, `AppState.issueMatchResult` was not updated from `USER_PICK` to `USER_SELECTED`. This was inconsistent with the `handleFetchIssueData()` flow which properly set `{ type: 'USER_SELECTED', issue: pickerResult.issue }`.
+
+**Root Cause:** The `handleMatchSelection` function set `AppState.issueData = pickerResult.issue` (correct) but did not update `AppState.issueMatchResult` to reflect the user's selection. While this didn't prevent the merge from working (merge uses `issueData` directly), it left the state inconsistent.
+
+**Fix:** Added `AppState.issueMatchResult = { type: 'USER_SELECTED', issue: pickerResult.issue };` after user selects issue in `handleMatchSelection()`, matching the pattern already used in `handleFetchIssueData()`.
+
+**Note:** The mint_letter field mapping itself was already working correctly. The `field-mapper.js` extracts `issueData.mint_letter` when `onField === 'mintmark'`, and the merge-data handler properly passes `issueData` through. The fix ensures state consistency across all code paths.
+
+### Files Modified Summary
+
+1. `src/renderer/index.html` - Issue picker modal HTML restructured with image container
+2. `src/renderer/app.js` - `showIssuePicker()` enhanced with images, Numista link, typeId param; issueMatchResult fix in `handleMatchSelection()`
+3. `src/renderer/styles/main.css` - New styles for coin images, Numista link in issue picker
+4. `src/main/index.js` - Added `shell` import, `open-external` IPC handler
+5. `src/main/preload.js` - Added `openExternal()` API method
+
+### Emoji Integrity
+
+- Verified emojis in index.html remain intact after editing (gear, folder, bulb, clipboard all present)
+- Edits were confined to non-emoji sections of the files
+
+### Bugfixes Applied During Testing (Task 1.3 Follow-up)
+
+#### Fix: Issue Picker Images Not Loading
+
+**Problem:** Issue picker showed "No images available" even though the user's coin had images displayed elsewhere (match screen header).
+
+**Root Cause:** The `getCoinImages` IPC handler returns `{ success: true, images: { obverse: ..., reverse: ... } }`, but the issue picker code was accessing `images.obverse` directly instead of `result.images.obverse`.
+
+**Fix:** Updated image loading code in `showIssuePicker()` to use `result.success && result.images` pattern, matching the working `renderCurrentCoinInfo()` implementation.
+
+#### Fix: Auto-Match Not Triggering When Exact Match Exists
+
+**Problem:** When a coin with mintmark "D" had two issues (no-mint and "D"), the issue picker was shown instead of auto-matching to the "D" issue.
+
+**Root Cause:** In `numista-api.js` `matchIssue()`, the mint variation check filtered out null/empty values: `new Set(candidates.map(c => c.mint_letter).filter(m => m))`. When issues had `[null, "D"]`, the Set became `{"D"}` (size 1), so `hasMintVariation` was `false`. The mintmark filter was never applied, leaving 2 candidates → USER_PICK.
+
+**Fix:** Changed to include null as a distinct value: `new Set(candidates.map(c => c.mint_letter || null))`. Now `{null, "D"}` has size 2 → `hasMintVariation = true`. Also added case-insensitive comparison and handling for when user has NO mintmark (matches issues with blank/null mint_letter).
+
+**File Modified:** `src/modules/numista-api.js` (matchIssue method, lines 213-242)
+
+#### Fix: "View on Numista" Button Styling
+
+**Problem:** The Numista link used a thin-bordered text style that didn't match the app's button design.
+
+**Fix:** Updated `.numista-link` CSS to use `var(--secondary-color)` background with white text, matching the `.btn-secondary` style used throughout the app.
+
+### Lesson Learned
+
+12. **Always match the return value format of existing IPC calls**: When reusing an IPC call like `getCoinImages`, check how existing code handles the return value before writing new consumers. The IPC response wraps data in `{ success, images }` - accessing `result.obverse` directly silently returns undefined.
+
+13. **Null/empty values ARE data in set comparisons**: When checking if a field "varies" across a set of records, null/empty must count as a distinct value. Filtering them out before building a Set can hide important variations (e.g., "no mint" vs "D mint").
+
+---
+
+## SESSION: February 2, 2026 - Category-Based Search Parameter (Task 1.5)
+
+**Date:** February 2, 2026
+**Focus:** Added category filtering to Numista searches (coins, banknotes, exonumia)
+
+### Changes Made
+
+#### Category Filtering for Search Results
+
+**Problem:** Numista searches returned all types (coins, banknotes, exonumia) with no way to narrow results by category, making it harder to find the correct match.
+
+**Solution:** Added category filtering in two places: Data Settings (global default) and Manual Search (per-search override).
+
+**Dropdown Options:**
+- **All** - No filter, search everything
+- **Default** - Read coin's OpenNumismat `category` field, map to Numista value. If blank/unmapped, search all
+- **Coins** - Filter to `category=coin`
+- **Banknotes** - Filter to `category=banknote`
+- **Exonumia** - Filter to `category=exonumia` (tokens, medals)
+
+**API Parameter:** Uses Numista's `category` string parameter (deprecated but functional). Values: "coin", "banknote", "exonumia".
+
+**Category Mapping (OpenNumismat to Numista):**
+- coin/coins -> coin
+- banknote/banknotes -> banknote
+- token/tokens/medal/medals/exonumia -> exonumia
+- Unmapped values (Stamp, Postcard, etc.) -> null (no filter)
+
+### Files Modified
+
+1. **`src/modules/settings-manager.js`** - Added `searchCategory: 'all'` to fetchSettings defaults; updated `setFetchSettings()` to persist it
+2. **`src/renderer/index.html`** - Added Search Category dropdown to Data Settings modal; added category dropdown to manual search form
+3. **`src/renderer/app.js`** - Added `CATEGORY_MAP` constant, `resolveSearchCategory()` function; updated `buildSearchParams()` to add category; updated `populateSettings()`/`saveSettings()` in DataSettingsUI; wired manual search category dropdown with pre-population from settings
+4. **`src/main/index.js`** - Updated `manual-search-numista` handler to accept and pass `category` parameter
+5. **`src/renderer/styles/main.css`** - Added `.manual-search-category` styles
+
+### Data Flow
+
+**Automatic search:**
+1. `buildSearchParams(coin)` reads `AppState.fetchSettings.searchCategory`
+2. Calls `resolveSearchCategory(setting, coin)` to get Numista value
+3. Adds `category` param to search request if not null
+4. Backend passes all params through to `api.searchTypes(searchParams)`
+
+**Manual search:**
+1. Manual search panel opens, category dropdown pre-populated from settings
+2. User can override per-search
+3. Category resolved via `resolveSearchCategory()` and passed through IPC
+4. Backend includes `category` in `searchParams` object
+
+### Setting Persistence
+
+- Stored in `{collection}_settings.json` under `fetchSettings.searchCategory`
+- Merged with defaults on load (existing settings files get 'all' as default)
+- Reset to Defaults sets it back to 'all'
+
+---
+
+## SESSION: February 2, 2026 - UI Polish Items (Task 1.6)
+
+**Date:** February 2, 2026
+**Focus:** UI polish quick wins - button rename, image lightbox, field comparison verification
+
+### Changes Made
+
+#### 1. Renamed "Try Different Search" to "Try Manual Search" (Task 1.6A)
+
+**File Modified:** `src/renderer/index.html` (line 220)
+
+**Change:** Simple text replacement from "Try Different Search" to "Try Manual Search" to better communicate the button's purpose.
+
+#### 2. Image Lightbox Modal for Full-Size Viewing (Task 1.6B)
+
+**Problem:** Images could only be enlarged via CSS hover zoom (2x-2.5x), which was limited and didn't show full resolution. Users had no way to view images at their full size.
+
+**Solution:** Implemented a click-to-open lightbox modal that displays any coin image at maximum resolution in an overlay.
+
+**Files Modified:**
+- `src/renderer/index.html` - Added lightbox modal HTML (before `<script>` tag)
+- `src/renderer/styles/main.css` - Added 70+ lines of lightbox styling (backdrop, content, close button, image sizing, caption)
+- `src/renderer/app.js` - Added `openImageLightbox()`, `closeImageLightbox()`, `attachLightbox()` functions; wired close handlers (backdrop click, X button, Escape key)
+
+**Implementation:**
+- `attachLightbox(imgElement, caption)` - Helper that adds click handler and title to any image element
+- Lightbox opens with dark backdrop (85% opacity), image scaled to fit viewport (90vw x 85vh max)
+- Close via: backdrop click, X button, or Escape key
+- Optional caption text displayed below image
+
+**Images with lightbox enabled:**
+1. **Match screen header** - User's obverse/reverse coin images (`.current-coin-image`)
+2. **Search result cards** - Obverse/reverse thumbnails (`.match-thumbnail`)
+3. **Field comparison screen** - User's and Numista's obverse/reverse images (`.comparison-image`)
+4. **Issue picker modal** - User's coin images (`.issue-picker-coin-img`)
+
+**Previous hover zoom behavior is preserved** - hover still shows CSS zoom effect, click opens lightbox.
+
+#### 3. Field Comparison Image Display Verified (Task 1.6C)
+
+**Status:** Already fully working. Confirmed `renderImageComparison()` (app.js:1410-1514) displays side-by-side user vs Numista images with obverse and reverse. Originally implemented in Task 2.8.
+
+### Files Modified Summary
+
+1. `src/renderer/index.html` - Button text rename + lightbox modal HTML
+2. `src/renderer/app.js` - Lightbox functions + `attachLightbox()` wired to all image locations (4 locations)
+3. `src/renderer/styles/main.css` - Lightbox modal styling
+
+### Emoji Integrity
+
+- Button text change made via `sed` to preserve emoji encoding
+- Lightbox code added to non-emoji sections of files
+- Verified `file -i` shows UTF-8 encoding intact
+
+### Task 1.6 Status
+
+- [x] 1.6A - Rename "Try Different Search" to "Try Manual Search"
+- [x] 1.6B - Image lightbox at maximum size on click
+- [x] 1.6C - Field comparison image display verified
+
+---
+
+## SESSION: February 2, 2026 - Image Hover Zoom Increase (Task 1.6B Follow-up)
+
+**Date:** February 2, 2026
+**Focus:** Increase hover zoom scale factors and upgrade lightbox to use larger Numista image URLs
+
+### Problem
+CSS hover zoom was too small to see coin detail:
+- `.current-coin-image:hover` was `scale(2)` (120px -> 240px)
+- `.match-thumbnail:hover` was `scale(2.5)` (80px -> 200px)
+- `.comparison-image:hover` was `scale(1.05)` (150px -> ~158px)
+
+Additionally, the lightbox was opening Numista thumbnail URLs (150x150) instead of larger versions.
+
+### Changes Made
+
+#### 1. Increased Hover Zoom Scale Factors
+**File:** `src/renderer/styles/main.css`
+
+| Image Class | Before | After | Hover Size |
+|---|---|---|---|
+| `.current-coin-image:hover` | `scale(2)` | `scale(3.5)` | 120px -> 420px |
+| `.match-thumbnail:hover` | `scale(2.5)` | `scale(4)` | 80px -> 320px |
+| `.comparison-image:hover` | `scale(1.05)` | `scale(3)` | 150px -> 450px |
+
+Also added `z-index: 1000`, enhanced box-shadow, and border-color to `.comparison-image:hover` (previously only had minimal styling).
+
+#### 2. Lightbox URL Upgrade for Numista Images
+**File:** `src/renderer/app.js` - `attachLightbox()` function
+
+Added URL upgrade logic: when a Numista thumbnail URL contains `150x150`, it's replaced with `400x400` before opening in the lightbox. This matches the existing pattern used in `image-handler.js:177` and `app.js:1530`.
+
+### Files Modified
+1. `src/renderer/styles/main.css` - Three hover zoom scale increases
+2. `src/renderer/app.js` - `attachLightbox()` URL upgrade logic
+
+**Task 1.6 - UI Polish Items: 100% COMPLETE**
+
+---
+
+## SESSION: February 2, 2026 - Database Safety Check (Task 1.7)
+
+**Date:** February 2, 2026
+**Focus:** Prevent database corruption by detecting if collection file is open in OpenNumismat before loading
+
+### Problem
+The app had zero protection against opening a database that was already open in OpenNumismat or another SQLite application. Since the app uses sql.js (in-memory SQLite) and writes back via `fs.writeFileSync()`, concurrent access could corrupt the database.
+
+### Changes Made
+
+#### 1. Database Lock Detection Function
+**File:** `src/main/index.js` - `checkDatabaseInUse(filePath)`
+
+New function with three detection methods:
+- **WAL/SHM file detection:** Checks for `{filePath}-wal` and `{filePath}-shm` files (created by native SQLite in WAL mode)
+- **Journal file detection:** Checks for `{filePath}-journal` (created by native SQLite in rollback journal mode)
+- **Windows exclusive file lock test (PowerShell):** Uses `[System.IO.File]::Open()` with `FileShare.None` via PowerShell to request exclusive access. This is the primary detection method on Windows — Node.js `fs.openSync('r+')` uses shared access and cannot detect SQLite's locks. The PowerShell approach catches any process holding the file open.
+
+Added `const { execSync } = require('child_process')` import for the PowerShell call.
+
+Returns `{ inUse: boolean, reason: string }`.
+
+#### 2. Blocking Warning Dialog
+**File:** `src/main/index.js` - `load-collection` IPC handler
+
+Added check before database open with a blocking dialog loop:
+- If database is in use, shows warning dialog with "Check Again" and "Cancel" buttons
+- No "Open Anyway" option - user must close OpenNumismat first
+- "Check Again" re-runs the detection; loops until clear or cancelled
+- "Cancel" returns `{ success: false, error: 'cancelled' }` to renderer
+
+#### 3. Graceful Cancel Handling
+**File:** `src/renderer/app.js` - loadCollectionBtn click handler
+
+When `result.error === 'cancelled'`, the renderer hides the progress bar and shows "Collection load cancelled" status without displaying an error modal.
+
+### Files Modified
+1. `src/main/index.js` - Added `checkDatabaseInUse()` function + blocking dialog in `load-collection` handler
+2. `src/renderer/app.js` - Graceful cancel handling for database-in-use dialog
+
+**Task 1.7 - Database Safety Check: COMPLETE**
+
+---
+
+## PHASE 1 COMPLETE - Summary
+
+**Date:** February 2, 2026
+**All Phase 1 (Tackle Now) items from NOTES-WORK-PLAN.md are complete:**
+
+| Task | Description | Status |
+|---|---|---|
+| 1.1 | Session Call Counter Fix | COMPLETE |
+| 1.2 | Search Results Display Improvements | COMPLETE |
+| 1.3 | Select Issue Screen Enhancements | COMPLETE |
+| 1.4 | Metadata Preservation Verification | VERIFIED (no issues) |
+| 1.5 | Category-Based Search Parameter | COMPLETE |
+| 1.6 | UI Polish Items (button rename, image lightbox, field comparison images) | COMPLETE |
+| 1.7 | Database Safety Check (lock detection + blocking dialog) | COMPLETE |
+
+**Next:** Phase 2 items (Advanced Matching, Backup Policy, Packaging, Legal, etc.) per NOTES-WORK-PLAN.md.
+
+---
+
+## SESSION: February 2, 2026 - Advanced Matching & Normalization (Task 2.1)
+
+### What Was Done
+Implemented three matching improvements:
+
+**A. Mintmark Normalization**
+- Created new module `src/modules/mintmark-normalizer.js`
+- Strips formatting characters (parentheses, brackets, periods) before comparison
+- Maps common US mint city names to letters (Denver->D, San Francisco->S, etc.)
+- Maps common world mint names to marks (Paris->A, Hamburg->J, etc.)
+- Integrated `mintmarksMatch()` into `matchIssue()` in numista-api.js, replacing direct string comparison
+
+**B. Fuzzy Matching (Dice Coefficient)**
+- Implemented Dice's coefficient algorithm directly in numista-api.js (no external dependency)
+- Updated `calculateConfidence()` in app.js to use graduated title similarity scoring (0-40 points) instead of binary exact/includes (0 or 20 or 40 points)
+- Updated `calculateMatchConfidence()` in numista-api.js for consistency
+- Exposed `diceCoefficient` to renderer via `window.stringSimilarity.diceCoefficient` through preload.js
+
+**C. Issuer Code Caching**
+- Added `getIssuers()` method to NumistaAPI that fetches and caches the full issuer list from `/issuers` endpoint
+- Added `resolveIssuerCode(countryName)` method with three-tier resolution: alias map -> exact name match -> fuzzy match (Dice >= 0.6 threshold)
+- Added persistent `issuerApi` instance in index.js for cross-request caching
+- Added `resolve-issuer` IPC handler and preload bridge
+- Updated `buildSearchParams()` in app.js (now async) to resolve and include `issuer` parameter in Numista API searches
+- Common aliases handled: USA/US/U.S.A. -> united-states, UK/Great Britain -> united-kingdom, USSR/Soviet Union -> ussr, etc.
+
+### Technical Notes
+- `string-similarity` NPM package was evaluated but is deprecated; implemented Dice coefficient inline (~15 lines)
+- Each IPC handler in index.js creates a new NumistaAPI instance (existing pattern), so a dedicated persistent `issuerApi` instance was created for issuer resolution to preserve the cache
+- The `/issuers` endpoint returns ~4000+ entries; fetched once per session and cached permanently
+- Country->code mappings are cached in a separate Map, so repeat lookups are instant
+
+### Files Modified
+1. `src/modules/mintmark-normalizer.js` - **NEW** - Mintmark normalization + city name maps
+2. `src/modules/numista-api.js` - Integrated normalizer, added issuer resolution, added Dice coefficient, updated confidence scoring
+3. `src/renderer/app.js` - Fuzzy confidence scoring, async buildSearchParams with issuer resolution
+4. `src/main/index.js` - Added `resolve-issuer` IPC handler with persistent API instance
+5. `src/main/preload.js` - Exposed `resolveIssuer` IPC + `stringSimilarity.diceCoefficient` utility
+
+**Task 2.1 - Advanced Matching & Normalization: COMPLETE**
+
+---
+
+## SESSION: February 2, 2026 - Task 2.2 Backup Policy & Data Safety
+
+**Date:** February 2, 2026
+**Focus:** Backup retention limits, autoBackup enforcement, and cross-reference ID protection
+
+### Implementation Summary
+
+**Sub-task A: Backup Policy**
+- Added configurable `maxBackups` setting (default: 5, 0 = unlimited)
+- Added `pruneOldBackups()` method that deletes oldest backups beyond the limit
+- Fixed bug: `autoBackup` setting was defined but never checked — merge handler always created backups regardless of the setting
+- Merge handler now respects autoBackup toggle and prunes after each backup
+- Settings synced between Phase 1 (app-wide) and Phase 2 (collection-specific) settings
+
+**Sub-task B: Cross-Reference ID Safety**
+- Added `PROTECTED_FIELDS` constant blocking: `id`, `obverseimg`, `reverseimg`, `edgeimg`, `image`
+- `updateCoin()` now filters out protected fields before building the SQL UPDATE query
+- Logs a warning if a protected field update is attempted — safety net for future code changes
+
+**UI Changes:**
+- Integer input for maximum backups + "Unlimited" checkbox
+- Warning text shown when auto-backup is disabled
+- Controls disabled/enabled based on autoBackup state
+
+### Files Modified
+1. `src/modules/opennumismat-db.js` - PROTECTED_FIELDS, guard in updateCoin(), pruneOldBackups()
+2. `src/modules/settings-manager.js` - maxBackups default + getMaxBackups()/setMaxBackups()
+3. `src/main/index.js` - autoBackup check in merge handler, backup settings sync, default settings
+4. `src/renderer/index.html` - maxBackups input, unlimited checkbox, warning text
+5. `src/renderer/app.js` - Backup UI wiring, updateBackupControlsState(), success message update
+
+**Task 2.2 - Backup Policy & Data Safety: COMPLETE**
 

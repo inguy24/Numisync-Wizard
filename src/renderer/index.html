@@ -217,7 +217,7 @@
             🔄 Search Again
           </button>
           <button id="manualSearchBtn" class="btn btn-secondary">
-            🔍 Try Different Search
+            🔍 Try Manual Search
           </button>
         </div>
 
@@ -227,12 +227,19 @@
             Automatic search didn't work? Try searching with custom terms:
           </p>
           <div class="manual-search-form">
-            <input 
-              type="text" 
-              id="manualSearchInput" 
+            <input
+              type="text"
+              id="manualSearchInput"
               placeholder="e.g., &quot;George V Penny&quot;, &quot;KM 23&quot;, &quot;1 Penny 1912&quot;"
               class="manual-search-input"
             >
+            <select id="manualSearchCategory" class="manual-search-category">
+              <option value="all">All</option>
+              <option value="default">Default</option>
+              <option value="coin">Coins</option>
+              <option value="banknote">Banknotes</option>
+              <option value="exonumia">Exonumia</option>
+            </select>
             <button id="performManualSearchBtn" class="btn btn-primary">
               Search
             </button>
@@ -359,6 +366,17 @@
             <p class="setting-help">
               <strong>Highly recommended!</strong> A timestamped backup is created in a "backups" folder next to your collection before any data is modified.
             </p>
+            <p id="backupDisabledWarning" class="setting-help" style="display:none; color: #d9534f;">
+              <strong>Warning:</strong> Disabling backups means data changes cannot be undone.
+            </p>
+            <div class="backup-limit-row" style="margin-top: 8px; display: flex; align-items: center; gap: 12px;">
+              <label for="maxBackupsInput" style="white-space: nowrap;">Maximum backups to keep:</label>
+              <input type="number" id="maxBackupsInput" min="0" value="5" style="width: 70px;">
+              <label style="white-space: nowrap;">
+                <input type="checkbox" id="unlimitedBackupsCheckbox">
+                Unlimited
+              </label>
+            </div>
           </div>
 
           <div class="settings-actions">
@@ -520,6 +538,30 @@
             </div>
           </div>
 
+          <!-- Search Category -->
+          <div class="data-setting-card">
+            <div class="data-setting-header">
+              <strong>Search Category</strong>
+            </div>
+            <div class="data-setting-details">
+              <p class="data-description">
+                Filter Numista search results by category:
+              </p>
+              <div class="currency-select-wrapper">
+                <select id="searchCategory" class="currency-select">
+                  <option value="all">All - Search everything</option>
+                  <option value="default">Default - Use coin's category</option>
+                  <option value="coin">Coins</option>
+                  <option value="banknote">Banknotes</option>
+                  <option value="exonumia">Exonumia (tokens, medals)</option>
+                </select>
+              </div>
+              <p class="data-note">
+                "Default" reads each coin's category from OpenNumismat. If blank or unmapped, searches all.
+              </p>
+            </div>
+          </div>
+
         </div>
 
         <div class="data-settings-summary">
@@ -561,10 +603,17 @@
         <div class="issue-picker-info">
           <p>Multiple issues were found for this coin. Please select which one matches your coin:</p>
           <div class="user-coin-info">
-            <strong>Your coin:</strong>
-            Year: <span id="issuePickerUserYear"></span>,
-            Mintmark: <span id="issuePickerUserMintmark"></span>,
-            Type: <span id="issuePickerUserType"></span>
+            <div class="user-coin-info-content">
+              <div class="user-coin-images" id="issuePickerUserImages">
+                <!-- User's coin images will be populated dynamically -->
+              </div>
+              <div class="user-coin-details">
+                <strong>Your coin:</strong>
+                <div>Year: <span id="issuePickerUserYear"></span></div>
+                <div>Mintmark: <span id="issuePickerUserMintmark"></span></div>
+                <div>Type: <span id="issuePickerUserType"></span></div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -577,6 +626,16 @@
         <button id="applyIssueSelectionBtn" class="btn btn-primary" disabled>Apply Selection</button>
         <button id="skipIssueSelectionBtn" class="btn btn-secondary">Skip Issue Data</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Image Lightbox Modal -->
+  <div id="imageLightbox" class="image-lightbox" style="display: none;">
+    <div class="lightbox-backdrop"></div>
+    <div class="lightbox-content">
+      <button class="lightbox-close" title="Close">&times;</button>
+      <img id="lightboxImage" class="lightbox-image" src="" alt="Full size image">
+      <div id="lightboxCaption" class="lightbox-caption"></div>
     </div>
   </div>
 

@@ -130,6 +130,12 @@ document.getElementById('loadCollectionBtn').addEventListener('click', async () 
     const result = await window.electronAPI.loadCollection(filePath);
 
     if (!result.success) {
+      if (result.error === 'cancelled') {
+        // User cancelled from the database-in-use dialog — return silently
+        showProgress(false);
+        showStatus('Collection load cancelled');
+        return;
+      }
       throw new Error(result.error);
     }
 
@@ -922,14 +928,14 @@ async function renderCurrentCoinInfo() {
       obverseImg.className = 'current-coin-image';
       obverseImg.src = result.images.obverse || getImagePlaceholder('obverse');
       obverseImg.alt = 'Your obverse';
-      obverseImg.title = 'Your obverse - hover to enlarge';
+      attachLightbox(obverseImg, 'Your obverse');
 
       // Reverse image
       const reverseImg = document.createElement('img');
       reverseImg.className = 'current-coin-image';
       reverseImg.src = result.images.reverse || getImagePlaceholder('reverse');
       reverseImg.alt = 'Your reverse';
-      reverseImg.title = 'Your reverse - hover to enlarge';
+      attachLightbox(reverseImg, 'Your reverse');
 
       imagesDiv.appendChild(obverseImg);
       imagesDiv.appendChild(reverseImg);
@@ -972,8 +978,8 @@ async function searchForMatches() {
     showStatus('Searching Numista...');
     document.getElementById('searchStatus').textContent = 'Searching...';
 
-    // Build search parameters from current coin
-    const searchParams = buildSearchParams(AppState.currentCoin);
+    // Build search parameters from current coin (async for issuer resolution)
+    const searchParams = await buildSearchParams(AppState.currentCoin);
     console.log('=== AUTOMATIC SEARCH ===');
     console.log('Current coin:', AppState.currentCoin);
     console.log('Search params:', searchParams);
@@ -985,34 +991,69 @@ async function searchForMatches() {
     }
 
     AppState.currentMatches = result.results.types || [];
-    
+
     if (AppState.currentMatches.length === 0) {
       document.getElementById('searchStatus').textContent = 'No matches found';
       showStatus('No matches found');
-      
+
       // Update progress to no_matches
       await window.electronAPI.updateCoinStatus({
         coinId: AppState.currentCoin.id,
         status: 'no_matches',
         metadata: {}
       });
-      
+
     } else {
-      document.getElementById('searchStatus').textContent = 
+      document.getElementById('searchStatus').textContent =
         `Found ${AppState.currentMatches.length} potential matches`;
       showStatus(`Found ${AppState.currentMatches.length} matches`);
     }
 
     renderMatches();
-    
+
+    // Refresh session counter after search
+    await refreshSessionCounter();
+
   } catch (error) {
     showStatus(`Error searching: ${error.message}`, 'error');
-    document.getElementById('searchStatus').textContent = 
+    document.getElementById('searchStatus').textContent =
       `Error: ${error.message}`;
   }
 }
 
-function buildSearchParams(coin) {
+// Category mapping from OpenNumismat values to Numista API values
+const CATEGORY_MAP = {
+  'coin': 'coin',
+  'coins': 'coin',
+  'banknote': 'banknote',
+  'banknotes': 'banknote',
+  'token': 'exonumia',
+  'tokens': 'exonumia',
+  'medal': 'exonumia',
+  'medals': 'exonumia',
+  'exonumia': 'exonumia'
+};
+
+/**
+ * Resolve the category to send to Numista API.
+ * @param {string} settingValue - 'all', 'default', 'coin', 'banknote', 'exonumia'
+ * @param {Object} coin - The coin object (used when settingValue is 'default')
+ * @returns {string|null} - Numista category value or null for no filter
+ */
+function resolveSearchCategory(settingValue, coin) {
+  if (!settingValue || settingValue === 'all') {
+    return null;
+  }
+  if (settingValue === 'default') {
+    // Use the coin's own category from OpenNumismat
+    const coinCategory = (coin.category || '').trim().toLowerCase();
+    return CATEGORY_MAP[coinCategory] || null;
+  }
+  // Direct value: 'coin', 'banknote', 'exonumia'
+  return settingValue;
+}
+
+async function buildSearchParams(coin) {
   const params = {};
 
   // Build search query from coin data
@@ -1038,6 +1079,26 @@ function buildSearchParams(coin) {
   params.count = 20;
   params.page = 1;
 
+  // Add category filter from settings
+  const categorySetting = AppState.fetchSettings?.searchCategory || 'all';
+  const category = resolveSearchCategory(categorySetting, coin);
+  if (category) {
+    params.category = category;
+  }
+
+  // Resolve issuer code from country name to narrow search results
+  if (coin.country && coin.country.trim()) {
+    try {
+      const issuerResult = await window.electronAPI.resolveIssuer(coin.country.trim());
+      if (issuerResult.success && issuerResult.code) {
+        params.issuer = issuerResult.code;
+        console.log(`Resolved issuer for "${coin.country}": ${issuerResult.code}`);
+      }
+    } catch (error) {
+      console.warn('Issuer resolution failed (non-fatal):', error.message);
+    }
+  }
+
   return params;
 }
 
@@ -1054,10 +1115,19 @@ function renderMatches() {
     return;
   }
 
-  AppState.currentMatches.forEach((match, index) => {
+  // Sort matches by confidence score (high to low)
+  const sortedMatches = AppState.currentMatches
+    .map((match, originalIndex) => ({
+      match,
+      originalIndex,
+      confidence: calculateConfidence(AppState.currentCoin, match)
+    }))
+    .sort((a, b) => b.confidence - a.confidence);
+
+  sortedMatches.forEach(({ match, originalIndex, confidence: confidenceScore }, index) => {
     const matchCard = document.createElement('div');
     matchCard.className = 'match-card';
-    matchCard.dataset.matchIndex = index;
+    matchCard.dataset.matchIndex = originalIndex;
 
     // Thumbnails (obverse and reverse)
     const thumbnailsContainer = document.createElement('div');
@@ -1067,13 +1137,13 @@ function renderMatches() {
     obverseImg.className = 'match-thumbnail';
     obverseImg.src = match.obverse_thumbnail || getImagePlaceholder('obverse');
     obverseImg.alt = 'Obverse';
-    obverseImg.title = 'Obverse';
+    attachLightbox(obverseImg, 'Obverse');
 
     const reverseImg = document.createElement('img');
     reverseImg.className = 'match-thumbnail';
     reverseImg.src = match.reverse_thumbnail || getImagePlaceholder('reverse');
     reverseImg.alt = 'Reverse';
-    reverseImg.title = 'Reverse';
+    attachLightbox(reverseImg, 'Reverse');
 
     thumbnailsContainer.appendChild(obverseImg);
     thumbnailsContainer.appendChild(reverseImg);
@@ -1088,16 +1158,16 @@ function renderMatches() {
 
     const details = document.createElement('div');
     details.className = 'match-details';
+    const categoryName = match.object_type?.name || match.category || 'N/A';
     details.innerHTML = `
       <div><strong>Issuer:</strong> ${match.issuer?.name || 'N/A'}</div>
       <div><strong>Year:</strong> ${match.min_year || 'N/A'}${match.max_year && match.max_year !== match.min_year ? '-' + match.max_year : ''}</div>
-      <div><strong>Value:</strong> ${match.value?.text || 'N/A'}</div>
+      <div><strong>Category:</strong> ${categoryName}</div>
       <div><strong>Numista ID:</strong> ${match.id || 'N/A'}</div>
     `;
 
     const confidence = document.createElement('div');
     confidence.className = 'match-confidence';
-    const confidenceScore = calculateConfidence(AppState.currentCoin, match);
     const confidenceClass = confidenceScore >= 70 ? 'high' : confidenceScore >= 40 ? 'medium' : 'low';
     confidence.innerHTML = `
       <span class="confidence-badge confidence-${confidenceClass}">
@@ -1112,7 +1182,7 @@ function renderMatches() {
     matchCard.appendChild(thumbnailsContainer);
     matchCard.appendChild(info);
 
-    matchCard.addEventListener('click', () => handleMatchSelection(index));
+    matchCard.addEventListener('click', () => handleMatchSelection(originalIndex));
 
     matchResults.appendChild(matchCard);
   });
@@ -1121,17 +1191,13 @@ function renderMatches() {
 function calculateConfidence(coin, match) {
   let score = 0;
 
-  // Title similarity
+  // Title similarity (40 points max) - uses Dice coefficient for graduated scoring
   if (coin.title && match.title) {
-    if (coin.title.toLowerCase() === match.title.toLowerCase()) {
-      score += 40;
-    } else if (coin.title.toLowerCase().includes(match.title.toLowerCase()) ||
-               match.title.toLowerCase().includes(coin.title.toLowerCase())) {
-      score += 20;
-    }
+    const similarity = window.stringSimilarity.diceCoefficient(coin.title, match.title);
+    score += Math.round(similarity * 40);
   }
 
-  // Year match
+  // Year match (30 points)
   if (coin.year && match.min_year) {
     const coinYear = parseInt(coin.year);
     if (coinYear >= match.min_year && coinYear <= (match.max_year || match.min_year)) {
@@ -1139,7 +1205,7 @@ function calculateConfidence(coin, match) {
     }
   }
 
-  // Country match
+  // Country match (20 points)
   if (coin.country && match.issuer?.name) {
     if (coin.country.toLowerCase().includes(match.issuer.name.toLowerCase()) ||
         match.issuer.name.toLowerCase().includes(coin.country.toLowerCase())) {
@@ -1147,7 +1213,7 @@ function calculateConfidence(coin, match) {
     }
   }
 
-  // Value match
+  // Value match (10 points)
   if (coin.value && match.value?.numeric_value) {
     if (parseFloat(coin.value) === match.value.numeric_value) {
       score += 10;
@@ -1208,11 +1274,12 @@ async function handleMatchSelection(matchIndex) {
       showStatus('Multiple issues found. Please select the correct one...');
 
       // Show issue picker modal
-      const pickerResult = await showIssuePicker(result.issueOptions, AppState.currentCoin);
+      const pickerResult = await showIssuePicker(result.issueOptions, AppState.currentCoin, AppState.selectedMatch.id);
       console.log('Issue picker result:', pickerResult);
 
       if (pickerResult.action === 'selected' && pickerResult.issue) {
         console.log('User selected issue:', pickerResult.issue);
+        AppState.issueMatchResult = { type: 'USER_SELECTED', issue: pickerResult.issue };
 
         // Store the selected issue as issueData
         AppState.issueData = pickerResult.issue;
@@ -1261,6 +1328,9 @@ async function handleMatchSelection(matchIndex) {
     });
 
     showStatus('Match selected. Click to continue to field comparison.');
+
+    // Refresh session counter after all API operations
+    await refreshSessionCounter();
 
     // Auto-proceed to comparison after 1 second
     setTimeout(async () => {
@@ -1384,13 +1454,13 @@ async function renderImageComparison(container) {
       userObverse.className = 'comparison-image';
       userObverse.src = result.images.obverse || getImagePlaceholder('obverse');
       userObverse.alt = 'Your obverse';
-      userObverse.title = 'Your obverse';
+      attachLightbox(userObverse, 'Your obverse');
 
       const userReverse = document.createElement('img');
       userReverse.className = 'comparison-image';
       userReverse.src = result.images.reverse || getImagePlaceholder('reverse');
       userReverse.alt = 'Your reverse';
-      userReverse.title = 'Your reverse';
+      attachLightbox(userReverse, 'Your reverse');
 
       userImages.appendChild(userObverse);
       userImages.appendChild(userReverse);
@@ -1422,13 +1492,13 @@ async function renderImageComparison(container) {
     numistaObverse.className = 'comparison-image';
     numistaObverse.src = AppState.selectedMatch.obverse_thumbnail || getImagePlaceholder('obverse');
     numistaObverse.alt = 'Numista obverse';
-    numistaObverse.title = 'Numista obverse';
+    attachLightbox(numistaObverse, 'Numista obverse');
 
     const numistaReverse = document.createElement('img');
     numistaReverse.className = 'comparison-image';
     numistaReverse.src = AppState.selectedMatch.reverse_thumbnail || getImagePlaceholder('reverse');
     numistaReverse.alt = 'Numista reverse';
-    numistaReverse.title = 'Numista reverse';
+    attachLightbox(numistaReverse, 'Numista reverse');
 
     numistaImages.appendChild(numistaObverse);
     numistaImages.appendChild(numistaReverse);
@@ -1626,7 +1696,7 @@ async function handleFetchIssueData() {
 
     if (result.issueMatchResult?.type === 'USER_PICK' && result.issueOptions?.length > 0) {
       showStatus('Multiple issues found. Please select the correct one...');
-      const pickerResult = await showIssuePicker(result.issueOptions, coin);
+      const pickerResult = await showIssuePicker(result.issueOptions, coin, typeId);
 
       if (pickerResult.action === 'selected' && pickerResult.issue) {
         AppState.issueData = pickerResult.issue;
@@ -1651,6 +1721,10 @@ async function handleFetchIssueData() {
     }
 
     showStatus('Issue data fetched. Refreshing comparison...');
+
+    // Refresh session counter after fetching issue data
+    await refreshSessionCounter();
+
     await showFieldComparison();
 
   } catch (error) {
@@ -1689,7 +1763,7 @@ async function handleFetchPricingData() {
       }
 
       if (issueResult.issueMatchResult?.type === 'USER_PICK' && issueResult.issueOptions?.length > 0) {
-        const pickerResult = await showIssuePicker(issueResult.issueOptions, coin);
+        const pickerResult = await showIssuePicker(issueResult.issueOptions, coin, typeId);
 
         if (pickerResult.action === 'selected' && pickerResult.issue) {
           AppState.issueData = pickerResult.issue;
@@ -1722,6 +1796,10 @@ async function handleFetchPricingData() {
     }
 
     showStatus('Pricing data fetched. Refreshing comparison...');
+
+    // Refresh session counter after fetching pricing data
+    await refreshSessionCounter();
+
     await showFieldComparison();
 
   } catch (error) {
@@ -1819,12 +1897,13 @@ function renderFieldComparison() {
  * @param {Array} issueOptions - Array of issue objects from Numista
  * @param {Object} coin - User's coin data
  */
-async function showIssuePicker(issueOptions, coin) {
+async function showIssuePicker(issueOptions, coin, typeId) {
   const modal = document.getElementById('issuePickerModal');
   const coinNameSpan = document.getElementById('issuePickerCoinName');
   const userYearSpan = document.getElementById('issuePickerUserYear');
   const userMintmarkSpan = document.getElementById('issuePickerUserMintmark');
   const userTypeSpan = document.getElementById('issuePickerUserType');
+  const userImagesDiv = document.getElementById('issuePickerUserImages');
   const optionsList = document.getElementById('issueOptionsList');
   const applyBtn = document.getElementById('applyIssueSelectionBtn');
   const skipBtn = document.getElementById('skipIssueSelectionBtn');
@@ -1840,6 +1919,54 @@ async function showIssuePicker(issueOptions, coin) {
   userYearSpan.textContent = coin.year || '(not specified)';
   userMintmarkSpan.textContent = coin.mintmark || '(not specified)';
   userTypeSpan.textContent = coin.type || '(regular/circulation)';
+
+  // Fetch and display user's coin images (same pattern as renderCurrentCoinInfo)
+  userImagesDiv.innerHTML = '';
+  try {
+    const result = await window.electronAPI.getCoinImages(coin.id);
+    if (result.success && result.images && (result.images.obverse || result.images.reverse)) {
+      if (result.images.obverse) {
+        const img = document.createElement('img');
+        img.src = result.images.obverse;
+        img.alt = 'Obverse';
+        img.className = 'issue-picker-coin-img';
+        attachLightbox(img, 'Your obverse');
+        userImagesDiv.appendChild(img);
+      }
+      if (result.images.reverse) {
+        const img = document.createElement('img');
+        img.src = result.images.reverse;
+        img.alt = 'Reverse';
+        img.className = 'issue-picker-coin-img';
+        attachLightbox(img, 'Your reverse');
+        userImagesDiv.appendChild(img);
+      }
+    } else {
+      userImagesDiv.innerHTML = '<span class="no-images-text">No images available</span>';
+    }
+  } catch (error) {
+    console.error('Error loading coin images for issue picker:', error);
+    userImagesDiv.innerHTML = '<span class="no-images-text">No images available</span>';
+  }
+
+  // Add "View on Numista" link if typeId is available
+  const existingLink = modal.querySelector('.numista-link');
+  if (existingLink) existingLink.remove();
+  if (typeId) {
+    const numistaLink = document.createElement('a');
+    numistaLink.href = '#';
+    numistaLink.className = 'numista-link';
+    numistaLink.textContent = 'View on Numista';
+    numistaLink.title = 'Open this coin type on Numista website';
+    numistaLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.electronAPI.openExternal(`https://en.numista.com/catalogue/pieces${typeId}.html`);
+    });
+    const headerEl = modal.querySelector('.modal-header h3');
+    if (headerEl) {
+      headerEl.parentNode.insertBefore(numistaLink, headerEl.nextSibling);
+    }
+  }
 
   // Clear previous options
   optionsList.innerHTML = '';
@@ -2030,7 +2157,10 @@ document.getElementById('applyChangesBtn').addEventListener('click', async () =>
     showProgress(true, 100);
     showStatus('Changes applied successfully!');
 
-    await showModal('Success', `Coin updated successfully!<br>Backup saved to: ${result.backupPath}`);
+    const backupMsg = result.backupPath
+      ? `<br>Backup saved to: ${result.backupPath}`
+      : '<br>(Auto-backup is disabled)';
+    await showModal('Success', `Coin updated successfully!${backupMsg}`);
 
     // Refresh progress stats
     const statsResult = await window.electronAPI.getProgressStats();
@@ -2095,8 +2225,13 @@ document.getElementById('cancelMergeBtn').addEventListener('click', () => {
 document.getElementById('manualSearchBtn').addEventListener('click', () => {
   const panel = document.getElementById('manualSearchPanel');
   panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-  
+
   if (panel.style.display === 'block') {
+    // Pre-populate category dropdown from settings
+    const manualCategorySelect = document.getElementById('manualSearchCategory');
+    if (manualCategorySelect) {
+      manualCategorySelect.value = AppState.fetchSettings?.searchCategory || 'all';
+    }
     document.getElementById('manualSearchInput').focus();
   }
 });
@@ -2118,9 +2253,15 @@ document.getElementById('performManualSearchBtn').addEventListener('click', asyn
     showStatus('Searching Numista with custom term...');
     document.getElementById('searchStatus').textContent = `Searching for "${searchTerm}"...`;
     
+    // Resolve category from manual search dropdown
+    const manualCategorySelect = document.getElementById('manualSearchCategory');
+    const categorySetting = manualCategorySelect ? manualCategorySelect.value : 'all';
+    const category = resolveSearchCategory(categorySetting, AppState.currentCoin);
+
     const result = await window.electronAPI.manualSearchNumista({
       query: searchTerm,
-      coinId: AppState.currentCoin.id
+      coinId: AppState.currentCoin.id,
+      category: category
     });
 
     if (!result.success) {
@@ -2128,25 +2269,28 @@ document.getElementById('performManualSearchBtn').addEventListener('click', asyn
     }
 
     AppState.currentMatches = result.results.types || [];
-    
+
     // Hide manual search panel
     document.getElementById('manualSearchPanel').style.display = 'none';
-    
+
     if (AppState.currentMatches.length === 0) {
-      document.getElementById('searchStatus').textContent = 
+      document.getElementById('searchStatus').textContent =
         `No matches found for "${searchTerm}"`;
       showStatus('No matches found - try different search terms');
     } else {
-      document.getElementById('searchStatus').textContent = 
+      document.getElementById('searchStatus').textContent =
         `Found ${AppState.currentMatches.length} matches for "${searchTerm}"`;
       showStatus(`Found ${AppState.currentMatches.length} matches`);
     }
 
     renderMatches();
-    
+
+    // Refresh session counter after search
+    await refreshSessionCounter();
+
   } catch (error) {
     showStatus(`Error searching: ${error.message}`, 'error');
-    document.getElementById('searchStatus').textContent = 
+    document.getElementById('searchStatus').textContent =
       `Error: ${error.message}`;
   }
 });
@@ -2258,14 +2402,35 @@ function loadSettingsScreen() {
   document.getElementById('apiKeyInput').value = AppState.settings.apiKey || '';
   document.getElementById('requestDelayInput').value = AppState.settings.searchDelay || 2000;
   document.getElementById('autoBackupCheckbox').checked = AppState.settings.autoBackup !== false;
+
+  // Max backups: 0 = unlimited
+  const maxBackups = AppState.settings.maxBackups !== undefined ? AppState.settings.maxBackups : 5;
+  const isUnlimited = maxBackups === 0;
+  document.getElementById('maxBackupsInput').value = isUnlimited ? 5 : maxBackups;
+  document.getElementById('unlimitedBackupsCheckbox').checked = isUnlimited;
+  updateBackupControlsState();
 }
 
+function updateBackupControlsState() {
+  const autoBackup = document.getElementById('autoBackupCheckbox').checked;
+  const unlimited = document.getElementById('unlimitedBackupsCheckbox').checked;
+
+  document.getElementById('maxBackupsInput').disabled = !autoBackup || unlimited;
+  document.getElementById('unlimitedBackupsCheckbox').disabled = !autoBackup;
+  document.getElementById('backupDisabledWarning').style.display = autoBackup ? 'none' : 'block';
+}
+
+document.getElementById('autoBackupCheckbox').addEventListener('change', updateBackupControlsState);
+document.getElementById('unlimitedBackupsCheckbox').addEventListener('change', updateBackupControlsState);
+
 document.getElementById('saveSettingsBtn').addEventListener('click', async () => {
+  const unlimited = document.getElementById('unlimitedBackupsCheckbox').checked;
   const settings = {
     apiKey: document.getElementById('apiKeyInput').value,
     searchDelay: parseInt(document.getElementById('requestDelayInput').value),
     imageHandling: document.querySelector('input[name="imageHandling"]:checked').value,
     autoBackup: document.getElementById('autoBackupCheckbox').checked,
+    maxBackups: unlimited ? 0 : Math.max(0, parseInt(document.getElementById('maxBackupsInput').value) || 5),
     fieldMapping: AppState.settings?.fieldMapping
   };
 
@@ -2288,7 +2453,8 @@ document.getElementById('resetSettingsBtn').addEventListener('click', async () =
     apiKey: AppState.settings?.apiKey || '',  // Preserve API key
     searchDelay: 2000,
     imageHandling: 'url',
-    autoBackup: true
+    autoBackup: true,
+    maxBackups: 5
   };
 
   const result = await window.electronAPI.saveAppSettings(defaultSettings);
@@ -2438,6 +2604,12 @@ class DataSettingsUI {
     if (currencySelect) {
       currencySelect.value = currency || 'USD';
     }
+
+    // Search category
+    const categorySelect = document.getElementById('searchCategory');
+    if (categorySelect) {
+      categorySelect.value = fetchSettings.searchCategory || 'all';
+    }
   }
 
   /**
@@ -2484,10 +2656,13 @@ class DataSettingsUI {
       const pricingCheckbox = document.getElementById('fetchPricingData');
       const currencySelect = document.getElementById('pricingCurrency');
 
+      const categorySelect = document.getElementById('searchCategory');
+
       const newSettings = {
         basicData: basicCheckbox ? basicCheckbox.checked : true,
         issueData: issueCheckbox ? issueCheckbox.checked : false,
-        pricingData: pricingCheckbox ? pricingCheckbox.checked : false
+        pricingData: pricingCheckbox ? pricingCheckbox.checked : false,
+        searchCategory: categorySelect ? categorySelect.value : 'all'
       };
       
       // Save fetch settings to main process
@@ -2640,9 +2815,24 @@ class DataSettingsUI {
 // Initialize on DOM load
 let dataSettingsUI;
 
+/**
+ * Helper function to refresh session counter display
+ * Call this after any API operation that might increment the counter
+ */
+async function refreshSessionCounter() {
+  try {
+    const stats = await window.api.getStatistics();
+    if (dataSettingsUI) {
+      dataSettingsUI.updateSessionCallDisplay(stats.sessionCallCount || 0);
+    }
+  } catch (error) {
+    console.error('Error refreshing session counter:', error);
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   dataSettingsUI = new DataSettingsUI();
-  
+
   // Load initial settings and update status bar
   window.api.getSettings().then(settings => {
     if (dataSettingsUI) {
@@ -2651,7 +2841,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }).catch(error => {
     console.error('Error loading initial settings:', error);
   });
-  
+
   // Load session call count
   window.api.getStatistics().then(stats => {
     if (dataSettingsUI) {
@@ -2659,6 +2849,77 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }).catch(error => {
     console.error('Error loading statistics:', error);
+  });
+});
+
+// ============================================================
+// Image Lightbox
+// ============================================================
+
+/**
+ * Open the image lightbox with a full-size image
+ * @param {string} src - Image source URL or data URI
+ * @param {string} [caption] - Optional caption text
+ */
+function openImageLightbox(src, caption) {
+  const lightbox = document.getElementById('imageLightbox');
+  const lightboxImg = document.getElementById('lightboxImage');
+  const lightboxCaption = document.getElementById('lightboxCaption');
+
+  if (!lightbox || !lightboxImg) return;
+
+  lightboxImg.src = src;
+  lightboxCaption.textContent = caption || '';
+  lightboxCaption.style.display = caption ? 'block' : 'none';
+  lightbox.style.display = 'flex';
+}
+
+/**
+ * Close the image lightbox
+ */
+function closeImageLightbox() {
+  const lightbox = document.getElementById('imageLightbox');
+  if (lightbox) {
+    lightbox.style.display = 'none';
+    document.getElementById('lightboxImage').src = '';
+  }
+}
+
+/**
+ * Attach lightbox click handler to an image element
+ * @param {HTMLImageElement} imgElement - The image element
+ * @param {string} [caption] - Optional caption
+ */
+function attachLightbox(imgElement, caption) {
+  imgElement.style.cursor = 'pointer';
+  imgElement.title = (caption || 'Image') + ' - click to view full size';
+  imgElement.addEventListener('click', (e) => {
+    e.stopPropagation();
+    // Upgrade Numista thumbnail URLs to larger versions for the lightbox
+    let src = imgElement.src;
+    if (src.includes('150x150')) {
+      src = src.replace('150x150', '400x400');
+    }
+    openImageLightbox(src, caption);
+  });
+}
+
+// Wire up lightbox close handlers
+document.addEventListener('DOMContentLoaded', () => {
+  const lightbox = document.getElementById('imageLightbox');
+  if (!lightbox) return;
+
+  // Close on backdrop click
+  lightbox.querySelector('.lightbox-backdrop').addEventListener('click', closeImageLightbox);
+
+  // Close on X button click
+  lightbox.querySelector('.lightbox-close').addEventListener('click', closeImageLightbox);
+
+  // Close on Escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && lightbox.style.display !== 'none') {
+      closeImageLightbox();
+    }
   });
 });
 

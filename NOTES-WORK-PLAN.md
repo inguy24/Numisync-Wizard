@@ -18,7 +18,7 @@ These items should be addressed in the near term as they either:
 - Improve critical user experience issues
 - Address data integrity concerns
 
-### 1.1 - Session Call Counter Fix 🔴 CRITICAL BUG
+### 1.1 - Session Call Counter Fix 🔴 CRITICAL BUG ✅ COMPLETE
 **Priority:** CRITICAL
 **Issue:** Session call counter remains at 0, not tracking API calls properly
 
@@ -47,7 +47,7 @@ These items should be addressed in the near term as they either:
 
 ---
 
-### 1.2 - Search Results Display Improvements 🎨 UX ENHANCEMENT
+### 1.2 - Search Results Display Improvements 🎨 UX ENHANCEMENT ✅ COMPLETE
 **Priority:** HIGH
 **Issue:** Search results show "value" field which is not helpful
 
@@ -62,7 +62,7 @@ These items should be addressed in the near term as they either:
 1. **Replace "Value" with more useful fields:**
    - Material/Composition (e.g., "Bronze", "Silver 0.900")
    - Catalog numbers (e.g., "KM# 45")
-   - Mintage (if available at type level)
+   - Mintmark (if available at type level)
 
 2. **Add percentage match sorting:**
    - Already have `calculateConfidence()` function
@@ -80,7 +80,7 @@ These items should be addressed in the near term as they either:
 
 ---
 
-### 1.3 - Select Issue Screen Enhancements 🎨 UX IMPROVEMENT
+### 1.3 - Select Issue Screen Enhancements 🎨 UX IMPROVEMENT ✅ COMPLETE
 **Priority:** HIGH
 **Issues:**
 1. "Your coin" section missing images (user can't reference their coin while picking)
@@ -113,7 +113,7 @@ These items should be addressed in the near term as they either:
 
 ---
 
-### 1.4 - Metadata Preservation Verification ✅ DATA INTEGRITY
+### 1.4 - Metadata Preservation Verification ✅ DATA INTEGRITY ✅ VERIFIED (No issues found)
 **Priority:** HIGH
 **Question:** "In storing metadata in OpenNumismat notes field, we are appending that data correct? If user has user notes, we are not wiping those out?"
 
@@ -141,7 +141,7 @@ These items should be addressed in the near term as they either:
 
 ---
 
-### 1.5 - Category-Based Search Parameter 🔍 FEATURE ENHANCEMENT
+### 1.5 - Category-Based Search Parameter 🔍 FEATURE ENHANCEMENT ✅ COMPLETE
 **Priority:** MEDIUM
 **Issue:** "Need to send coins, banknotes, tokens, medals, paper exonumia to Numista to narrow down search... pull from category, but we should allow user to select if category is blank... maybe in data settings there is a default check"
 
@@ -183,7 +183,7 @@ const categoryMap = {
 
 ---
 
-### 1.6 - UI Polish Items 🎨 QUICK WINS
+### 1.6 - UI Polish Items 🎨 QUICK WINS ✅ COMPLETE
 **Priority:** LOW
 **Quick fixes that improve user experience:**
 
@@ -208,7 +208,7 @@ const categoryMap = {
 
 ---
 
-### 1.7 - Database Safety Check 🔒 CRITICAL SAFETY
+### 1.7 - Database Safety Check 🔒 CRITICAL SAFETY ✅ COMPLETE
 **Priority:** HIGH
 **Issue:** "Should check if OpenNumismat is open prior to opening database files and prompt user to close it if it is indeed open to avoid database corruption"
 
@@ -222,7 +222,7 @@ const categoryMap = {
 **B. Database Lock Test**
 - Try to acquire exclusive lock
 - If fails, database is open elsewhere
-- Show error dialog
+- Show error dialog... do not allow option to proceed until it is closed. 
 
 **C. User Warning Dialog**
 ```
@@ -234,7 +234,7 @@ Opening the database while it's in use can cause corruption.
 
 Please close OpenNumismat and try again.
 
-[Check Again]  [Open Anyway (Dangerous)]  [Cancel]
+[Check Again]  [Cancel]
 ```
 
 **Files to Modify:**
@@ -247,7 +247,7 @@ Please close OpenNumismat and try again.
 
 These items are valuable but not urgent. They can be addressed after Phase 1 items or as part of future phases.
 
-### 2.1 - Advanced Matching & Normalization 🤖 ALGORITHM IMPROVEMENT
+### 2.1 - Advanced Matching & Normalization 🤖 ALGORITHM IMPROVEMENT ✅ COMPLETE
 **Category:** Technical Improvement
 **When:** After core bugs fixed, before Phase 3
 
@@ -276,38 +276,32 @@ These items are valuable but not urgent. They can be addressed after Phase 1 ite
 
 ---
 
-### 2.2 - Backup Policy & Data Safety 💾 DATA MANAGEMENT
+### 2.2 - Backup Policy & Data Safety 💾 DATA MANAGEMENT ✅ COMPLETE
 **Category:** Data Safety
 **When:** Before releasing as installable app
 
 **Items:**
 
 **A. Backup Policy Definition**
-- Question: "What is our current backup policy for the db file? What format do we save backups in and how many backups can be created?"
-- Current Status: Unknown, needs investigation
-- Proposed: YYYYMMDD_HHMMSS format for backup filenames
-
-**Investigation:**
-1. Check if backups are created before merge operations
-2. Check backup format and location
-3. Check if backup limit exists
-
-**Proposed Policy:**
-- Create backup before first modification each day
-- Format: `{dbname}_backup_20260202_143000.db`
-- Keep last 10 backups (configurable)
-- Store in `{dbfolder}/backups/` subdirectory
-- Add "Manage Backups" UI for restore operations
+- Backups created before each merge in `{dbfolder}/backups/` subdirectory
+- Format: `{dbname}_backup_{ISO-timestamp}.db`
+- Configurable retention limit (default: 5, 0 = unlimited)
+- Settings UI: integer input + "Unlimited" checkbox
+- Auto-backup toggle now properly checked before creating backups (was previously ignored)
+- Warning shown when auto-backup is disabled
 
 **B. Cross-Reference ID Safety**
-- Feedback: "Make sure your script doesn't accidentally orphan a record by changing a cross-reference ID instead of just the raw text field"
-- Investigation: Review field mapping for foreign key fields
-- Ensure only text fields are updated, never IDs
+- Added `PROTECTED_FIELDS` blocklist in `opennumismat-db.js` (id, obverseimg, reverseimg, edgeimg, image)
+- `updateCoin()` filters out protected fields before building UPDATE query
+- Logs warning if a protected field update is attempted
+- Field mapper already only maps text fields — this is an additional safety net
 
-**Files to Modify:**
-- `src/modules/opennumismat-db.js` - Backup logic
-- `src/modules/field-mapper.js` - Verify no ID fields mapped
-- Settings UI - Add backup management
+**Files Modified:**
+- `src/modules/opennumismat-db.js` - PROTECTED_FIELDS guard, pruneOldBackups()
+- `src/modules/settings-manager.js` - maxBackups setting + accessors
+- `src/main/index.js` - autoBackup check in merge handler, backup settings sync
+- `src/renderer/index.html` - maxBackups input, unlimited checkbox, warning text
+- `src/renderer/app.js` - Backup UI wiring, state management
 
 ---
 

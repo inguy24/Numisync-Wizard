@@ -1,6 +1,7 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const { execSync } = require('child_process');
 
 // Import our modules
 const OpenNumismatDB = require('../modules/opennumismat-db');
@@ -60,6 +61,60 @@ app.on('activate', () => {
 });
 
 // ============================================================================
+// Database Safety - Lock Detection
+// ============================================================================
+
+/**
+ * Check if a database file is currently in use by another application.
+ * Uses two detection methods:
+ * 1. WAL/SHM file presence (SQLite Write-Ahead Log files)
+ * 2. Exclusive file access test (Windows file locking)
+ */
+function checkDatabaseInUse(filePath) {
+  // Check 1: SQLite WAL/SHM files (created by native SQLite apps in WAL mode)
+  const walPath = filePath + '-wal';
+  const shmPath = filePath + '-shm';
+  if (fs.existsSync(walPath) || fs.existsSync(shmPath)) {
+    return {
+      inUse: true,
+      reason: 'SQLite WAL/SHM lock files detected — the database appears to be open in OpenNumismat or another SQLite application.'
+    };
+  }
+
+  // Check 2: SQLite journal file (created by native SQLite in rollback journal mode)
+  const journalPath = filePath + '-journal';
+  if (fs.existsSync(journalPath)) {
+    return {
+      inUse: true,
+      reason: 'SQLite journal file detected — the database appears to be open in another application.'
+    };
+  }
+
+  // Check 3: Windows exclusive file lock test via PowerShell
+  // Node.js fs.openSync uses shared access on Windows, so it won't detect SQLite's locks.
+  // PowerShell's [System.IO.File]::Open with FileShare.None requests exclusive access,
+  // which fails if ANY other process has the file open.
+  if (process.platform === 'win32') {
+    try {
+      const escapedPath = filePath.replace(/'/g, "''");
+      const psCommand = `powershell -NoProfile -NonInteractive -Command "try { $f = [System.IO.File]::Open('${escapedPath}', 'Open', 'ReadWrite', 'None'); $f.Close(); Write-Output 'unlocked' } catch { Write-Output 'locked' }"`;
+      const result = execSync(psCommand, { encoding: 'utf8', timeout: 5000 }).trim();
+      if (result === 'locked') {
+        return {
+          inUse: true,
+          reason: 'The database file is locked by another process (exclusive access denied).'
+        };
+      }
+    } catch (error) {
+      console.warn('PowerShell lock check failed (non-fatal):', error.message);
+      // Fall through — if PowerShell fails, don't block the user
+    }
+  }
+
+  return { inUse: false, reason: null };
+}
+
+// ============================================================================
 // IPC HANDLERS - File Operations
 // ============================================================================
 
@@ -81,6 +136,29 @@ ipcMain.handle('select-collection-file', async () => {
 
 ipcMain.handle('load-collection', async (event, filePath) => {
   try {
+    // Database safety check — detect if file is in use by another application
+    let lockCheck = checkDatabaseInUse(filePath);
+    while (lockCheck.inUse) {
+      const response = await dialog.showMessageBox(mainWindow, {
+        type: 'warning',
+        title: 'Database In Use',
+        message: 'The collection file appears to be open in OpenNumismat or another application.',
+        detail: 'Opening the database while it is in use can cause corruption.\n\nPlease close OpenNumismat and click "Check Again".\n\nDetails: ' + lockCheck.reason,
+        buttons: ['Check Again', 'Cancel'],
+        defaultId: 0,
+        cancelId: 1,
+        noLink: true
+      });
+
+      if (response.response === 1) {
+        // User cancelled
+        return { success: false, error: 'cancelled' };
+      }
+
+      // User clicked "Check Again" — re-run the check
+      lockCheck = checkDatabaseInUse(filePath);
+    }
+
     // Close existing database if open
     if (db) {
       db.close();
@@ -115,13 +193,16 @@ ipcMain.handle('load-collection', async (event, filePath) => {
     
     // Initialize progress tracker for this collection
     progressTracker = new ProgressTracker(filePath);
-    
+
     // Initialize with total count from collection
     progressTracker.initializeCollection(summary.totalCoins);
-    
+
     // Rebuild progress from database metadata
     await progressTracker.rebuildFromDatabase(db, settingsManager.getFetchSettings());
-    
+
+    // Reset session call counter to 0 (counter tracks API calls per session)
+    progressTracker.resetSessionCallCount();
+
     // Get progress stats
     const progress = progressTracker.getProgress();
     console.log('Progress stats:', progress.statistics);
@@ -217,6 +298,30 @@ function getApiKey() {
 }
 
 // ============================================================================
+// IPC HANDLERS - Issuer Resolution (persistent instance for caching)
+// ============================================================================
+
+// Persistent API instance for issuer resolution — caches /issuers list and
+// resolved country->code mappings across multiple calls
+let issuerApi = null;
+
+ipcMain.handle('resolve-issuer', async (event, countryName) => {
+  try {
+    const apiKey = getApiKey();
+    if (!issuerApi) {
+      issuerApi = new NumistaAPI(apiKey);
+    } else {
+      issuerApi.setApiKey(apiKey);
+    }
+    const code = await issuerApi.resolveIssuerCode(countryName);
+    return { success: true, code };
+  } catch (error) {
+    console.warn('Issuer resolution failed:', error.message);
+    return { success: true, code: null };
+  }
+});
+
+// ============================================================================
 // IPC HANDLERS - Numista Search
 // ============================================================================
 
@@ -232,6 +337,11 @@ ipcMain.handle('search-numista', async (event, searchParams) => {
     console.log('Search results count:', results.count);
     console.log('Number of types returned:', results.types?.length || 0);
 
+    // Increment session counter - 1 API call for search
+    if (progressTracker) {
+      progressTracker.incrementSessionCalls(1);
+    }
+
     return { success: true, results };
   } catch (error) {
     console.error('Error searching Numista:', error);
@@ -239,22 +349,30 @@ ipcMain.handle('search-numista', async (event, searchParams) => {
   }
 });
 
-ipcMain.handle('manual-search-numista', async (event, { query, coinId }) => {
+ipcMain.handle('manual-search-numista', async (event, { query, coinId, category }) => {
   try {
-    console.log('Manual search requested:', query, 'for coin:', coinId);
-    
+    console.log('Manual search requested:', query, 'for coin:', coinId, 'category:', category);
+
     const apiKey = getApiKey();
     const api = new NumistaAPI(apiKey);
-    
+
     // Use the query directly as provided by user
     const searchParams = { q: query };
-    
+    if (category) {
+      searchParams.category = category;
+    }
+
     const results = await api.searchTypes(searchParams);
-    
+
     console.log('Manual search found:', results.count, 'results');
-    
+
     // Note: Search tracking removed - status updates happen on merge
-    
+
+    // Increment session counter - 1 API call for search
+    if (progressTracker) {
+      progressTracker.incrementSessionCalls(1);
+    }
+
     return { success: true, results };
   } catch (error) {
     console.error('Error in manual search:', error);
@@ -280,23 +398,49 @@ ipcMain.handle('fetch-coin-data', async (event, { typeId, coin }) => {
     console.log('=== fetch-coin-data called ===');
     console.log('typeId:', typeId);
     console.log('coin year:', coin?.year, 'mintmark:', coin?.mintmark);
-    
+
     const apiKey = getApiKey();
     const api = new NumistaAPI(apiKey);
-    
+
     // Get fetch settings
     const fetchSettings = settingsManager ? settingsManager.getFetchSettings() : { basicData: true, issueData: false, pricingData: false };
     console.log('Fetch settings:', fetchSettings);
-    
+
     // Get currency from settings (defaults to USD)
     const currency = settingsManager ? settingsManager.getCurrency() : 'USD';
     console.log('Currency:', currency);
-    
+
     // Fetch all requested data
     const result = await api.fetchCoinData(typeId, coin, fetchSettings, currency);
     console.log('Fetch result - basicData:', !!result.basicData, 'issueData:', !!result.issueData, 'pricingData:', !!result.pricingData);
     console.log('Issue match result:', result.issueMatchResult?.type);
-    
+
+    // Increment session counter based on actual API calls made
+    if (progressTracker) {
+      let callCount = 0;
+
+      // Count API calls based on what was fetched:
+      // - getType() was called if basicData exists
+      if (result.basicData) {
+        callCount += 1;
+      }
+
+      // - getTypeIssues() was called if issueData OR pricingData was requested
+      if (fetchSettings.issueData || fetchSettings.pricingData) {
+        callCount += 1;
+      }
+
+      // - getIssuePricing() was called if pricingData exists
+      if (result.pricingData) {
+        callCount += 1;
+      }
+
+      if (callCount > 0) {
+        progressTracker.incrementSessionCalls(callCount);
+        console.log(`Session counter incremented by ${callCount} (total now: ${progressTracker.getSessionCallCount()})`);
+      }
+    }
+
     return { success: true, ...result };
   } catch (error) {
     console.error('Error fetching coin data:', error);
@@ -320,6 +464,12 @@ ipcMain.handle('fetch-pricing-for-issue', async (event, { typeId, issueId }) => 
     const pricingData = await api.getIssuePricing(typeId, issueId, currency);
     console.log('Pricing fetched:', !!pricingData);
 
+    // Increment session counter - 1 API call for pricing
+    if (progressTracker) {
+      progressTracker.incrementSessionCalls(1);
+      console.log(`Session counter incremented by 1 (total now: ${progressTracker.getSessionCallCount()})`);
+    }
+
     return { success: true, pricingData };
   } catch (error) {
     console.error('Error fetching pricing for issue:', error);
@@ -337,6 +487,12 @@ ipcMain.handle('fetch-issue-data', async (event, { typeId, coin }) => {
 
     // Fetch issues for this type (1 API call)
     const issuesResponse = await api.getTypeIssues(typeId);
+
+    // Increment session counter - 1 API call for issues
+    if (progressTracker) {
+      progressTracker.incrementSessionCalls(1);
+      console.log(`Session counter incremented by 1 (total now: ${progressTracker.getSessionCallCount()})`);
+    }
 
     // Try to auto-match (local logic, no API call)
     const matchResult = api.matchIssue(coin, issuesResponse);
@@ -407,9 +563,22 @@ ipcMain.handle('merge-data', async (event, { coinId, selectedFields, numistaData
     console.log('numistaData.id:', numistaData?.id);
     console.log('numistaData.title:', numistaData?.title);
 
-    // Create backup before merging
-    const backupPath = db.createBackup();
-    console.log('Backup created:', backupPath);
+    // Create backup before merging (if enabled in settings)
+    let backupPath = null;
+    const autoBackup = settingsManager ? settingsManager.getAutoBackup() : true;
+    if (autoBackup) {
+      backupPath = db.createBackup();
+      console.log('Backup created:', backupPath);
+
+      // Prune old backups beyond the configured limit
+      const maxBackups = settingsManager ? settingsManager.getMaxBackups() : 5;
+      const pruned = db.pruneOldBackups(maxBackups);
+      if (pruned.length > 0) {
+        console.log(`Pruned ${pruned.length} old backup(s)`);
+      }
+    } else {
+      console.log('Auto-backup disabled, skipping backup creation');
+    }
     
     // Perform the merge (pass issueData and pricingData)
     const mapper = new FieldMapper();
@@ -572,13 +741,14 @@ ipcMain.handle('get-app-settings', async () => {
       return { success: true, settings };
     } else {
       // Return default settings WITHOUT the field mapping (it has functions)
-      return { 
-        success: true, 
+      return {
+        success: true,
         settings: {
           apiKey: '',
           searchDelay: 2000,
           imageHandling: 'url',
-          autoBackup: true
+          autoBackup: true,
+          maxBackups: 5
         }
       };
     }
@@ -603,6 +773,17 @@ ipcMain.handle('save-app-settings', async (event, settings) => {
     if (settingsManager && settings.searchDelay) {
       settingsManager.setRateLimit(settings.searchDelay);
       console.log('Rate limit synced to collection settings');
+    }
+
+    // Sync backup settings to collection settings
+    if (settingsManager) {
+      if (settings.autoBackup !== undefined) {
+        settingsManager.setAutoBackup(settings.autoBackup);
+      }
+      if (settings.maxBackups !== undefined) {
+        settingsManager.setMaxBackups(settings.maxBackups);
+      }
+      console.log('Backup settings synced to collection settings');
     }
 
     return { success: true };
@@ -831,6 +1012,21 @@ ipcMain.handle('download-and-store-images', async (event, { coinId, imageUrls })
       success: false,
       error: error.message
     };
+  }
+});
+
+// Open external URLs in default browser
+ipcMain.handle('open-external', async (event, url) => {
+  try {
+    // Only allow http/https URLs for safety
+    if (url && (url.startsWith('https://') || url.startsWith('http://'))) {
+      await shell.openExternal(url);
+      return { success: true };
+    }
+    return { success: false, error: 'Invalid URL protocol' };
+  } catch (error) {
+    console.error('Error opening external URL:', error);
+    return { success: false, error: error.message };
   }
 });
 

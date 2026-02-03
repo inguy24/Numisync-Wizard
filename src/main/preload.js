@@ -1,5 +1,36 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
+/**
+ * Dice's coefficient string similarity (0.0 to 1.0).
+ * Defined directly in preload to avoid importing heavy modules (axios, etc.)
+ * into the renderer preload context.
+ */
+function diceCoefficient(a, b) {
+  a = a.toLowerCase().trim();
+  b = b.toLowerCase().trim();
+
+  if (a === b) return 1.0;
+  if (a.length < 2 || b.length < 2) return 0.0;
+
+  const bigramsA = new Map();
+  for (let i = 0; i < a.length - 1; i++) {
+    const bigram = a.substring(i, i + 2);
+    bigramsA.set(bigram, (bigramsA.get(bigram) || 0) + 1);
+  }
+
+  let intersectionSize = 0;
+  for (let i = 0; i < b.length - 1; i++) {
+    const bigram = b.substring(i, i + 2);
+    const count = bigramsA.get(bigram) || 0;
+    if (count > 0) {
+      bigramsA.set(bigram, count - 1);
+      intersectionSize++;
+    }
+  }
+
+  return (2.0 * intersectionSize) / ((a.length - 1) + (b.length - 1));
+}
+
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object
 const apiMethods = {
@@ -44,9 +75,18 @@ const apiMethods = {
 
   // Phase 2 - Image handling
   getCoinImages: (coinId) => ipcRenderer.invoke('get-coin-images', coinId),
-  downloadAndStoreImages: (data) => ipcRenderer.invoke('download-and-store-images', data)
+  downloadAndStoreImages: (data) => ipcRenderer.invoke('download-and-store-images', data),
+
+  // Matching & normalization
+  resolveIssuer: (countryName) => ipcRenderer.invoke('resolve-issuer', countryName),
+
+  // Utility
+  openExternal: (url) => ipcRenderer.invoke('open-external', url)
 };
 
 // Expose as both 'electronAPI' (for backward compatibility) and 'api' (for new code)
 contextBridge.exposeInMainWorld('electronAPI', apiMethods);
 contextBridge.exposeInMainWorld('api', apiMethods);
+
+// Expose diceCoefficient as a standalone utility for renderer-side confidence scoring
+contextBridge.exposeInMainWorld('stringSimilarity', { diceCoefficient });
