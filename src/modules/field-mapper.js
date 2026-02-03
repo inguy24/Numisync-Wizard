@@ -7,6 +7,10 @@ const { DEFAULT_FIELD_MAPPING, getCatalogNumber, getNestedValue, formatCatalogFo
  * Supports custom user field mappings and transformations.
  */
 class FieldMapper {
+  /**
+   * Creates a new FieldMapper instance
+   * @param {Object|null} customMapping - Custom field mapping configuration (uses DEFAULT_FIELD_MAPPING if null)
+   */
   constructor(customMapping = null) {
     // Use custom mapping if provided, otherwise use default
     this.fieldMapping = customMapping || DEFAULT_FIELD_MAPPING;
@@ -144,11 +148,12 @@ class FieldMapper {
   }
 
   /**
-   * Compare OpenNumismat coin with Numista data
-   * 
-   * @param {Object} coin - OpenNumismat coin data
-   * @param {Object} numistaData - Numista type data
-   * @returns {Object} - Comparison object showing differences
+   * Compare OpenNumismat coin with Numista data to find differences
+   * @param {Object} coin - OpenNumismat coin data from database
+   * @param {Object} numistaData - Numista type data from API
+   * @param {Object|null} issueData - Optional issue data for year-specific fields
+   * @param {Object|null} pricingData - Optional pricing data for price fields
+   * @returns {Object} Comparison result with fields array and hasChanges flag
    */
   compareFields(coin, numistaData, issueData = null, pricingData = null) {
     const comparison = {
@@ -212,8 +217,10 @@ class FieldMapper {
   }
 
   /**
-   * Check if two values are different
-   * (handles type coercion and null/empty comparison)
+   * Check if two values are different (handles type coercion and null/empty)
+   * @param {*} val1 - First value (from OpenNumismat)
+   * @param {*} val2 - Second value (from Numista)
+   * @returns {boolean} True if values are meaningfully different
    */
   valuesAreDifferent(val1, val2) {
     // Both null/empty - not different
@@ -234,7 +241,9 @@ class FieldMapper {
   }
 
   /**
-   * Check if a value is empty/null
+   * Check if a value is empty, null, or undefined
+   * @param {*} value - Value to check
+   * @returns {boolean} True if value is null, undefined, or empty string
    */
   isEmpty(value) {
     return value === null || value === undefined || value === '';
@@ -284,6 +293,7 @@ class FieldMapper {
 
   /**
    * Update the field mapping configuration
+   * @param {Object} newMapping - New field mapping configuration object
    */
   setFieldMapping(newMapping) {
     this.fieldMapping = newMapping;
@@ -291,13 +301,15 @@ class FieldMapper {
 
   /**
    * Get the current field mapping configuration
+   * @returns {Object} Current field mapping configuration
    */
   getFieldMapping() {
     return this.fieldMapping;
   }
 
   /**
-   * Get enabled fields only
+   * Get list of field names that are currently enabled
+   * @returns {string[]} Array of enabled field names
    */
   getEnabledFields() {
     return Object.entries(this.fieldMapping)

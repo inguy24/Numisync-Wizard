@@ -4,15 +4,15 @@ const metadataManager = require('./metadata-manager');
 
 /**
  * Progress Tracker - Phase 2
- * 
+ *
  * Tracks enrichment status per coin with three-tier data tracking:
  * - basicData (title, country, weight, etc.)
  * - issueData (mintmark, mintage)
  * - pricingData (market values)
- * 
+ *
  * Progress is rebuilt from database metadata on startup (session cache only).
  * Actual data persistence is in the database note field via metadata-manager.
- * 
+ *
  * Status values:
  * - PENDING: User selected this data type but hasn't processed yet
  * - MERGED: Successfully fetched and merged
@@ -23,6 +23,10 @@ const metadataManager = require('./metadata-manager');
  * - NO_DATA: API returned no data (e.g., no pricing available)
  */
 class ProgressTracker {
+  /**
+   * Creates a new ProgressTracker instance
+   * @param {string} collectionPath - Path to the .db collection file
+   */
   constructor(collectionPath) {
     this.collectionPath = collectionPath;
     this.progressFilePath = this.getProgressFilePath(collectionPath);
@@ -38,6 +42,8 @@ class ProgressTracker {
 
   /**
    * Get the path for the progress file
+   * @param {string} collectionPath - Path to the collection .db file
+   * @returns {string} Path to the progress JSON file
    */
   getProgressFilePath(collectionPath) {
     const dir = path.dirname(collectionPath);
@@ -46,7 +52,8 @@ class ProgressTracker {
   }
 
   /**
-   * Load progress from file or create new
+   * Load progress from file or create new default structure
+   * @returns {Object} Progress object with coins, statistics, and metadata
    */
   loadProgress() {
     try {
@@ -110,9 +117,13 @@ class ProgressTracker {
   /**
    * Rebuild progress from database metadata
    * Call this on startup to sync progress with actual database state
-   * 
+   * @async
    * @param {Object} dbConnection - OpenNumismat database connection
-   * @param {Object} fetchSettings - { basicData: bool, issueData: bool, pricingData: bool }
+   * @param {Object} fetchSettings - Fetch settings configuration
+   * @param {boolean} fetchSettings.basicData - Whether basic data is enabled
+   * @param {boolean} fetchSettings.issueData - Whether issue data is enabled
+   * @param {boolean} fetchSettings.pricingData - Whether pricing data is enabled
+   * @throws {Error} When database query fails
    */
   async rebuildFromDatabase(dbConnection, fetchSettings) {
     console.log('Rebuilding progress from database metadata...');
@@ -156,7 +167,8 @@ class ProgressTracker {
   }
 
   /**
-   * Reset all statistics to zero
+   * Reset all statistics to zero while preserving total count
+   * @returns {void}
    */
   resetStatistics() {
     this.progress.statistics = {
@@ -288,7 +300,9 @@ class ProgressTracker {
   }
 
   /**
-   * Convert status to statistics key
+   * Convert status string to statistics object key
+   * @param {string} status - Status value (MERGED, PENDING, NOT_QUERIED, etc.)
+   * @returns {string} Lowercase key for statistics object
    */
   getStatKeyForStatus(status) {
     const mapping = {
@@ -304,7 +318,8 @@ class ProgressTracker {
   }
 
   /**
-   * Save progress to file
+   * Save progress to file with updated timestamp
+   * @throws {Error} When file write fails
    */
   saveProgress() {
     try {
@@ -518,7 +533,8 @@ class ProgressTracker {
   }
 
   /**
-   * Calculate completion percentage based on complete coins
+   * Calculate completion percentage based on complete and skipped coins
+   * @returns {number} Completion percentage (0-100)
    */
   calculateCompletionPercentage() {
     const total = this.progress.statistics.total;
@@ -540,6 +556,7 @@ class ProgressTracker {
 
   /**
    * Reset progress (clear cache, force rebuild on next load)
+   * @returns {void}
    */
   resetProgress() {
     this.progress.coins = {};
@@ -550,6 +567,7 @@ class ProgressTracker {
 
   /**
    * Get the full progress object (for debugging/display)
+   * @returns {Object} Complete progress object with coins, statistics, and metadata
    */
   getProgress() {
     return this.progress;
@@ -620,7 +638,10 @@ class ProgressTracker {
   }
 
   /**
-   * Helper to calculate percentage
+   * Helper to calculate percentage string
+   * @param {number} value - Numerator value
+   * @param {number} total - Denominator value
+   * @returns {string} Formatted percentage string (e.g., "42%")
    */
   percentage(value, total) {
     if (total === 0) return '0%';

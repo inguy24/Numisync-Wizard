@@ -65,7 +65,15 @@ function diceCoefficient(a, b) {
   return (2.0 * intersectionSize) / ((a.length - 1) + (b.length - 1));
 }
 
+/**
+ * Numista API client class for communicating with Numista v3 API.
+ * Implements rate limiting, caching, and comprehensive error handling.
+ */
 class NumistaAPI {
+  /**
+   * Creates a new NumistaAPI instance
+   * @param {string|null} apiKey - Numista API key (can be set later via setApiKey)
+   */
   constructor(apiKey = null) {
     this.baseURL = 'https://api.numista.com/v3';
     this.apiKey = apiKey;
@@ -76,14 +84,17 @@ class NumistaAPI {
   }
 
   /**
-   * Set the API key
+   * Set the API key for authentication
+   * @param {string} apiKey - Numista API key
    */
   setApiKey(apiKey) {
     this.apiKey = apiKey;
   }
 
   /**
-   * Rate limiting - ensure minimum delay between requests
+   * Enforce rate limiting by waiting if necessary between requests
+   * @async
+   * @returns {Promise<void>}
    */
   async enforceRateLimit() {
     const now = Date.now();
@@ -151,6 +162,14 @@ class NumistaAPI {
 
   /**
    * Search for coin types by various criteria
+   * @async
+   * @param {Object} searchParams - Search parameters
+   * @param {string} [searchParams.q] - Search query string
+   * @param {string} [searchParams.issuer] - Issuer code (e.g., 'united-states')
+   * @param {number} [searchParams.min_year] - Minimum year filter
+   * @param {number} [searchParams.max_year] - Maximum year filter
+   * @param {string} [searchParams.category] - Category filter ('coin', 'banknote', 'exonumia')
+   * @returns {Promise<Object>} Search results with types array and pagination info
    */
   async searchTypes(searchParams) {
     const cacheKey = `search:${JSON.stringify(searchParams)}`;
@@ -175,6 +194,10 @@ class NumistaAPI {
 
   /**
    * Get detailed information about a specific coin type
+   * @async
+   * @param {number} typeId - Numista type ID
+   * @param {string} [lang='en'] - Language code for localized content
+   * @returns {Promise<Object>} Full type data including composition, rulers, references, etc.
    */
   async getType(typeId, lang = 'en') {
     const cacheKey = `type:${typeId}:${lang}`;
@@ -190,7 +213,11 @@ class NumistaAPI {
   }
 
   /**
-   * Get all issues for a specific type
+   * Get all issues (variants by year/mint) for a specific type
+   * @async
+   * @param {number} typeId - Numista type ID
+   * @param {string} [lang='en'] - Language code
+   * @returns {Promise<Array>} Array of issue objects (year, mint_letter, mintage, etc.)
    */
   async getTypeIssues(typeId, lang = 'en') {
     const cacheKey = `issues:${typeId}:${lang}`;
@@ -207,7 +234,12 @@ class NumistaAPI {
   }
 
   /**
-   * Get pricing for a specific issue
+   * Get pricing data for a specific issue
+   * @async
+   * @param {number} typeId - Numista type ID
+   * @param {number} issueId - Issue ID within the type
+   * @param {string} [currency='USD'] - Currency code for prices
+   * @returns {Promise<Object>} Pricing data with grades and values
    */
   async getIssuePricing(typeId, issueId, currency = 'USD') {
     const cacheKey = `pricing:${typeId}:${issueId}:${currency}`;
@@ -410,7 +442,13 @@ class NumistaAPI {
   }
 
   /**
-   * Build a search query from OpenNumismat coin data
+   * Build search query parameters from OpenNumismat coin data
+   * @param {Object} coin - OpenNumismat coin object
+   * @param {string} [coin.title] - Coin title/name
+   * @param {number|string} [coin.year] - Year of issue
+   * @param {string} [coin.value] - Denomination value
+   * @param {string} [coin.country] - Country/issuer name
+   * @returns {Object} Search parameters suitable for searchTypes()
    */
   buildSearchQuery(coin) {
     const params = {};
@@ -439,7 +477,10 @@ class NumistaAPI {
   }
 
   /**
-   * Calculate confidence score for match quality
+   * Calculate confidence score (0-100) indicating how well a Numista type matches the user's coin
+   * @param {Object} coin - OpenNumismat coin object
+   * @param {Object} numistaType - Numista type data from search results
+   * @returns {number} Confidence score from 0 to 100
    */
   calculateMatchConfidence(coin, numistaType) {
     let score = 0;
@@ -574,6 +615,9 @@ class NumistaAPI {
     }
   }
 
+  /**
+   * Clear all cached data (types, issues, pricing, issuer codes)
+   */
   clearCache() {
     this.cache.clear();
     this.issuerCodeCache.clear();

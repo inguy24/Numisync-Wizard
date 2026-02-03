@@ -305,7 +305,7 @@ These items are valuable but not urgent. They can be addressed after Phase 1 ite
 
 ---
 
-### 2.3 - User-Configurable Field Mapping ⚙️ ADVANCED FEATURE
+### 2.3 - User-Configurable Field Mapping ⚙️ ADVANCED FEATURE  ✅ COMPLETE
 **Category:** Settings Enhancement
 **When:** Phase 2.5 or Phase 3
 
@@ -418,7 +418,24 @@ These items are valuable but not urgent. They can be addressed after Phase 1 ite
 
 ---
 
-### 2.6 - Multi-Source Data Fetching 🌐 LONG-TERM VISION
+### 2.6 - About Page and Donation Link 🌐 LONG-TERM VISION
+**Category:** Major Feature
+**When:** Phase 4 or 5
+
+**Issue:** "This would be a good location for the EULA as well as general information on version, link to github, and for user to donate"
+
+**Details**
+- Need a page that would contain basic information such as legal, version, link to github, and notice of updates
+- Some way to check with github on version change and notice to user to go to github to download update
+- Information on author and way to donate to the project
+- Polite notification system to bug new users to donate, perhaps after set number of updated coins? Message needs to guilt them into understanding value they are receiving for free
+- Polite notification should include information like amount of time saved, etc. Do we make them "supporters for life?"
+- Link to donation site such as Ko-fi or Buy Me a Coffee to donate to the project
+- Future expansions like the batch processing for pricing updates is freemium and would require the donation
+
+
+
+### 2.7 - Multi-Source Data Fetching 🌐 LONG-TERM VISION
 **Category:** Major Feature
 **When:** Phase 4 or 5
 
@@ -459,7 +476,7 @@ These items are valuable but not urgent. They can be addressed after Phase 1 ite
 
 ---
 
-### 2.7 - OpenNumismat Plugin Integration 🔌 EXTERNAL LAUNCH
+### 2.8 - OpenNumismat Plugin Integration 🔌 EXTERNAL LAUNCH
 **Category:** Integration Feature
 **When:** After app is stable and packaged
 

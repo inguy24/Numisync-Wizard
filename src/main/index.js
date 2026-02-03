@@ -1,3 +1,14 @@
+/**
+ * Main Process Entry Point
+ *
+ * Electron main process that handles:
+ * - Window creation and management
+ * - IPC communication with renderer
+ * - Database operations via OpenNumismatDB
+ * - Numista API calls via NumistaAPI
+ * - Settings management via SettingsManager
+ * - Progress tracking via ProgressTracker
+ */
 const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
@@ -7,17 +18,26 @@ const { execSync } = require('child_process');
 const OpenNumismatDB = require('../modules/opennumismat-db');
 const NumistaAPI = require('../modules/numista-api');
 const FieldMapper = require('../modules/field-mapper');
+const { getSerializableSources, DEFAULT_FIELD_MAPPING } = require('../modules/default-field-mapping');
 const ProgressTracker = require('../modules/progress-tracker');
 const SettingsManager = require('../modules/settings-manager');
 const metadataManager = require('../modules/metadata-manager');
 const ImageHandler = require('../modules/image-handler');
 
+/** @type {BrowserWindow|null} */
 let mainWindow;
+/** @type {OpenNumismatDB|null} */
 let db = null;
+/** @type {ProgressTracker|null} */
 let progressTracker = null;
+/** @type {SettingsManager|null} */
 let settingsManager = null;
 const imageHandler = new ImageHandler();
 
+/**
+ * Create the main application window
+ * @returns {void}
+ */
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1400,
@@ -66,9 +86,12 @@ app.on('activate', () => {
 
 /**
  * Check if a database file is currently in use by another application.
- * Uses two detection methods:
+ * Uses multiple detection methods:
  * 1. WAL/SHM file presence (SQLite Write-Ahead Log files)
- * 2. Exclusive file access test (Windows file locking)
+ * 2. SQLite journal file presence
+ * 3. Exclusive file access test (Windows file locking via PowerShell)
+ * @param {string} filePath - Path to the database file
+ * @returns {{inUse: boolean, reason: string|null}} Lock status and reason
  */
 function checkDatabaseInUse(filePath) {
   // Check 1: SQLite WAL/SHM files (created by native SQLite apps in WAL mode)
@@ -273,6 +296,7 @@ ipcMain.handle('get-coin-details', async (event, coinId) => {
 
 /**
  * Load API key - checks collection settings first, falls back to Phase 1 app settings
+ * @returns {string|null} API key or null if not configured
  */
 function getApiKey() {
   // Phase 2: Check collection-specific settings first
@@ -531,7 +555,8 @@ ipcMain.handle('fetch-issue-data', async (event, { typeId, coin }) => {
 
 ipcMain.handle('compare-fields', async (event, { coin, numistaData, issueData, pricingData }) => {
   try {
-    const mapper = new FieldMapper();
+    const customMapping = settingsManager ? settingsManager.buildFieldMapperConfig() : null;
+    const mapper = new FieldMapper(customMapping);
     const comparison = mapper.compareFields(coin, numistaData, issueData, pricingData);
     
     return { success: true, comparison };
@@ -581,7 +606,8 @@ ipcMain.handle('merge-data', async (event, { coinId, selectedFields, numistaData
     }
     
     // Perform the merge (pass issueData and pricingData)
-    const mapper = new FieldMapper();
+    const customMapping = settingsManager ? settingsManager.buildFieldMapperConfig() : null;
+    const mapper = new FieldMapper(customMapping);
     const updatedData = mapper.mergeFields(selectedFields, numistaData, issueData, pricingData);
     console.log('Data to update:', updatedData);
     
@@ -1026,6 +1052,137 @@ ipcMain.handle('open-external', async (event, url) => {
     return { success: false, error: 'Invalid URL protocol' };
   } catch (error) {
     console.error('Error opening external URL:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// ============================================================================
+// Field Mapping IPC Handlers
+// ============================================================================
+
+ipcMain.handle('get-field-mappings', async () => {
+  try {
+    if (!settingsManager) {
+      return { success: false, error: 'No collection loaded' };
+    }
+    const fieldMappings = settingsManager.getFieldMappings();
+    const sources = getSerializableSources();
+    return { success: true, fieldMappings, sources };
+  } catch (error) {
+    console.error('Error getting field mappings:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('save-field-mappings', async (event, fieldMappings) => {
+  try {
+    if (!settingsManager) {
+      return { success: false, error: 'No collection loaded' };
+    }
+    // Validate: only allow known field names and known source keys
+    const validFields = Object.keys(DEFAULT_FIELD_MAPPING);
+    const validSources = Object.keys(getSerializableSources());
+    const validated = {};
+
+    for (const [fieldName, config] of Object.entries(fieldMappings)) {
+      if (!validFields.includes(fieldName)) continue;
+      validated[fieldName] = {
+        enabled: config.enabled === true || config.enabled === false ? config.enabled : true,
+        sourceKey: validSources.includes(config.sourceKey) ? config.sourceKey : (DEFAULT_FIELD_MAPPING[fieldName].defaultSourceKey || null),
+        catalogCode: config.catalogCode || null,
+        description: config.description || DEFAULT_FIELD_MAPPING[fieldName].description || fieldName
+      };
+    }
+
+    settingsManager.setFieldMappings(validated);
+    return { success: true };
+  } catch (error) {
+    console.error('Error saving field mappings:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('get-available-sources', async () => {
+  try {
+    return { success: true, sources: getSerializableSources() };
+  } catch (error) {
+    console.error('Error getting available sources:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('export-field-mappings', async () => {
+  try {
+    if (!settingsManager) {
+      return { success: false, error: 'No collection loaded' };
+    }
+    const result = await dialog.showSaveDialog(mainWindow, {
+      title: 'Export Field Mappings',
+      defaultPath: 'field-mappings.json',
+      filters: [{ name: 'JSON', extensions: ['json'] }]
+    });
+    if (result.canceled) {
+      return { success: false, error: 'Canceled' };
+    }
+    const mappings = settingsManager.getFieldMappings();
+    fs.writeFileSync(result.filePath, JSON.stringify(mappings, null, 2), 'utf8');
+    return { success: true, filePath: result.filePath };
+  } catch (error) {
+    console.error('Error exporting field mappings:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('import-field-mappings', async () => {
+  try {
+    if (!settingsManager) {
+      return { success: false, error: 'No collection loaded' };
+    }
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: 'Import Field Mappings',
+      filters: [{ name: 'JSON', extensions: ['json'] }],
+      properties: ['openFile']
+    });
+    if (result.canceled || !result.filePaths.length) {
+      return { success: false, error: 'Canceled' };
+    }
+    const data = fs.readFileSync(result.filePaths[0], 'utf8');
+    const imported = JSON.parse(data);
+
+    // Validate structure
+    const validFields = Object.keys(DEFAULT_FIELD_MAPPING);
+    const validSources = Object.keys(getSerializableSources());
+    const validated = {};
+
+    for (const [fieldName, config] of Object.entries(imported)) {
+      if (!validFields.includes(fieldName)) continue;
+      if (typeof config !== 'object' || config === null) continue;
+      validated[fieldName] = {
+        enabled: typeof config.enabled === 'boolean' ? config.enabled : true,
+        sourceKey: validSources.includes(config.sourceKey) ? config.sourceKey : (DEFAULT_FIELD_MAPPING[fieldName].defaultSourceKey || null),
+        catalogCode: typeof config.catalogCode === 'string' ? config.catalogCode : null,
+        description: typeof config.description === 'string' ? config.description : (DEFAULT_FIELD_MAPPING[fieldName].description || fieldName)
+      };
+    }
+
+    settingsManager.setFieldMappings(validated);
+    return { success: true, fieldMappings: validated };
+  } catch (error) {
+    console.error('Error importing field mappings:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('reset-field-mappings', async () => {
+  try {
+    if (!settingsManager) {
+      return { success: false, error: 'No collection loaded' };
+    }
+    const defaults = settingsManager.buildDefaultFieldMappings();
+    settingsManager.setFieldMappings(defaults);
+    return { success: true, fieldMappings: defaults };
+  } catch (error) {
+    console.error('Error resetting field mappings:', error);
     return { success: false, error: error.message };
   }
 });

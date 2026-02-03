@@ -1,6 +1,6 @@
 # OpenNumismat Enrichment Tool - Master Project Document
 
-**Last Updated:** February 1, 2026
+**Last Updated:** February 2, 2026
 **Purpose:** Single source of truth for project state, fixes, and lessons learned
 **Replaces:** All individual fix documents (see deletion list at end)
 
@@ -116,13 +116,22 @@ numismat-enrichment/
 - Rebuilds from database on startup
 - Session API call counting
 
-**settings-manager.js** (Task 2.3)  
+**settings-manager.js** (Task 2.3)
 - Stores settings in `{database}_settings.json` next to .db file
 - API configuration
 - Fetch settings (which data types to fetch)
-- Field mappings, UI preferences
+- Field mappings (user-configurable source per field, enable/disable, catalog codes)
+- UI preferences
+- `buildFieldMapperConfig()` resolves user sourceKey choices to full FieldMapper-compatible configs
 
-**freshness-calculator.js** (Task 2.5)  
+**default-field-mapping.js** (Task 2.3 Advanced)
+- Defines 39 DEFAULT_FIELD_MAPPING entries with numistaPath, transform, priority, defaultSourceKey
+- NUMISTA_SOURCES registry with 49 source definitions (path, displayName, transform, group)
+- 9 shared transform functions (transformRulerNames, transformValueNumber, etc.)
+- getSerializableSources() helper for IPC-safe source transmission
+- getCatalogNumber(), getNestedValue(), getCatalogDisplayName(), formatCatalogForDisplay() helpers
+
+**freshness-calculator.js** (Task 2.5)
 n**image-handler.js** (Task 2.8)  
 - Converts BLOBs to base64 data URIs for display
 - Downloads images from Numista URLs
@@ -148,11 +157,19 @@ n**image-handler.js** (Task 2.8)
 - Rebuilds from database metadata
 - Session call counting
 
-### Task 2.3 - Data Settings UI Ã¢Å“â€¦ COMPLETE  
+### Task 2.3 - Data Settings UI & Advanced Field Mapping Ã¢Å"â€¦ COMPLETE
 - Created settings-manager.js
-- Data settings modal in UI
+- Data settings modal in UI with tabbed interface (Fetch Settings + Field Mappings)
 - Status bar display
 - Settings persist to JSON
+- **Advanced Field Mapping (February 2, 2026):**
+  - Added NUMISTA_SOURCES registry (49 entries) to default-field-mapping.js
+  - Added defaultSourceKey to all 39 DEFAULT_FIELD_MAPPING entries
+  - Added buildFieldMapperConfig() to settings-manager.js (resolves user sourceKey to full config)
+  - Fixed GAP: FieldMapper now loads user-configured mappings via settingsManager
+  - Added 6 IPC handlers for field mapping CRUD + export/import/reset
+  - Field Mappings tab with per-field enable/disable, source dropdown, catalog code picker
+  - Bulk enable/disable, category/status filters, duplicate catalog code warnings
 
 ### Task 2.4 - Conditional API Calls ✅ COMPLETE (January 31, 2026)
 - Modified numista-api.js with smart issue matching
@@ -263,15 +280,21 @@ All pricing and issue data flows are now working correctly. See fix log entries 
 ### Field Mapping System
 
 **How It Works:**
-- `default-field-mapping.js` defines all field mappings
-- Each field has: numistaPath, transform, priority, enabled, requiresIssueData, requiresPricingData
-- `field-mapper.js` uses these definitions to map Numista data to OpenNumismat fields
+- `default-field-mapping.js` defines all field mappings (39 fields) and the NUMISTA_SOURCES registry (49 sources)
+- Each field has: numistaPath, transform, priority, enabled, requiresIssueData, requiresPricingData, defaultSourceKey
+- `NUMISTA_SOURCES` registry decouples source definitions from target assignments - each source has: path, displayName, transform, group, requiresIssueData/requiresPricingData
+- Each field's `defaultSourceKey` points to its default source in NUMISTA_SOURCES
+- 9 shared transform functions used by both NUMISTA_SOURCES and DEFAULT_FIELD_MAPPING
+- `getSerializableSources()` strips transform functions for safe IPC transmission to renderer
+- `settings-manager.js` stores user overrides (sourceKey, enabled, catalogCode per field)
+- `buildFieldMapperConfig()` resolves user's sourceKey choices to full configs with numistaPath + transform from NUMISTA_SOURCES
+- `field-mapper.js` uses the resolved config to map Numista data to OpenNumismat fields
 
 **Special Fields:**
 - **Mintage, Mintmark:** Require `issueData` (from getTypeIssues API call)
 - **Pricing (price_unc, price_xf, price_vf, price_f):** Require `pricingData` (from getIssuePricing API call)
-- **Catalog Numbers:** Special handling via getCatalogNumber() helper
-- **Images:** Store URLs (download not yet implemented)
+- **Catalog Numbers:** Special handling via getCatalogNumber() helper, user-configurable catalog code (KM, Y, Numista, N#)
+- **Images:** Downloaded from Numista CDN at 400x400px, stored in OpenNumismat photos table
 
 **OpenNumismat Pricing Fields (exactly 4):**
 - price_unc - Uncirculated
@@ -369,6 +392,14 @@ Type has no issue data Ã¢â€ â€™ NO_ISSUES
 - `save-fetch-settings` - Phase 2 fetch settings
 - `get-statistics` - Phase 2 progress statistics
 - `increment-api-calls` - Phase 2 session call counter
+
+### Field Mappings (Task 2.3 Advanced)
+- `get-field-mappings` - Returns user's field mappings + serializable NUMISTA_SOURCES
+- `save-field-mappings` - Persists modified field mappings to settings file
+- `get-available-sources` - Returns serializable NUMISTA_SOURCES registry
+- `export-field-mappings` - Export field mappings to JSON file (save dialog)
+- `import-field-mappings` - Import field mappings from JSON file (open dialog)
+- `reset-field-mappings` - Reset field mappings to defaults from DEFAULT_FIELD_MAPPING
 
 ---
 
@@ -482,7 +513,10 @@ Once this master document is in place, these can be deleted:
 1. **Continue Phase 2:**
    - Task 2.7 - Fetch More Data feature (NOT STARTED)
 
-2. **Update this master document:**
+2. **Continue Notes Work Plan:**
+   - Phase 2 items (Advanced Matching improvements, Packaging, Legal, etc.)
+
+3. **Update this master document:**
    - After each fix, update the relevant section
    - Do not create new fix documents
    - Keep lessons learned section up to date
@@ -2154,4 +2188,135 @@ Implemented three matching improvements:
 5. `src/renderer/app.js` - Backup UI wiring, updateBackupControlsState(), success message update
 
 **Task 2.2 - Backup Policy & Data Safety: COMPLETE**
+
+---
+
+## SESSION: February 2, 2026 - Advanced Field Mapping UI (Task 2.3 Extension)
+
+**Date:** February 2, 2026
+**Focus:** Implemented user-configurable field mapping tab per Advanced-Field-Mapping-PLAN.md
+
+### Problem
+
+Field mappings were hardcoded - users could not change which Numista data source maps to each OpenNumismat field. Additionally, `FieldMapper` was always instantiated with default mappings, ignoring any user-saved settings (the "GAP").
+
+### Implementation (6 Steps)
+
+#### Step 1: NUMISTA_SOURCES Registry (default-field-mapping.js)
+
+Added centralized registry of 49 Numista data sources, each with:
+- `path` - Numista API path (e.g., 'issuer.name', 'ruler')
+- `displayName` - Human-readable name for UI dropdown
+- `transform` - Function to convert raw API value (or null for direct)
+- `group` - Category for filtering (Basic, Issuer, Ruler, Value, Physical, Obverse, Reverse, Edge, Issue, Pricing, Catalog, System)
+- `requiresIssueData` / `requiresPricingData` - Data dependency flags
+
+Extracted 9 shared transform functions from inline lambdas:
+`transformRulerNames`, `transformRulerPeriod`, `transformValueNumber`, `transformValueUnit`, `transformMintName`, `transformOrientation`, `transformDesigners`, `transformEngravers`, `transformToString`
+
+Added `defaultSourceKey` to all 39 DEFAULT_FIELD_MAPPING entries pointing to their default source.
+Added `getSerializableSources()` helper that strips non-serializable transform functions for IPC.
+
+#### Step 2: Settings Manager Updates (settings-manager.js)
+
+- Updated import to include `NUMISTA_SOURCES`
+- `buildDefaultFieldMappings()` now stores: `{ enabled, sourceKey, catalogCode, description }` per field
+- Added `buildFieldMapperConfig()` method that resolves user's sourceKey choices to full FieldMapper-compatible configs by looking up numistaPath + transform from NUMISTA_SOURCES
+
+#### Step 3: Fixed the GAP (index.js)
+
+Changed both `new FieldMapper()` calls (in `compare-fields` and `merge-data` IPC handlers) to use `settingsManager.buildFieldMapperConfig()`. This was the critical fix - previously user settings were saved but never loaded into FieldMapper.
+
+#### Step 4: IPC Handlers + Preload Bridge (index.js, preload.js)
+
+Added 6 IPC handlers: `get-field-mappings`, `save-field-mappings`, `get-available-sources`, `export-field-mappings`, `import-field-mappings`, `reset-field-mappings`
+Added 6 corresponding preload bridge methods.
+
+#### Step 5a: HTML - Tab Bar + Field Mappings Tab (index.html)
+
+- Added tab bar with "Fetch Settings" and "Field Mappings" tabs
+- Wrapped existing fetch settings in tab panel div
+- Added field mappings tab with filter toolbar and table
+- Updated modal footer with Export/Import buttons
+- Changed modal title to "Data Settings"
+- Modified via Python script to preserve emoji encoding
+
+#### Step 5b: CSS Styles (main.css)
+
+Added ~170 lines for tab bar, tab panels, wide modal, field mapping table, toggle switches, toolbar, footer sections.
+
+#### Step 5c: JavaScript Logic (app.js)
+
+Extended `DataSettingsUI` class with ~500 lines via Python script (emoji-safe).
+
+**New properties:** `fieldMappings`, `availableSources`, `fieldMappingsLoaded`, `fieldMappingsDirty`, `activeTab`
+
+**Modified methods:** `constructor()`, `openModal()`, `saveSettings()`, `resetToDefaults()`, `closeModal()`
+
+**New methods:** `switchTab()`, `loadFieldMappings()`, `populateCategoryFilter()`, `renderFieldMappingTable()`, `getFieldSourceGroup()`, `applyFieldFilters()`, `bulkToggle()`, `toggleField()`, `changeSource()`, `changeCatalogCode()`, `checkDuplicateCatalogCodes()`, `saveFieldMappings()`, `exportFieldMappings()`, `importFieldMappings()`, `resetFieldMappingsToDefaults()`
+
+### Files Modified
+
+1. `src/modules/default-field-mapping.js` - NUMISTA_SOURCES registry, shared transforms, defaultSourceKey, getSerializableSources()
+2. `src/modules/settings-manager.js` - buildDefaultFieldMappings() update, buildFieldMapperConfig()
+3. `src/main/index.js` - FieldMapper GAP fix, 6 new IPC handlers
+4. `src/main/preload.js` - 6 new bridge methods
+5. `src/renderer/index.html` - Tab bar, field mappings tab, modal footer (via Python)
+6. `src/renderer/styles/main.css` - ~170 lines of new styles
+7. `src/renderer/app.js` - ~500 lines of DataSettingsUI extensions (via Python)
+
+### Architecture
+
+```
+User changes source in UI dropdown
+    -> DataSettingsUI.changeSource(field, sourceKey) updates in-memory
+    -> On Apply: window.api.saveFieldMappings() -> settingsManager.setFieldMappings()
+    -> On next fetch: settingsManager.buildFieldMapperConfig() resolves sourceKey via NUMISTA_SOURCES
+    -> new FieldMapper(resolvedConfig) uses numistaPath + transform from selected source
+```
+
+### Verification
+
+- Emoji integrity verified on index.html and app.js (UTF-8 intact)
+- Integration test confirmed all modules load and work together
+- Source remapping tested end-to-end (e.g., country: issuer_name -> issuer_code)
+
+---
+
+## SESSION - February 2, 2026 - Field Mapping UI Bug Fixes
+
+### Bug 1: Tab Switching Not Working
+
+**Problem:** Clicking the "Field Mappings" tab button in Data Settings did nothing.
+
+**Root Cause:** `setupEventListeners()` in `DataSettingsUI` (app.js) was missing click handlers for `.tab-btn` elements. The `switchTab()` method existed but was never called.
+
+**Fix:** Added event listeners in `setupEventListeners()` for:
+- Tab buttons (`.tab-btn`) - calls `switchTab(tabName)`
+- Export/Import field mapping buttons
+- Bulk Enable All / Disable All buttons
+
+**File:** `src/renderer/app.js` (setupEventListeners method)
+
+### Bug 2: All Source Dropdowns Showing "Title"
+
+**Problem:** Every Numista Source dropdown in the Field Mappings tab displayed "Title" instead of the correct default source.
+
+**Root Cause:** `mergeWithDefaults()` in settings-manager.js did a shallow spread of `fieldMappings` - loaded settings (with `sourceKey: null` from older saves) completely replaced defaults (which had correct sourceKey values). No option matched in the dropdown, so the browser defaulted to the first option: "Title".
+
+**Fix:** Added `mergeFieldMappings()` method to settings-manager.js that does per-field deep merging. Backfills `sourceKey` from defaults when loaded value is null/undefined.
+
+**File:** `src/modules/settings-manager.js` (new mergeFieldMappings method, updated mergeWithDefaults)
+
+### Bug 3: Missing "Schön" Catalog Code
+
+**Problem:** catalognum2 description says "Schön by default" but Schön was not in the catalog code dropdown options.
+
+**Root Cause:** Hardcoded `catalogCodes` array in app.js `renderFieldMappingTable()` was `['KM', 'Y', 'Numista', 'N#']` - missing Schön and including non-existent N#.
+
+**Fix:** Changed to `['KM', 'Schön', 'Y', 'Numista']` to match default-field-mapping.js definitions.
+
+**File:** `src/renderer/app.js` (catalogCodes array in renderFieldMappingTable)
+
+---
 

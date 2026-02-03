@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { DEFAULT_FIELD_MAPPING } = require('./default-field-mapping');
+const { DEFAULT_FIELD_MAPPING, NUMISTA_SOURCES } = require('./default-field-mapping');
 
 /**
  * Settings Manager - Phase 2
@@ -16,6 +16,10 @@ const { DEFAULT_FIELD_MAPPING } = require('./default-field-mapping');
  * - UI preferences (view, sort, filter defaults)
  */
 class SettingsManager {
+  /**
+   * Creates a new SettingsManager for a collection
+   * @param {string} collectionPath - Path to the .db collection file
+   */
   constructor(collectionPath) {
     this.collectionPath = collectionPath;
     this.settingsFilePath = this.getSettingsFilePath(collectionPath);
@@ -23,7 +27,9 @@ class SettingsManager {
   }
 
   /**
-   * Get the path for the settings file
+   * Get the path for the settings JSON file (next to the .db file)
+   * @param {string} collectionPath - Path to the collection .db file
+   * @returns {string} Path to the settings JSON file
    */
   getSettingsFilePath(collectionPath) {
     const dir = path.dirname(collectionPath);
@@ -32,7 +38,8 @@ class SettingsManager {
   }
 
   /**
-   * Get default settings structure
+   * Get default settings structure with all options initialized
+   * @returns {Object} Default settings object
    */
   getDefaultSettings() {
     return {
@@ -70,14 +77,16 @@ class SettingsManager {
 
   /**
    * Build serializable field mappings from default-field-mapping.js
-   * Only stores enabled/disabled state per field (transforms are not serializable)
+   * Stores enabled/disabled state, sourceKey, and catalogCode per field
+   * @returns {Object} Field mappings keyed by field name
    */
   buildDefaultFieldMappings() {
     const mappings = {};
     for (const [fieldName, config] of Object.entries(DEFAULT_FIELD_MAPPING)) {
       mappings[fieldName] = {
         enabled: config.enabled !== false,
-        priority: config.priority || 'MEDIUM',
+        sourceKey: config.defaultSourceKey || null,
+        catalogCode: config.catalogCode || null,
         description: config.description || fieldName
       };
     }
@@ -85,7 +94,42 @@ class SettingsManager {
   }
 
   /**
-   * Load settings from file or create defaults
+   * Build a full FieldMapper-compatible config from user settings.
+   * Looks up each field's sourceKey in NUMISTA_SOURCES to get the
+   * numistaPath and transform, combined with enabled from settings.
+   * @returns {Object} Config object compatible with FieldMapper constructor
+   */
+  buildFieldMapperConfig() {
+    const userMappings = this.settings.fieldMappings || {};
+    const config = {};
+
+    for (const [fieldName, defaultConfig] of Object.entries(DEFAULT_FIELD_MAPPING)) {
+      const userConfig = userMappings[fieldName] || {};
+
+      // Determine which source key to use (user override or default)
+      const sourceKey = userConfig.sourceKey || defaultConfig.defaultSourceKey || null;
+      const source = sourceKey ? NUMISTA_SOURCES[sourceKey] : null;
+
+      // Build the mapping entry
+      config[fieldName] = {
+        numistaPath: source ? source.path : defaultConfig.numistaPath,
+        transform: source ? source.transform : defaultConfig.transform,
+        priority: defaultConfig.priority,
+        enabled: userConfig.enabled !== undefined ? userConfig.enabled : (defaultConfig.enabled !== false),
+        requiresIssueData: source ? (source.requiresIssueData || false) : (defaultConfig.requiresIssueData || false),
+        requiresPricingData: source ? (source.requiresPricingData || false) : (defaultConfig.requiresPricingData || false),
+        description: userConfig.description || defaultConfig.description,
+        catalogCode: userConfig.catalogCode || defaultConfig.catalogCode || null,
+        defaultSourceKey: defaultConfig.defaultSourceKey
+      };
+    }
+
+    return config;
+  }
+
+  /**
+   * Load settings from file or create defaults if file doesn't exist
+   * @returns {Object} Loaded settings merged with defaults
    */
   loadSettings() {
     try {
@@ -105,7 +149,9 @@ class SettingsManager {
   }
 
   /**
-   * Merge loaded settings with defaults to ensure completeness
+   * Merge loaded settings with defaults to ensure all fields exist
+   * @param {Object} loaded - Settings loaded from file
+   * @returns {Object} Complete settings object with all fields
    */
   mergeWithDefaults(loaded) {
     const defaults = this.getDefaultSettings();
@@ -126,10 +172,7 @@ class SettingsManager {
 
       currency: loaded.currency || defaults.currency,
 
-      fieldMappings: {
-        ...defaults.fieldMappings,
-        ...(loaded.fieldMappings || {})
-      },
+      fieldMappings: this.mergeFieldMappings(defaults.fieldMappings, loaded.fieldMappings || {}),
 
       uiPreferences: {
         ...defaults.uiPreferences,
@@ -139,7 +182,39 @@ class SettingsManager {
   }
 
   /**
-   * Save settings to file
+   * Deep-merge per-field mappings so that new default properties
+   * (like sourceKey) backfill into older saved settings.
+   * @param {Object} defaults - Default field mappings
+   * @param {Object} loaded - User's saved field mappings
+   * @returns {Object} Merged field mappings
+   */
+  mergeFieldMappings(defaults, loaded) {
+    const merged = {};
+    for (const [fieldName, defaultConfig] of Object.entries(defaults)) {
+      const loadedConfig = loaded[fieldName];
+      if (!loadedConfig) {
+        merged[fieldName] = { ...defaultConfig };
+      } else {
+        merged[fieldName] = {
+          ...defaultConfig,
+          ...loadedConfig,
+          // Backfill sourceKey from default if loaded value is null/undefined
+          sourceKey: loadedConfig.sourceKey || defaultConfig.sourceKey
+        };
+      }
+    }
+    // Preserve any extra fields in loaded that aren't in defaults
+    for (const [fieldName, config] of Object.entries(loaded)) {
+      if (!merged[fieldName]) {
+        merged[fieldName] = { ...config };
+      }
+    }
+    return merged;
+  }
+
+  /**
+   * Save current settings to the JSON file
+   * @returns {boolean} True if save succeeded, false on error
    */
   saveSettings() {
     try {
@@ -153,21 +228,24 @@ class SettingsManager {
   }
 
   /**
-   * Get all settings
+   * Get a copy of all settings
+   * @returns {Object} Copy of all settings
    */
   getSettings() {
     return { ...this.settings };
   }
 
   /**
-   * Get API key
+   * Get the stored API key
+   * @returns {string} API key or empty string
    */
   getApiKey() {
     return this.settings.apiConfiguration.apiKey;
   }
 
   /**
-   * Set API key
+   * Set and save the API key
+   * @param {string} apiKey - Numista API key
    */
   setApiKey(apiKey) {
     this.settings.apiConfiguration.apiKey = apiKey;
@@ -175,14 +253,16 @@ class SettingsManager {
   }
 
   /**
-   * Get rate limit
+   * Get the rate limit (ms between requests)
+   * @returns {number} Rate limit in milliseconds
    */
   getRateLimit() {
     return this.settings.apiConfiguration.rateLimit;
   }
 
   /**
-   * Set rate limit
+   * Set and save the rate limit
+   * @param {number} rateLimit - Rate limit in milliseconds
    */
   setRateLimit(rateLimit) {
     this.settings.apiConfiguration.rateLimit = rateLimit;
@@ -190,14 +270,20 @@ class SettingsManager {
   }
 
   /**
-   * Get fetch settings
+   * Get a copy of fetch settings
+   * @returns {Object} Fetch settings with basicData, issueData, pricingData, searchCategory
    */
   getFetchSettings() {
     return { ...this.settings.fetchSettings };
   }
 
   /**
-   * Set fetch settings
+   * Set and save fetch settings
+   * @param {Object} fetchSettings - Fetch settings to update
+   * @param {boolean} [fetchSettings.basicData] - Whether to fetch basic type data
+   * @param {boolean} [fetchSettings.issueData] - Whether to fetch issue data
+   * @param {boolean} [fetchSettings.pricingData] - Whether to fetch pricing data
+   * @param {string} [fetchSettings.searchCategory] - Search category filter
    */
   setFetchSettings(fetchSettings) {
     this.settings.fetchSettings = {
@@ -210,14 +296,16 @@ class SettingsManager {
   }
 
   /**
-   * Get pricing currency
+   * Get the pricing currency code
+   * @returns {string} Currency code (e.g., 'USD', 'EUR')
    */
   getCurrency() {
     return this.settings.currency || 'USD';
   }
 
   /**
-   * Set pricing currency
+   * Set and save the pricing currency
+   * @param {string} currency - Currency code
    */
   setCurrency(currency) {
     this.settings.currency = currency;
@@ -225,7 +313,8 @@ class SettingsManager {
   }
 
   /**
-   * Calculate API calls per coin based on fetch settings
+   * Calculate estimated API calls per coin based on current fetch settings
+   * @returns {number} Number of API calls required per coin
    */
   getCallsPerCoin() {
     let calls = 0;
@@ -246,14 +335,16 @@ class SettingsManager {
   }
 
   /**
-   * Get field mappings
+   * Get a copy of field mappings
+   * @returns {Object} Field mappings keyed by field name
    */
   getFieldMappings() {
     return { ...this.settings.fieldMappings };
   }
 
   /**
-   * Set field mappings
+   * Set and save field mappings
+   * @param {Object} fieldMappings - Field mappings keyed by field name
    */
   setFieldMappings(fieldMappings) {
     this.settings.fieldMappings = { ...fieldMappings };
@@ -261,14 +352,16 @@ class SettingsManager {
   }
 
   /**
-   * Get UI preferences
+   * Get a copy of UI preferences
+   * @returns {Object} UI preferences object
    */
   getUiPreferences() {
     return { ...this.settings.uiPreferences };
   }
 
   /**
-   * Set UI preferences
+   * Set and save UI preferences (merges with existing)
+   * @param {Object} uiPreferences - UI preferences to update
    */
   setUiPreferences(uiPreferences) {
     this.settings.uiPreferences = {
@@ -280,13 +373,15 @@ class SettingsManager {
 
   /**
    * Get auto-backup setting
+   * @returns {boolean} True if auto-backup is enabled
    */
   getAutoBackup() {
     return this.settings.uiPreferences.autoBackup;
   }
 
   /**
-   * Set auto-backup setting
+   * Set and save auto-backup setting
+   * @param {boolean} enabled - Whether to enable auto-backup
    */
   setAutoBackup(enabled) {
     this.settings.uiPreferences.autoBackup = enabled;
@@ -294,7 +389,8 @@ class SettingsManager {
   }
 
   /**
-   * Get maximum backups to keep (0 = unlimited)
+   * Get maximum backups to keep
+   * @returns {number} Max backups (0 = unlimited, positive = limit)
    */
   getMaxBackups() {
     const val = this.settings.uiPreferences.maxBackups;
@@ -302,7 +398,8 @@ class SettingsManager {
   }
 
   /**
-   * Set maximum backups to keep (0 = unlimited)
+   * Set and save maximum backups to keep
+   * @param {number} count - Max backups (0 = unlimited)
    */
   setMaxBackups(count) {
     this.settings.uiPreferences.maxBackups = Math.max(0, Math.floor(count));
@@ -311,13 +408,15 @@ class SettingsManager {
 
   /**
    * Get image handling mode
+   * @returns {string} 'url' or 'blob'
    */
   getImageHandling() {
     return this.settings.uiPreferences.imageHandling;
   }
 
   /**
-   * Set image handling mode
+   * Set and save image handling mode
+   * @param {string} mode - 'url' or 'blob'
    */
   setImageHandling(mode) {
     if (mode === 'url' || mode === 'blob') {
@@ -327,7 +426,7 @@ class SettingsManager {
   }
 
   /**
-   * Reset to defaults
+   * Reset all settings to defaults (preserves API key)
    */
   resetToDefaults() {
     const apiKey = this.settings.apiConfiguration.apiKey; // Preserve API key
@@ -337,14 +436,17 @@ class SettingsManager {
   }
 
   /**
-   * Export settings for debugging
+   * Export settings as formatted JSON string
+   * @returns {string} JSON representation of all settings
    */
   exportSettings() {
     return JSON.stringify(this.settings, null, 2);
   }
 
   /**
-   * Import settings from JSON
+   * Import settings from JSON string
+   * @param {string} jsonString - JSON string to parse and import
+   * @returns {boolean} True if import succeeded, false on error
    */
   importSettings(jsonString) {
     try {

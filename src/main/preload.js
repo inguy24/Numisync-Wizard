@@ -1,9 +1,19 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 /**
- * Dice's coefficient string similarity (0.0 to 1.0).
+ * Preload Script
+ *
+ * Exposes IPC methods to the renderer process via contextBridge.
+ * This is the secure bridge between the main process and renderer.
+ */
+
+/**
+ * Calculate Dice's coefficient string similarity
  * Defined directly in preload to avoid importing heavy modules (axios, etc.)
  * into the renderer preload context.
+ * @param {string} a - First string to compare
+ * @param {string} b - Second string to compare
+ * @returns {number} Similarity score from 0.0 to 1.0
  */
 function diceCoefficient(a, b) {
   a = a.toLowerCase().trim();
@@ -31,8 +41,11 @@ function diceCoefficient(a, b) {
   return (2.0 * intersectionSize) / ((a.length - 1) + (b.length - 1));
 }
 
-// Expose protected methods that allow the renderer process to use
-// the ipcRenderer without exposing the entire object
+/**
+ * API methods exposed to renderer process via contextBridge
+ * Each method invokes an IPC handler in the main process
+ * @type {Object}
+ */
 const apiMethods = {
   // File operations
   selectCollectionFile: () => ipcRenderer.invoke('select-collection-file'),
@@ -79,6 +92,14 @@ const apiMethods = {
 
   // Matching & normalization
   resolveIssuer: (countryName) => ipcRenderer.invoke('resolve-issuer', countryName),
+
+  // Field Mappings
+  getFieldMappings: () => ipcRenderer.invoke('get-field-mappings'),
+  saveFieldMappings: (mappings) => ipcRenderer.invoke('save-field-mappings', mappings),
+  getAvailableSources: () => ipcRenderer.invoke('get-available-sources'),
+  exportFieldMappings: () => ipcRenderer.invoke('export-field-mappings'),
+  importFieldMappings: () => ipcRenderer.invoke('import-field-mappings'),
+  resetFieldMappings: () => ipcRenderer.invoke('reset-field-mappings'),
 
   // Utility
   openExternal: (url) => ipcRenderer.invoke('open-external', url)

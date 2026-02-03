@@ -4,7 +4,7 @@
 **Date:** 2026-01-31 (Updated - Issues endpoint format)  
 **API Version:** v3.29.0  
 **OpenNumismat Database:** 110 fields analyzed  
-**Status:** READY FOR IMPLEMENTATION
+**Status:** IMPLEMENTED
 
 ---
 
@@ -707,14 +707,25 @@ function findMatchingIssue(issues, userYear) {
 
 ---
 
-## SECTION 5: NEXT STEPS
+## SECTION 5: IMPLEMENTATION STATUS
 
-1. âœ… **API Structure Documented** - Complete
-2. âœ… **Field Paths Verified** - Complete
-3. â­ï¸ **Create Default Mapping Config** - Ready to implement
-4. â­ï¸ **Build Transformation Functions** - Ready to implement
-5. â­ï¸ **Implement Catalog Number Parser** - Ready to implement
-6. â­ï¸ **Test with Real API Call** - Need to make test call with user's key
+1. ✅ **API Structure Documented** - Complete
+2. ✅ **Field Paths Verified** - Complete
+3. ✅ **Default Mapping Config Created** - DEFAULT_FIELD_MAPPING in default-field-mapping.js (39 fields)
+4. ✅ **Transformation Functions Built** - 9 shared transforms + inline transforms in NUMISTA_SOURCES
+5. ✅ **Catalog Number Parser Implemented** - getCatalogNumber() helper with user-configurable catalog codes
+6. ✅ **Tested with Real API Calls** - Full end-to-end testing complete
+
+### NUMISTA_SOURCES Registry (Added February 2, 2026)
+
+A centralized registry of 49 Numista data sources was added to default-field-mapping.js. This decouples source definitions from target field assignments, enabling users to change which Numista source maps to each OpenNumismat field via the Data Settings UI.
+
+**Source Groups:** Basic (3), Issuer (2), Ruler (2), Value (3), Physical (6), Obverse (6), Reverse (6), Edge (4), Issue (3), Pricing (4), Catalog (5), Other (3), System (1)
+
+Each source has: path, displayName, transform, group, and optional requiresIssueData/requiresPricingData flags.
+
+**User-Configurable Field Mapping:**
+Each field in DEFAULT_FIELD_MAPPING has a defaultSourceKey pointing to its default source in NUMISTA_SOURCES. Users can change the source for any field via the Field Mappings tab in Data Settings. Changes are persisted in the collection settings JSON file and loaded via settingsManager.buildFieldMapperConfig() when creating a FieldMapper instance.
 
 ### Test API Call Needed:
 
@@ -760,6 +771,6 @@ Numista-API-Key: i883i335qeAa8fFHKXbWfkoIyZ1wuWJmvulRgwuA
 
 ---
 
-**Document Status:** COMPLETE - Ready for implementation  
-**Last Updated:** 2026-01-21  
-**Next Action:** Make test API call to verify real JSON structure
+**Document Status:** COMPLETE - Implementation done  
+**Last Updated:** 2026-02-02  
+**Next Action:** Field mapping system is fully implemented and user-configurable

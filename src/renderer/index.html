@@ -425,11 +425,19 @@
   <div id="dataSettingsModal" class="modal" style="display: none;">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>⚙️ Data Fetch Settings</h3>
+        <h3>⚙️ Data Settings</h3>
         <button id="dataSettingsCloseBtn" class="modal-close">×</button>
       </div>
       
       <div class="modal-body">
+        <!-- Tab Bar -->
+        <div class="tab-bar">
+          <button class="tab-btn active" data-tab="fetchSettingsTab">Fetch Settings</button>
+          <button class="tab-btn" data-tab="fieldMappingsTab">Field Mappings</button>
+        </div>
+
+        <!-- Fetch Settings Tab -->
+        <div id="fetchSettingsTab" class="tab-panel active">
         <p class="help-text">
           Select which data to fetch for each coin. This helps you manage API usage and only get the data you need.
         </p>
@@ -581,12 +589,67 @@
             use the "Fetch More Data" feature to add additional data types later.
           </p>
         </div>
+      </div><!-- /fetchSettingsTab -->
+
+        <!-- Field Mappings Tab -->
+        <div id="fieldMappingsTab" class="tab-panel">
+          <p class="help-text">
+            Configure which Numista data source maps to each OpenNumismat field. You can enable/disable fields and change the source for each.
+          </p>
+
+          <!-- Filter Toolbar -->
+          <div class="fm-toolbar">
+            <div class="fm-toolbar-left">
+              <label>Category:
+                <select id="fmCategoryFilter" class="fm-filter-select">
+                  <option value="all">All</option>
+                </select>
+              </label>
+              <label>Status:
+                <select id="fmStatusFilter" class="fm-filter-select">
+                  <option value="all">All</option>
+                  <option value="enabled">Enabled</option>
+                  <option value="disabled">Disabled</option>
+                </select>
+              </label>
+            </div>
+            <div class="fm-toolbar-right">
+              <button id="fmEnableAllBtn" class="btn btn-sm btn-secondary">Enable All Visible</button>
+              <button id="fmDisableAllBtn" class="btn btn-sm btn-secondary">Disable All Visible</button>
+            </div>
+          </div>
+
+          <!-- Field Mapping Table -->
+          <div class="fm-table-container">
+            <table class="fm-table">
+              <thead>
+                <tr>
+                  <th class="fm-col-enabled">Enabled</th>
+                  <th class="fm-col-field">OpenNumismat Field</th>
+                  <th class="fm-col-source">Numista Source</th>
+                  <th class="fm-col-catalog">Catalog Code</th>
+                  <th class="fm-col-desc">Description</th>
+                </tr>
+              </thead>
+              <tbody id="fmTableBody">
+                <!-- Populated dynamically by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div><!-- /fieldMappingsTab -->
+
       </div>
       
       <div class="modal-footer">
-        <button id="saveDataSettingsBtn" class="btn btn-primary">Apply Settings</button>
-        <button id="resetDataSettingsBtn" class="btn btn-secondary">Reset to Defaults</button>
-        <button id="cancelDataSettingsBtn" class="btn btn-secondary">Cancel</button>
+        <div class="modal-footer-left">
+          <button id="exportFieldMappingsBtn" class="btn btn-sm btn-secondary" style="display:none;">Export</button>
+          <button id="importFieldMappingsBtn" class="btn btn-sm btn-secondary" style="display:none;">Import</button>
+        </div>
+        <div class="modal-footer-right">
+          <button id="saveDataSettingsBtn" class="btn btn-primary">Apply Settings</button>
+          <button id="resetDataSettingsBtn" class="btn btn-secondary">Reset to Defaults</button>
+          <button id="cancelDataSettingsBtn" class="btn btn-secondary">Cancel</button>
+        </div>
       </div>
     </div>
   </div>

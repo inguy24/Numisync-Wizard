@@ -2534,6 +2534,36 @@ class DataSettingsUI {
     if (pricingCheckbox) {
       pricingCheckbox.addEventListener('change', () => this.updateCostDisplay());
     }
+
+    // Tab switching
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tabName = btn.dataset.tab;
+        if (tabName) this.switchTab(tabName);
+      });
+    });
+
+    // Export/Import field mappings buttons
+    const exportFmBtn = document.getElementById('exportFieldMappingsBtn');
+    if (exportFmBtn) {
+      exportFmBtn.addEventListener('click', () => this.exportFieldMappings());
+    }
+
+    const importFmBtn = document.getElementById('importFieldMappingsBtn');
+    if (importFmBtn) {
+      importFmBtn.addEventListener('click', () => this.importFieldMappings());
+    }
+
+    // Bulk toggle buttons
+    const enableAllBtn = document.getElementById('fmEnableAllBtn');
+    if (enableAllBtn) {
+      enableAllBtn.addEventListener('click', () => this.bulkToggle(true));
+    }
+
+    const disableAllBtn = document.getElementById('fmDisableAllBtn');
+    if (disableAllBtn) {
+      disableAllBtn.addEventListener('click', () => this.bulkToggle(false));
+    }
   }
 
   /**
@@ -2574,7 +2604,11 @@ class DataSettingsUI {
   closeModal() {
     if (this.modal) {
       this.modal.style.display = 'none';
+      this.modal.classList.remove('modal-wide');
     }
+    // Reset field mapping load state so it reloads next time
+    this.fieldMappingsLoaded = false;
+    this.fieldMappingsDirty = false;
   }
 
   /**
@@ -2678,7 +2712,12 @@ class DataSettingsUI {
       AppState.fetchSettings = newSettings;
       updateProgressStats();
 
-      // Close modal
+            // Save field mappings if they were loaded and modified
+      if (this.fieldMappingsLoaded && this.fieldMappingsDirty) {
+        await this.saveFieldMappings();
+      }
+
+// Close modal
       this.closeModal();
       
       // Show success message
@@ -2695,6 +2734,12 @@ class DataSettingsUI {
    */
   async resetToDefaults() {
     try {
+      // If on field mappings tab, reset field mappings specifically
+      if (this.activeTab === 'fieldMappingsTab') {
+        await this.resetFieldMappingsToDefaults();
+        return;
+      }
+
       const result = await window.api.resetSettings();
       if (result.success) {
         // Repopulate the modal with reset values
@@ -2808,6 +2853,373 @@ class DataSettingsUI {
       setTimeout(() => {
         statusMessage.textContent = '';
       }, 5000);
+    }
+  }
+
+  // ===========================================================================
+  // Tab Switching
+  // ===========================================================================
+
+  switchTab(tabName) {
+    this.activeTab = tabName;
+
+    // Toggle tab buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.tab === tabName);
+    });
+
+    // Toggle tab panels
+    document.querySelectorAll('.tab-panel').forEach(panel => {
+      panel.classList.toggle('active', panel.id === tabName);
+    });
+
+    // Toggle wide modal class
+    const modalEl = document.getElementById('dataSettingsModal');
+    if (tabName === 'fieldMappingsTab') {
+      modalEl.classList.add('modal-wide');
+      // Show export/import buttons
+      const exportBtn = document.getElementById('exportFieldMappingsBtn');
+      const importBtn = document.getElementById('importFieldMappingsBtn');
+      if (exportBtn) exportBtn.style.display = '';
+      if (importBtn) importBtn.style.display = '';
+      // Load field mappings if not loaded yet
+      if (!this.fieldMappingsLoaded) {
+        this.loadFieldMappings();
+      }
+    } else {
+      modalEl.classList.remove('modal-wide');
+      // Hide export/import buttons
+      const exportBtn = document.getElementById('exportFieldMappingsBtn');
+      const importBtn = document.getElementById('importFieldMappingsBtn');
+      if (exportBtn) exportBtn.style.display = 'none';
+      if (importBtn) importBtn.style.display = 'none';
+    }
+  }
+
+  // ===========================================================================
+  // Field Mapping Methods
+  // ===========================================================================
+
+  async loadFieldMappings() {
+    try {
+      const result = await window.api.getFieldMappings();
+      if (!result.success) {
+        this.showError('Failed to load field mappings: ' + result.error);
+        return;
+      }
+      this.fieldMappings = result.fieldMappings;
+      this.availableSources = result.sources;
+      this.fieldMappingsLoaded = true;
+      this.fieldMappingsDirty = false;
+
+      this.populateCategoryFilter();
+      this.renderFieldMappingTable();
+    } catch (error) {
+      console.error('Error loading field mappings:', error);
+      this.showError('Failed to load field mappings');
+    }
+  }
+
+  populateCategoryFilter() {
+    const select = document.getElementById('fmCategoryFilter');
+    if (!select || !this.availableSources) return;
+
+    const groups = new Set();
+    for (const src of Object.values(this.availableSources)) {
+      if (src.group && src.group !== 'System') groups.add(src.group);
+    }
+
+    select.innerHTML = '<option value="all">All</option>';
+    for (const group of [...groups].sort()) {
+      const opt = document.createElement('option');
+      opt.value = group;
+      opt.textContent = group;
+      select.appendChild(opt);
+    }
+
+    select.addEventListener('change', () => this.applyFieldFilters());
+  }
+
+  renderFieldMappingTable() {
+    const tbody = document.getElementById('fmTableBody');
+    if (!tbody || !this.fieldMappings || !this.availableSources) return;
+
+    tbody.innerHTML = '';
+
+    // Build grouped source options for the dropdown
+    const sourcesByGroup = {};
+    for (const [key, src] of Object.entries(this.availableSources)) {
+      const group = src.group || 'Other';
+      if (!sourcesByGroup[group]) sourcesByGroup[group] = [];
+      sourcesByGroup[group].push({ key, ...src });
+    }
+
+    const catalogCodes = ['KM', 'Schön', 'Y', 'Numista'];
+
+    for (const [fieldName, config] of Object.entries(this.fieldMappings)) {
+      const tr = document.createElement('tr');
+      tr.dataset.field = fieldName;
+      tr.dataset.sourceGroup = this.getFieldSourceGroup(config.sourceKey);
+
+      if (!config.enabled) tr.classList.add('fm-row-disabled');
+
+      const isImageField = fieldName.match(/img$/);
+      const isCatalogField = fieldName.startsWith('catalognum');
+
+      // Enabled toggle
+      const tdEnabled = document.createElement('td');
+      tdEnabled.className = 'fm-col-enabled';
+      tdEnabled.innerHTML = '<label class="fm-toggle"><input type="checkbox" ' +
+        (config.enabled ? 'checked' : '') +
+        '><span class="fm-toggle-slider"></span></label>';
+      const checkbox = tdEnabled.querySelector('input');
+      checkbox.addEventListener('change', () => {
+        this.toggleField(fieldName, checkbox.checked);
+        tr.classList.toggle('fm-row-disabled', !checkbox.checked);
+      });
+      tr.appendChild(tdEnabled);
+
+      // Field name
+      const tdField = document.createElement('td');
+      tdField.className = 'fm-col-field';
+      tdField.textContent = fieldName;
+      tr.appendChild(tdField);
+
+      // Source dropdown
+      const tdSource = document.createElement('td');
+      tdSource.className = 'fm-col-source';
+      const sourceSelect = document.createElement('select');
+      sourceSelect.className = 'fm-source-select';
+
+      for (const [group, sources] of Object.entries(sourcesByGroup).sort()) {
+        const optgroup = document.createElement('optgroup');
+        optgroup.label = group;
+        for (const src of sources) {
+          const opt = document.createElement('option');
+          opt.value = src.key;
+          opt.textContent = src.displayName;
+          if (src.key === config.sourceKey) opt.selected = true;
+          optgroup.appendChild(opt);
+        }
+        sourceSelect.appendChild(optgroup);
+      }
+
+      sourceSelect.addEventListener('change', () => {
+        this.changeSource(fieldName, sourceSelect.value);
+      });
+      tdSource.appendChild(sourceSelect);
+      if (isImageField) {
+        const note = document.createElement('div');
+        note.className = 'fm-image-note';
+        note.textContent = 'Image download handled separately';
+        tdSource.appendChild(note);
+      }
+      tr.appendChild(tdSource);
+
+      // Catalog code dropdown
+      const tdCatalog = document.createElement('td');
+      tdCatalog.className = 'fm-col-catalog';
+      if (isCatalogField) {
+        const catSelect = document.createElement('select');
+        catSelect.className = 'fm-catalog-select';
+
+        const emptyOpt = document.createElement('option');
+        emptyOpt.value = '';
+        emptyOpt.textContent = '(none)';
+        catSelect.appendChild(emptyOpt);
+
+        for (const code of catalogCodes) {
+          const opt = document.createElement('option');
+          opt.value = code;
+          opt.textContent = code;
+          if (code === config.catalogCode) opt.selected = true;
+          catSelect.appendChild(opt);
+        }
+        catSelect.addEventListener('change', () => {
+          this.changeCatalogCode(fieldName, catSelect.value || null);
+        });
+        tdCatalog.appendChild(catSelect);
+      } else {
+        tdCatalog.textContent = '-';
+        tdCatalog.style.color = 'var(--text-secondary)';
+      }
+      tr.appendChild(tdCatalog);
+
+      // Description
+      const tdDesc = document.createElement('td');
+      tdDesc.className = 'fm-col-desc';
+      tdDesc.textContent = config.description || '';
+      tr.appendChild(tdDesc);
+
+      tbody.appendChild(tr);
+    }
+
+    // Set up status filter listener
+    const statusFilter = document.getElementById('fmStatusFilter');
+    if (statusFilter) {
+      statusFilter.removeEventListener('change', this._statusFilterHandler);
+      this._statusFilterHandler = () => this.applyFieldFilters();
+      statusFilter.addEventListener('change', this._statusFilterHandler);
+    }
+  }
+
+  getFieldSourceGroup(sourceKey) {
+    if (!sourceKey || !this.availableSources || !this.availableSources[sourceKey]) return 'Other';
+    return this.availableSources[sourceKey].group || 'Other';
+  }
+
+  applyFieldFilters() {
+    const catFilter = document.getElementById('fmCategoryFilter')?.value || 'all';
+    const statusFilter = document.getElementById('fmStatusFilter')?.value || 'all';
+    const tbody = document.getElementById('fmTableBody');
+    if (!tbody) return;
+
+    for (const tr of tbody.querySelectorAll('tr')) {
+      const field = tr.dataset.field;
+      const config = this.fieldMappings[field];
+      if (!config) continue;
+
+      let visible = true;
+      if (catFilter !== 'all') {
+        const group = tr.dataset.sourceGroup;
+        if (group !== catFilter) visible = false;
+      }
+      if (statusFilter === 'enabled' && !config.enabled) visible = false;
+      if (statusFilter === 'disabled' && config.enabled) visible = false;
+
+      tr.style.display = visible ? '' : 'none';
+    }
+  }
+
+  bulkToggle(enabled) {
+    const tbody = document.getElementById('fmTableBody');
+    if (!tbody) return;
+
+    for (const tr of tbody.querySelectorAll('tr')) {
+      if (tr.style.display === 'none') continue;
+      const field = tr.dataset.field;
+      if (!this.fieldMappings[field]) continue;
+
+      this.fieldMappings[field].enabled = enabled;
+      const checkbox = tr.querySelector('.fm-toggle input');
+      if (checkbox) checkbox.checked = enabled;
+      tr.classList.toggle('fm-row-disabled', !enabled);
+    }
+    this.fieldMappingsDirty = true;
+  }
+
+  toggleField(fieldName, enabled) {
+    if (!this.fieldMappings[fieldName]) return;
+    this.fieldMappings[fieldName].enabled = enabled;
+    this.fieldMappingsDirty = true;
+  }
+
+  changeSource(fieldName, sourceKey) {
+    if (!this.fieldMappings[fieldName]) return;
+    this.fieldMappings[fieldName].sourceKey = sourceKey;
+    this.fieldMappingsDirty = true;
+
+    const tr = document.querySelector('tr[data-field="' + fieldName + '"]');
+    if (tr) {
+      tr.dataset.sourceGroup = this.getFieldSourceGroup(sourceKey);
+    }
+  }
+
+  changeCatalogCode(fieldName, code) {
+    if (!this.fieldMappings[fieldName]) return;
+    this.fieldMappings[fieldName].catalogCode = code;
+    this.fieldMappingsDirty = true;
+    this.checkDuplicateCatalogCodes();
+  }
+
+  checkDuplicateCatalogCodes() {
+    const codes = {};
+    for (const [fieldName, config] of Object.entries(this.fieldMappings)) {
+      if (!fieldName.startsWith('catalognum') || !config.catalogCode) continue;
+      if (!codes[config.catalogCode]) codes[config.catalogCode] = [];
+      codes[config.catalogCode].push(fieldName);
+    }
+
+    document.querySelectorAll('.fm-catalog-warning').forEach(el => el.remove());
+
+    for (const [code, fields] of Object.entries(codes)) {
+      if (fields.length > 1) {
+        for (const field of fields) {
+          const tr = document.querySelector('tr[data-field="' + field + '"]');
+          if (tr) {
+            const catTd = tr.querySelector('.fm-col-catalog');
+            if (catTd) {
+              const warn = document.createElement('div');
+              warn.className = 'fm-catalog-warning';
+              warn.style.cssText = 'color: var(--warning-color); font-size: 0.7rem;';
+              warn.textContent = 'Duplicate: ' + code;
+              catTd.appendChild(warn);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  async saveFieldMappings() {
+    try {
+      const result = await window.api.saveFieldMappings(this.fieldMappings);
+      if (!result.success) {
+        this.showError('Failed to save field mappings: ' + result.error);
+        return;
+      }
+      this.fieldMappingsDirty = false;
+    } catch (error) {
+      console.error('Error saving field mappings:', error);
+      this.showError('Failed to save field mappings');
+    }
+  }
+
+  async exportFieldMappings() {
+    try {
+      const result = await window.api.exportFieldMappings();
+      if (result.success) {
+        this.showSuccess('Field mappings exported');
+      } else if (result.error !== 'Canceled') {
+        this.showError('Export failed: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Error exporting field mappings:', error);
+      this.showError('Export failed');
+    }
+  }
+
+  async importFieldMappings() {
+    try {
+      const result = await window.api.importFieldMappings();
+      if (result.success) {
+        this.fieldMappings = result.fieldMappings;
+        this.fieldMappingsDirty = false;
+        this.renderFieldMappingTable();
+        this.showSuccess('Field mappings imported');
+      } else if (result.error !== 'Canceled') {
+        this.showError('Import failed: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Error importing field mappings:', error);
+      this.showError('Import failed');
+    }
+  }
+
+  async resetFieldMappingsToDefaults() {
+    try {
+      const result = await window.api.resetFieldMappings();
+      if (result.success) {
+        this.fieldMappings = result.fieldMappings;
+        this.fieldMappingsDirty = false;
+        this.renderFieldMappingTable();
+        this.showSuccess('Field mappings reset to defaults');
+      } else {
+        this.showError('Reset failed: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Error resetting field mappings:', error);
+      this.showError('Reset failed');
     }
   }
 }

@@ -25,6 +25,11 @@ const PROTECTED_FIELDS = new Set([
  * USAGE: Use OpenNumismatDB.open(filePath) instead of new OpenNumismatDB(filePath)
  */
 class OpenNumismatDB {
+  /**
+   * Creates a new OpenNumismatDB instance (use static open() method instead)
+   * @param {Object} db - sql.js database instance
+   * @param {string} filePath - Path to the .db file
+   */
   constructor(db, filePath) {
     this.db = db;
     this.filePath = filePath;
@@ -62,6 +67,7 @@ class OpenNumismatDB {
 
   /**
    * Verify that this is a valid OpenNumismat database
+   * @throws {Error} If database is missing the coins table
    */
   verifyDatabase() {
     try {
@@ -80,6 +86,10 @@ class OpenNumismatDB {
 
   /**
    * Execute a query and return all results as objects
+   * @private
+   * @param {string} sql - SQL query string
+   * @param {Array} params - Query parameters
+   * @returns {Array<Object>} Array of row objects
    */
   _queryAll(sql, params = []) {
     const result = this.db.exec(sql, params);
@@ -102,6 +112,10 @@ class OpenNumismatDB {
 
   /**
    * Execute a query and return first result as object
+   * @private
+   * @param {string} sql - SQL query string
+   * @param {Array} params - Query parameters
+   * @returns {Object|null} First row object or null if no results
    */
   _queryOne(sql, params = []) {
     const results = this._queryAll(sql, params);
@@ -109,7 +123,12 @@ class OpenNumismatDB {
   }
 
   /**
-   * Execute a query that modifies data
+   * Execute a query that modifies data (INSERT/UPDATE/DELETE)
+   * @private
+   * @param {string} sql - SQL query string
+   * @param {Array} params - Query parameters
+   * @returns {Object} Result object with changes count
+   * @throws {Error} If query execution fails
    */
   _run(sql, params = []) {
     try {
@@ -136,7 +155,9 @@ class OpenNumismatDB {
   }
 
   /**
-   * Save database to file
+   * Save database to file (called automatically after _run)
+   * @private
+   * @throws {Error} If file write fails
    */
   _saveToFile() {
     try {
@@ -197,6 +218,7 @@ class OpenNumismatDB {
 
   /**
    * Get collection summary statistics
+   * @returns {Object} Summary with totalCoins, byCountry, byPeriod arrays
    */
   getCollectionSummary() {
     // Get count directly from raw query result
@@ -260,7 +282,9 @@ class OpenNumismatDB {
   }
 
   /**
-   * Get a single coin by ID
+   * Get a single coin by its database ID
+   * @param {number} id - The coin's primary key ID
+   * @returns {Object|null} Coin object or null if not found
    */
   getCoinById(id) {
     return this._queryOne('SELECT * FROM coins WHERE id = ?', [id]);
@@ -315,7 +339,8 @@ class OpenNumismatDB {
   }
 
   /**
-   * Get all available fields in the coins table
+   * Get schema information for all columns in the coins table
+   * @returns {Array<Object>} Array of column info objects (name, type, notNull, defaultValue, primaryKey)
    */
   getTableSchema() {
     const schema = this._queryAll('PRAGMA table_info(coins)');
@@ -625,7 +650,7 @@ class OpenNumismatDB {
   }
 
   /**
-   * Close the database connection
+   * Close the database connection and release resources
    */
   close() {
     if (this.db) {
