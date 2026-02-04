@@ -1,0 +1,1251 @@
+Numista <https://en.numista.com/>
+
+EN
+
+  * DE – Deutsch <https://de.numista.com/conditions.php>
+  * EL – Ελληνικά <https://el.numista.com/conditions.php>
+  * ES – Español <https://es.numista.com/conditions.php>
+  * FR – Français <https://fr.numista.com/conditions.php>
+  * IT – Italiano <https://it.numista.com/conditions.php>
+  * NL – Nederlands <https://nl.numista.com/conditions.php>
+  * PT – Português <https://pt.numista.com/conditions.php>
+  * RU – Русский <https://ru.numista.com/conditions.php>
+
+My account
+
+  * My collection <https://en.numista.com/vous/index.php>
+  * My swaps // <https://en.numista.com/echanges/suivi.php>
+  * My wishes <https://en.numista.com/souhaits/vos_souhaits.php>
+  * Messages // <https://en.numista.com/messages/index.php?box=in>
+  * Profile <https://en.numista.com/echanges/profil.php?id=559206>
+  * Settings <https://en.numista.com/vous/votre_compte.php>
+  * Sign out <https://en.numista.com/connexion/deconnecter.php>
+
+Pin
+
+  * My collection <https://en.numista.com/vous/index.php>
+  * My swaps <https://en.numista.com/echanges/suivi.php>
+  * Messages <https://en.numista.com/messages/index.php?box=in>
+
+Wrap
+
+  *
+
+
+                                        
+                                            
+                                            
+                                            
+                                            
+                                        
+                                    Catalog <https://en.numista.com/catalogue/index.php>
+  *
+
+                                        
+                                            
+                                                
+                                                
+                                                
+                                            
+                                        
+                                    Literature <https://en.numista.com/literature/index.php>
+  * Forum <https://en.numista.com/forum/>
+  * Swaps <https://en.numista.com/echanges/index.php>
+  * Outings <https://en.numista.com/outings/index.php?
+    bourse=on&show=on&conference=on&o=t>
+  * FAQ <https://en.numista.com/help/index.php>
+
+Numista <https://en.numista.com/>
+
+
+  Terms of Use
+
+Version of 3 January 2023
+
+Download <https://en.numista.com/Numista%20ToU.pdf>
+
+ANY USE MADE IN ANY CAPACITY WHATSOEVER OF THE PLATFORM IMPLIES
+UNRESERVED ACCEPTANCE BY THE USER OF THESE TERMS OF USE (TOU).
+
+
+    SECTION 1. PURPOSE
+
+NUMISTA, /a French single-member limited liability company, registered
+with the Trade and Companies Register of Antibes under number 827 463
+183, whose registered office is located at 9 boulevard Albert 1er 06600
+ANTIBES, FRANCE (hereinafter "NUMISTA" or the "Operator")/ publishes and
+operates the NUMISTA Platform, which is accessible at the following
+address: https://en.numista.com/ (hereinafter "/the Platform/").
+
+The purpose of these Terms of Use entered into between the Operator and
+the User is to set out the contractual provisions relating to the
+respective rights and obligations of the Parties in the context of the
+use of the Platform and all the Services offered on it.
+
+The Platform offers various features to Collectors as well as a service
+by which Collectors will be put in contact with each other for the
+exchange of coins and banknotes.
+
+In this context, we remind you that the Operator acts:
+
+  * As an online platform operator, as a simple technical intermediary.
+    Its role is limited to the hosting of the collaborative catalogues
+    and the matchmaking of the Collectors.
+  * As a service provider in the context of the provision of various
+    features to Collectors.
+
+These Terms of Use do not govern the terms and conditions of
+subscription to the services offered by the Operator on a fee basis.
+
+
+    SECTION 2. DEFINITIONS
+
+The terms, mentioned below, have the following meaning in these Terms of
+Use:
+
+  * “*Account*": means the interface allowing the Collector to access
+    their personal space, in which all the data provided is grouped. The
+    Account is accessed /via/ the Identifiers.
+  * “*Active Collector*": means any Collector who has logged into their
+    Account in the last 90 days and who meets at least one of the
+    following two conditions: to be registered less than 90 days ago or
+    to have made a Swap in the last 240 days.
+  * “*Administrator*": means any registered Collector with the role of
+    referee. The Administrator administers the coins and/or banknotes of
+    one or more countries, on a voluntary basis.
+  * “*Catalogue*": means the collaborative catalogue of the Platform
+    which allows sharing and spreading numismatic knowledge. The
+    Catalogue is composed of Catalogue Pages.
+  * “*Catalogue Page*": means any Catalogue Page that describes the
+    types of coins, banknotes and exonumia items for encyclopaedic
+    purposes. Each Page of the Catalogue is checked by an Administrator.
+  * “*Collectible*" means any coin, banknote or exonumia item in a
+    Collector's collection.
+  * “*Collector*": means any natural adult person, who warrants being a
+    consumer as defined by the legislation and French case law. As such,
+    the Collector acts apart from any usual or commercial activity. The
+    Collector has an Account on the Platform in order to access the
+    various Services.
+  * “*Content*": means all information, texts, logos, trademarks,
+    animations, designs and models, photographs, data, hyperlinks, and
+    in general all elements and content of the Collector published on
+    the Platform.
+  * “*Identifiers*": means the Collector's username and password,
+    necessary to access their Account on the Platform.
+  * “*Moderator*": means any registered Collector having the role of
+    moderator. On a voluntary basis, the Moderator moderates the
+    contents of the forum and can issue warnings concerning certain
+    Collectors.
+  * “*Parties*": collectively, means NUMISTA and the User together. In
+    the singular form, it means only one of the two Parties.
+  * “*Platform*": means the NUMISTA Platform accessible at the following
+    address: https://en.numista.com/. The Platform includes all the web
+    pages, Services and features offered to Users.
+  * “*Premium Subscription*": means the service allowing any Collector
+    to benefit from the Platform's Services by enjoying privileged
+    conditions (no advertising and additional storage space).
+  * “*Registration*" means the registration of a Collectible by a
+    Collector. The Registration is linked to a Catalogue Page and
+    contains additional information indicated by the Collector.
+  * “*Services*": means all the services offered by NUMISTA to the Users
+    through the Platform.
+  * “*Subscriber*": means a Collector who has subscribed to a Premium
+    Subscription with NUMISTA in order to benefit from Additional Services.
+  * “*Swap*": means the exchange of Collectibles between two Collectors
+    via the Platform.
+  * “*Terms and Conditions of Subscription*": means the terms and
+    conditions governing the subscription to the Premium Subscription.
+  * “*Terms of Use*" or "*ToU*" or "*Contract*": means these contractual
+    terms and conditions are made available on the homepage of the
+    Platform, in order to govern the use of the Platform by any User.
+  * “*User*": means any person who accesses and browses the Platform,
+    whether they are an Administrator, a Collector, or a simple Internet
+    user.
+
+
+    SECTION 3. ACCEPTANCE OF THE TERMS OF USE
+
+The use of the features of the Platform and the Services implies the
+acceptance of these Terms of Use.
+
+Thus, the User must read these Terms of Use carefully when accessing the
+Platform and is invited to download, print and keep a copy.
+
+These ToU are available at the bottom of each page of the Platform /via/
+a hypertext link and can thus be read at any time.
+
+
+    SECTION 4. TECHNICAL SPECIFICATIONS
+
+By using the Platform, the User acknowledges that they have the
+necessary means and skills to use the features offered on the Platform.
+
+The equipment required to access and use the Platform is at the User's
+expense, as are any telecommunications costs incurred by its use.
+
+
+    SECTION 5. ROLE OF THE OPERATOR
+
+
+      Section 5.1. Content of NUMISTA’s intervention
+
+NUMISTA can play two distinct roles on the Platform:
+
+
+        Section 5.1.1. Intervention as a simple intermediary
+
+The Platform published by NUMISTA proposes a matchmaking service, by
+electronic means, to the Collectors allowing them in particular to
+exchange Collector's Items.
+
+NUMISTA has no control over the execution of the exchange of
+Collectibles and does not intervene in the relationship between the
+Collectors.
+
+The Registrations of Collectibles are established by the Collectors.
+
+NUMISTA is paid by advertising and through a Premium Subscription
+offered to Users, whose subscription is governed by the Terms and
+Conditions of Subscription.
+
+When you click on links to various merchants on the Platform and make a
+purchase, this can result in NUMISTA earning a commission. Affiliate
+programs and affiliations include, but are not limited to, the eBay
+Partner Network.
+
+
+        Section 5.1.2. Intervention as a service provider
+
+NUMISTA also proposes directly on the Platform other Services for
+Collectors.
+
+
+      Section 5.2. General pre-contractual information obligation:
+      fairness, clarity and transparency
+
+
+        Section 5.2.1. General provisions
+
+As an online platform operator, NUMISTA acts in a neutral, clear and
+transparent way.
+
+NUMISTA does not have any capital link or any legal dependence with one
+of the Collectors referenced on the Platform which would influence the
+classification or the referencing of the Collectibles.
+
+The Collectibles and, more precisely, the Catalogue Pages are presented
+to internet users on the Platform according to the User's choice:
+
+The default sorting is as follows: by country of issue (alphabetical
+order), by quotation (chronological order), by face value, by date, by
+commemorated event and by title.
+
+On each Catalogue Page, an extract of the list of Collectors offering
+this type of Collectible Object is presented in random order. It is
+possible to access the details by year of issue. For each year of issue,
+the Collectors are displayed in random order.
+
+On the page that displays all Active Collectors who offer Collectibles
+for trade:
+
+The default sorting is random, but it is possible to sort by
+alphabetical order of the User's name, by rating following the
+evaluations of the Swaps, by country, by number of Collectibles offered
+by the Collectors and which could be of interest to the User (according
+to the defined wishes), the number of Collectibles offered for Swap by
+the User and which could interest the Collector (according to the
+defined wishes), by date of registration on the Platform, and by
+distance (according to the location provided by the Collector and that
+of the User).
+
+It is specified that Collectors who meet one of these criteria are never
+listed on the Platform:
+
+  * A Collector who has indicated in the configuration of their Account
+    that they do not wish to trade;
+  * A Collector who has an average rating of 2.5 / 5 or less;
+  * A Collector who has a warning on their profile as described in
+    section 8.2.4 of these ToU;
+  * A Collector who has not logged into their Account in the last 365 days.
+
+If the number of unique monthly visitors on the Platform is greater than
+five million, NUMISTA will publish a charter of good practices that it
+undertakes to respect as an online platform operator.
+
+
+        Section 5.2.2. Financial transparency
+
+In accordance with Section 242 bis of the French General Tax Code,
+NUMISTA must, at the time of each transaction carried out by its
+intermediary, communicate to the Collectors, fair, clear and transparent
+information on the tax and social obligations which fall to them.
+Appendix 1 of these Terms of Use specifies these obligations by
+referring to the French administration's websites to comply with them.
+
+  * Where applicable, in January of each year, provide each Collector
+    with a summary document of transactions and the overall turnover
+    achieved by the Collector through the Platform during the previous year.
+  * Where applicable, before 31 January of the year following the year
+    for which the information is provided, send the French tax
+    authorities a summary containing the information provided in the
+    summary document sent to each Collector. The Collector is informed
+    that NUMISTA will be required to communicate to the tax authorities
+    the following information:
+      o The number and total gross amount of transactions made by the
+        User during the previous calendar year, indicating the amount of
+        transactions taxable in France separately;
+      o If known by the Operator, the details of the bank account to
+        which the User's income is paid.
+
+
+    SECTION 6. ONLINE REVIEWS
+
+Once an agreement has been reached with a Collector, the other Collector
+can leave a review of their exchange experience.
+
+The Collector will be able to indicate a rating between 0 and 5 stars
+and post a comment.
+
+The review will be visible on the rated Collector's profile page.
+
+If the rating is less than 5 stars, the rated Collector may post a
+response below the rating.
+
+In addition, the Collector may also rate an outing by indicating a
+title, a rating and a comment within the dedicated tab of the Platform.
+
+As part of the publication of online reviews carried out on the
+Platform, the Operator hereby expressly undertakes to provide Users with
+fair, clear and transparent information on the methods of publication
+and processing of online reviews. In this respect, NUMISTA undertakes to
+display the date of the notice and any updates.
+
+In case of control of the reviews, the Operator undertakes to ensure
+that the processing of personal data carried out within this framework
+complies with the French Data Protection Act No. 78-17 of 6 January 1978
+(“/loi informatique et libertés/”), as amended, and the GDPR.
+
+No compensation is provided by NUMISTA in exchange for the publication
+of a Collector's review.
+
+The maximum period of publication of a review is 365 days.
+
+The maximum period of retention of a review on the Platform is 3650 days.
+
+Finally, NUMISTA provides a free feature that allows any User to report
+a problem in a review, by sending an email to contact@numista.com
+<mailto:contact@numista.com>.
+
+/A posteriori/, and in case of a relevant report, NUMISTA undertakes to
+remove a review if it:
+
+  * Does not comply with these Terms of Use;
+  * Contains abusive, defamatory, racist or illegal content.
+
+The reviews can be modified at the request of the author of the review.
+In this respect, the author shall contact the Operator by private
+message on the Platform in order to request the modification.
+
+
+    SECTION 7. COLLECTOR ACCESS AND ACCOUNT CREATION CONDITIONS
+
+Any User can access the Platform and benefit from the Services described
+in section 8.1 of these ToU.
+
+In order to benefit from all the Services offered on the Platform and to
+be able to trade with other Collectors, the User must first create an
+Account to become a Collector.
+
+Account creation on the Platform as a Collector is free.
+
+To create an Account, the User is invited to click on the "Register"
+button and to complete all the required information. The Username and
+the password chosen will constitute the Identifiers.
+
+The User wishing to become a Collector must provide the Operator with
+accurate, fair and up-to-date data, which does not infringe, in any way
+whatsoever, the rights of third parties and communicate to the Operator
+any necessary update of the data communicated upon Account creation.
+
+Finally, the User shall validate these ToU before finalising their
+account creation.
+
+The Collector will then receive a confirmation email allowing them to
+activate their Account.
+
+The Collector agrees to create only one Account on the Platform. The
+Operator will not be liable in any way for the harmful consequences that
+could result from the use of multiple Accounts for a single Collector.
+
+The User is entirely responsible for the accuracy and updating of the
+data communicated in the context of the opening and management of their
+Account.
+
+
+      Section 7.1. Identifiers
+
+The Collector shall be solely liable for the use of their Identifiers or
+actions taken through their Account.
+
+In the event that a Collector discloses or uses their Identifiers in a
+manner contrary to their intended purpose, the Operator may suspend the
+Account.
+
+Under no circumstances shall NUMISTA be held liable in case of theft of
+a Collector's identity. Any access and action carried out from a
+Collector's Account will be presumed to be carried out by this
+Collector, insofar as the Operator is not obliged to and does not have
+the technical means to ensure the identity of persons accessing the
+Platform from an Account.
+
+Any loss, misappropriation, or unauthorised use of a Collector's
+Identifiers and their consequences are the sole responsibility of the
+User, who is required to notify NUMISTA, without delay, by email sent to
+the following address: contact@numista.com <mailto:contact@numista.com>.
+
+
+      Section 7.2. Unsubscribing
+
+The Collector may close their Account at any time. The Collector must
+connect to their Account, click on "Settings", and then on "Close my
+account".
+
+The Account will be immediately deactivated.
+
+
+    SECTION 8. SERVICES
+
+
+      Section 8.1. Services offered to all Internet users
+
+Without being registered on the Platform, any internet user can benefit
+from the following Services:
+
+
+        Section 8.1.1. Consulting the Catalogue
+
+From the Platform, the internet user can consult the Catalogue of coins
+and banknotes proposed on the Platform by Collectors.
+
+To narrow its search, the internet user can filter the results of the
+Catalogue Pages and choose only certain categories (continent, period).
+
+The internet user can also add criteria to its search (e.g., type,
+reference, vintage, weight, diameter or length/width, inscription, etc.)
+or view Collectibles recently added to the Catalogue.
+
+Users may view Collectibles.
+
+
+        Section 8.1.2. Viewing Collector Registrations
+
+Users may view Collector Registrations.
+
+More precisely, the Collectibles offered for exchange on the Platform
+are visible either on the list of Collectibles of each Collector, this
+list being accessible from their profile and from the "Swaps" page, or
+on the list of Collectibles offered for exchange for a given type of
+coin or banknote, accessible from the Catalogue Page describing this
+type of coin or banknote.
+
+
+        Section 8.1.3. Consulting the forum
+
+By clicking on the "Forum" tab, internet users can consult the messages
+published on the Platform's forum but will not be able to reply to them
+without having an Account.
+
+
+        Section 8.1.4. Consulting Numisdoc
+
+From the dedicated tab, the users can consult the articles published in
+Numisdoc concerning the following topics:
+
+  * Dates and calendar
+  * Numista documentation
+  * Numismatic encyclopaedia
+  * Country Pages
+  * Tools and practical advice.
+
+Internet users can also search for content using the Platform's search
+engine.
+
+To be able to write an article, the user must be registered on the Platform.
+
+
+        Section 8.1.5. Consulting of Outings
+
+By clicking on the "Outings" tab, any Internet user can access the
+numismatic outings identified. They can also customise their search
+according to the place, dates and type of outing (fair, expo, shop,
+market, museum, auction, and Numista outing).
+
+To report an outing, the user must have an Account on the Platform.
+
+
+      Section 8.2. Services offered to any Collector with an Account on
+      the Platform
+
+In addition to the Services available to any internet user, any
+Collector registered on the Platform will have access to the following
+additional Services:
+
+
+        Section 8.2.1. Addition of Pages to the Catalogue
+
+The Collector can create Catalogue Pages describing the types of coins
+and banknotes for encyclopaedic purposes.
+
+The Catalogue Pages will be checked by an Administrator in order to
+verify the accuracy of the data by crossing the information with various
+numismatic sources. The Administrator also enforces the recommendations
+of modification of the Catalogue.
+
+For more details, the User is invited to consult the following page:
+https://en.numista.com/help/guidelines-for-the-numista-
+catalogue-141.html <https://en.numista.com/help/guidelines-for-the-
+numista-catalogue-141.html>.
+
+
+        Section 8.2.2. Registration of the collection
+
+Any Collector may enter their collection of Collectibles into the Platform.
+
+The Collector may associate each Registration with a Catalogue Page and
+complete it with additional information about the Collectible
+(condition, commentary, availability for exchange etc.)
+
+For more details, the Collector can consult the page accessible at the
+following address: https://en.numista.com/help/how-can-i-register-my-
+collection-on-numista-1.html <https://en.numista.com/help/how-can-i-
+register-my-collection-on-numista-1.html>.
+
+The Collector must complete the form to request the addition of a coin
+or banknote and create or modify a previous Registration.
+
+The photographs of the Collectibles may come either from the Collector
+themselves, who may indicate their name in the credit line under the
+photograph, or from NUMISTA's partners who authorise the Collector to
+reuse said photographs free of charge on the Platform. In this second
+case, the Collector will select the website of origin, which will result
+in the display of a link under the photograph.
+
+The Administrators do not validate the Registrations made by the Collectors.
+
+The Collector's coins and/or banknotes must be entered in order to
+proceed with Swaps.
+
+
+        Section 8.2.3. Management of the collection
+
+In accordance with Section 8.2.2. hereof, the Collector may register
+their Collectibles on the Platform and specify the type of coin or
+banknote, the condition, photographs and comments. There is no limit to
+the number of Collectibles that may be added to the Platform by each
+Collector.
+
+Thus, the Collector has the possibility to manage their collection by
+keeping the inventories accessible online and by storing their comments
+and photographs. The photographs are limited to a total of 500 Mb. By
+subscribing, the Collector will have more storage space.
+
+The Collector may at any time consult their collection of Collectible
+Items using the "My coins", "My banknotes" and "My exonumia" links
+accessible on their Account. Only applicable links are displayed. If the
+Collector has not saved any coins or banknotes, only the "My coins" link
+will be displayed.
+
+The Collector can also view a dashboard with various statistics and data
+on their collection and export this information in an Excel document.
+
+
+        Section 8.2.4. Swaps of Collectibles
+
+
+          General provisions
+
+Through the Platform, NUMISTA puts Collectors in contact with each other
+in order to carry out exchanges.
+
+Collectors are reminded that *presenting oneself as a consumer while
+acting in the context of a regular or usual professional activity may be
+considered as a misleading commercial practice* punishable by 2-year
+imprisonment and a fine of 300 000 euros.
+The amount of the fine may be increased in proportion to the benefits
+derived from the offence, to 10% of the average annual turnover,
+calculated on the last three known annual turnovers at the date of the
+facts or to 50% of the expenses incurred for the implementation of an
+advertisement or the practice constituting this offence
+(/Section L.132-2 of the French Consumer Code/)
+
+Any Collector has the possibility to exchange Collectibles from their
+collection registered on the Platform or to enter new Collectibles to be
+exchanged.
+
+They can also define the criteria for the Collectibles they wish to get
+in an exchange with another Collector.
+
+To find another Collector wishing to exchange their Collectibles, the
+Collector may either:
+
+  * Consult the list of Active Collectors, which may be sorted in
+    accordance with the provisions of Section 5.2.1. of these ToU; or
+  * Consult a Collectible on the Catalogue in order to get acquainted
+    with the Collector.
+
+Collectors can then access a dedicated interface on the Platform,
+allowing them to select the Collectibles for the Swap and validate the
+Swap. At this stage, the Collectors can discuss the terms of the Swap
+via a private message service and communicate their addresses to each other.
+
+There can be no financial consideration in the context of the Swap.
+
+The Collectibles are then generally sent by post by the Collectors.
+
+
+          Moderation of Swaps and fight against fraud
+
+The Operator is only an intermediary in the context of the matchmaking
+of the Collectors carrying out a Swap and that does not intervene within
+the scope of this Swap of Collectibles.
+
+As part of the fight against fraud, NUMISTA implements the following means:
+
+  * The display of the reviews of each Collector on the page of their
+    profile;
+  * The display of the number of Swaps considered as being "in progress"
+    (i.e., confirmed but not yet reviewed);
+  * The possibility for any Collector to report another Collector whose
+    behaviour seems suspicious. In this case, the teams of Moderators
+    may, if necessary, add a warning message to the profile of the
+    Collectors concerned;
+  * Mechanisms are implemented by NUMISTA in order to detect a Collector
+    having a warning and opening other Accounts on the Platform.
+    Automatic warnings may be added.
+
+
+        Section 8.2.5. Reviews
+
+In accordance with Section 6 hereof, the Collector may publish a review
+on the Platform.
+
+
+        Section 8.2.6. Publications on the Forum
+
+The discussion forum allows Collectors to discuss on the Platform and,
+more specifically, to share information or ask questions related to
+coins and banknotes and to propose improvements or corrections to the
+Platform.
+
+Any Collector will be able to post messages on the forum.
+
+Volunteer moderators enforce the forum's user's charter <https://
+en.numista.com/help/forum-policy-77.html>, which invites, in particular,
+to be courteous.
+
+Any message that is aggressive, political, commercial or disclosing the
+personal information of other Collectors, and more generally not
+respecting the provisions of Section 9.1. of these ToU will be deleted.
+
+The Moderators may also deny access to the forum to Collectors who do
+not respect the forum's user charter, either temporarily or permanently.
+
+
+        Section 8.2.7. Publication of Numisdoc
+
+Numisdoc is a collaborative encyclopaedia composed of articles on
+various topics related to numismatics, coin and banknote collections and
+the use of the Platform.
+
+Any Collector can publish an article within Numisdoc, bearing in mind
+that any article is read and, if necessary, corrected by a Moderator
+before publication.
+
+
+        Section 8.2.8. Publication of Outings
+
+The Platform proposes a space dedicated to the census of places and
+outings dedicated to coins and banknotes.
+
+Any Collector can suggest an outing on the Platform, bearing in mind
+that all content is reviewed and, if necessary, corrected by a Moderator
+before publication.
+
+Collectors may indicate the outings in which they plan to participate.
+
+In accordance with Section 6 hereof, any Collector may review an outing.
+
+
+        Section 8.2.9. Messaging
+
+From the "Messages" tab accessible on their Account, the Collector may
+send private messages to other Collectors.
+
+
+        Section 8.2.10. Updating personal information and profile
+
+From their Account, the Collector can update their personal information
+as well as the information on their public profile, accessible on the
+Platform.
+
+From this tab, the Collector may choose a privacy option so that their
+Collectibles and related information are visible to any internet user,
+only to Collectors, or only to the Collector.
+
+
+      Section 8.3. Services offered as part of the Premium Membership
+
+Optional Services (/no advertising and 10 GB of storage space/) are
+offered to Collectors who have taken out a Premium Membership.
+
+To find out the corresponding financial terms, the Collector is invited
+to make a request by sending an email to the Operator at the following
+address: contact@numista.com <mailto:contact@numista.com>
+
+Subscription to a Premium Membership is governed by the Terms and
+Conditions of Subscription.
+
+
+      Section 8.4. Services offered to Administrators and Moderators
+
+As a referee, every Administrator has an interface on the Platform
+dedicated to the administration of coins and banknotes of one or more
+countries. From this space, the Administrator can check the Catalogue
+Pages and accept or refuse them.
+
+The Administrator will be able to modify the Catalogue Pages relating to
+the coins and/or banknotes of the countries for which they are in charge.
+
+The Moderators have access to features that allow them to moderate the
+contents of the forum or to ban Collectors. From a dedicated validation
+space, the Moderators can also validate the contents of Numisdoc and the
+releases.
+
+
+    SECTION 9. OBLIGATION OF THE PARTIES
+
+
+      Section 9.1. Obligations of the Users
+
+When using the Platform, each User must not undermine public order and
+must comply with the applicable laws and regulations in force, respect
+the rights of third parties and the provisions of these Terms of Use.
+
+Each User must :
+
+  * Behave in a fair and lawful manner towards the Operator, other Users
+    and third parties;
+  * Be honest and sincere in the information provided to the Operator
+    and, if applicable, to other Users;
+  * Use the Platform in accordance with its purpose as described in
+    these ToU;
+  * Not divert the purpose of the Platform to commit crimes,
+    misdemeanours or offences punishable by the French Criminal Code or
+    any other law;
+  * Not carry out substantial or repeated extraction of the content of
+    the Platform by infringing the rights of producer of the database of
+    NUMISTA;
+  * Respect the privacy of third parties and the confidentiality of
+    exchanges;
+  * Respect the intellectual property rights of the Operator concerning
+    the elements of the Platform and, if necessary, the intellectual
+    property rights of other Users;
+  * Not seek to undermine the automated data processing systems
+    implemented on the Platform, in particular through practices such as
+    scrapping, in accordance with Sections 323-1 et seq. of the French
+    Criminal Code;
+  * Not modify the information put online by the Operator or by another
+    User;
+  * Not use the Platform to send unsolicited mass messages (advertising
+    or otherwise);
+  * Not publish data that would diminish, disorganise, slow down or
+    interrupt the normal operation of the Platform.
+
+Pursuant to the legal and regulatory provisions in force and in
+accordance with the French Act of 29 July 1881 relating to the freedom
+of the press, the User must not publish messages or information:
+
+  * Constituting wrongful denigration of the Operator or the Platform's
+    Users;
+  * Contrary to public order and morality;
+  * Of a pornographic nature;
+  * Insulting, defamatory, racist, xenophobic, revisionist or damaging
+    to the honour or reputation of others;
+  * Inciting discrimination, hatred of a person or a group of persons
+    because of their origin or their membership or non-membership of a
+    particular gender, ethnic group, nation, race or religion;
+  * Threatening a person or a group of persons;
+  * Of a paedophilic nature;
+  * Inciting to commit an offence, a crime or an act of terrorism or
+    condoning war crimes or crimes against humanity;
+  * Inciting to suicide;
+  * Allowing third parties to obtain directly or indirectly hacked
+    software, software serial numbers, software allowing acts of hacking
+    and intrusion into computer and telecommunications systems, viruses
+    and other logic bombs and, in general, any software or other tool
+    allowing them to infringe on the rights of others and the security
+    of persons and property;
+  * Of a commercial nature (prospection, solicitation, prostitution, etc.).
+
+
+      Section 9.2. Obligations of NUMISTA
+
+The general obligation of the Operator is a best-effort obligation.
+NUMISTA has no obligation to achieve a result or reinforced best efforts
+of any kind.
+
+The Operator will undertake to use all means to ensure continuity of
+access and use of the Platform 7 days a week and 24 hours a day.
+
+However, NUMISTA draws the attention of the Users to the fact that the
+current communication protocols via the Internet do not allow to ensure
+the transmission of electronic exchanges (messages, documents, identity
+of the sender or the recipient) in a certain and continuous way.
+
+In addition, in accordance with the provisions of Sections L.111-7 /et
+seq./ of the French Consumer Code, as an online platform operator,
+NUMISTA must provide clear, transparent and fair information on the
+terms and conditions of its intervention, in particular within Section
+5.2. of this Contract.
+
+
+    SECTION 10. LIABILITY
+
+
+      Section 10.1. General principles
+
+NUMISTA is not liable in particular in the case of:
+
+  * Impossibility to temporarily access the Platform for technical
+    maintenance operations or updating of published information. The
+    Users recognise that they cannot seek the liability of the Operator
+    in case of dysfunctions or interruptions of the aforementioned
+    transmission networks;
+  * Virus attacks, illicit intrusion into an automated data processing
+    system;
+  * Abnormal use or illegal exploitation of the Platform by a User or a
+    third party;
+  * In relation to the content of third-party websites to which
+    hyperlinks on the Platform refer;
+  * Non-compliance with these ToU attributable to Users;
+  * Delay or non-performance of its obligations, when the reason of the
+    delay or non-performance is related to a case of force majeure as
+    defined in Section 11 of these ToU;
+  * External cause not attributable to the Operator;
+  * Unlawful act by a Collector, or contractual breach of contract for
+    which a Collector is responsible in the context of the exchange of a
+    Collectible;
+  * Damages or financial loss from the User resulting from the usage of
+    the Content, in particular in the case of erroneous or out-of-date
+    valuations or rarity information on Catalogue Pages;
+  * Any problem encountered during the performance of the Swap by the
+    Collector.
+
+In the event of abnormal use or illicit exploitation of the Platform,
+the User is solely liable for any damage caused to third parties and for
+the consequences of any claims or actions that may result from this.
+
+
+      Section 10.2. Hosting provider status
+
+The Users recognise that NUMISTA has the quality of host within the
+meaning of the Section 6 I 2° of the French Act No. 2004-575 of 21 June
+2004 related to the trust in the digital economy known as “/Loi pour la
+confiance dans l’économie numérique/” or “/LCEN/”.
+
+As such, the Operator may remove any content that will have been
+reported to him and that it will consider as obviously illegal within
+the meaning of Section 6 I 2° of the LCEN.
+
+The notification of the obviously illegal contents by a User or any
+other third party must be done by electronic mail to the address
+contact@numista.com <mailto:contact@numista.com> or by registered letter
+with acknowledgement of receipt to /NUMISTA - 9 boulevard Albert 1er -
+06600 ANTIBES, FRANCE/.
+
+In accordance with Section 6 I 5° of the LCEN, the notification, to be
+valid, must include the following elements:
+
+  * The date of the notification;
+  * If the notifying party is a natural person: surname, first names,
+    profession, domicile, nationality, date and place of birth; if the
+    applicant is a legal entity: its form, corporate name, registered
+    office and the legal representative body;
+  * The name and domicile of the recipient or, if it is a legal entity,
+    its name and registered office;
+  * The description of the litigious facts and their precise location;
+  * The reasons for which the content must be withdrawn, including the
+    mention of the legal provisions and the justifications of facts;
+  * A copy of the correspondence addressed to the author or publisher of
+    the litigious information or activities requesting their
+    interruption, withdrawal or modification, or the justification that
+    the author or publisher could not be contacted.
+
+
+      Section 10.3. Disputes between Collectors
+
+Any dispute arising between Collectors will be dealt with between them,
+the latter remaining solely responsible for the Swap of Collectibles
+carried out via the Platform.
+
+For any claim made by a Collector, the other Collector concerned will be
+informed within twenty-four (24) business hours by the Operator.
+
+In any event, the Collector must respond to this claim within forty-
+eight (48) working hours of notification of the claim.
+
+Concerned about the image of its Platform, the Operator invites the
+Collector to do its best to amicably settle any dispute between them and
+the other Collector.
+
+
+      Section 10.4 Social and tax responsibility
+
+All Users warrant that they comply with their social and tax obligations
+arising from the use of the Platform and the exchange of Collectibles.
+
+In this respect, all Users are invited to consult Appendix 1 and, if
+necessary, with the tax authorities.
+
+
+    SECTION 11. FORCE MAJEURE
+
+The Operator shall not be liable if the non-performance or delay in
+performance of any of its obligations described in these ToU is due to
+force majeure.
+
+Force majeure occurs in contractual matters when an event beyond the
+control of the debtor, which could not be reasonably foreseen at the
+time of the conclusion of the contract and the effects of which cannot
+be avoided by appropriate measures, prevents the debtor from fulfilling
+its obligation.
+
+If the impediment is temporary, the performance of the obligation is
+suspended unless the resulting delay justifies the termination of the
+contract. If the impediment is definitive, the contract is automatically
+terminated, and the parties are released from their obligations under
+the conditions provided for in Sections 1351 and 1351-1 of the French
+Civil Code.
+
+In the event of the occurrence of one of the aforementioned events,
+NUMISTA will endeavor to inform the User as soon as possible.
+
+
+    SECTION 12. INTELLECTUAL PROPERTY
+
+
+      Section 12.1. Ownership of Collectors’ intellectual rights
+
+In the course of using the Platform, Collectors may display photographs,
+trademarks, logos, designs and other models (Content) belonging to them
+or to third parties.
+
+Any Collector reproducing Content through the Platform warrants that
+they have the right to display all Content.
+
+In any case, NUMISTA will not be held liable for any act of
+counterfeiting, given its simple quality of host of the Content
+published by the Collectors.
+
+
+      Section 12.2. Ownership of NUMISTA’s intellectual property rights
+
+The User acknowledges the intellectual property rights of the Operator
+on the Platform, its components and the contents related to it and
+waives to contest these rights in any form whatsoever.
+
+The trademarks, logos, slogans, graphics, photographs, animations,
+videos, software solutions and texts and any other content on the
+Platform, *with the exception of the Content published by the
+Collectors*, are the exclusive intellectual property of NUMISTA and may
+not be reproduced, used or displayed without express authorisation, or
+otherwise face legal proceedings.
+
+Any display or reproduction, total or partial, of the Platform and its
+contents, by any process whatsoever, without the prior express
+authorisation of NUMISTA, is prohibited and will constitute an
+infringement punishable by the provisions of the French Intellectual
+Property Code.
+
+In particular, the Operator expressly forbids:
+
+  * The extraction, by permanent or temporary transfer of all or a
+    qualitatively or quantitatively substantial part of the content of
+    its database on another medium, by any means and in any form whatsoever;
+  * Reuse, by making available to the public all or a qualitatively or
+    quantitatively substantial part of the contents of the database, in
+    any form whatsoever;
+  * Reproduction, extraction or reuse, by any means, including methods
+    similar to scrapping of content (photographs, descriptions, etc.)
+    published by the Operator or by a Collector.
+
+Acceptance of these Terms of Use implies that the Users acknowledge
+NUMISTA's intellectual property rights and undertake to comply with them.
+
+The Operator grants a personal, non-exclusive and non-transferable
+license to the Users authorising them to use the Platform and the
+information it contains in accordance with these ToU.
+
+Any other use of the Platform and its contents is excluded from the
+scope of this license and cannot be made without the prior express
+authorisation of the Operator.
+
+
+    SECTION 13. PERSONAL DATA PROTECTION
+
+
+      Section 13.1. On processing carried out by NUMISTA
+
+NUMISTA is likely to collect personal data as part of the operation of
+the Platform
+
+These data are necessary for the management of the Platform, for the
+provision of the Services and for the matchmaking of Collectors. These
+data will be retained confidentially by NUMISTA for the needs of the
+contract, its performance, and in compliance with the law, for a period
+of 3 years from the end of the commercial relationship if you are a
+customer or from your last contact if you are not yet a customer.
+
+The data may be communicated in whole or in part to NUMISTA's service
+providers.
+
+For this reason, the User is invited to consult NUMISTA's Privacy Policy
+available at the following address https://en.numista.com/policy.php
+<https://en.numista.com/policy.php> which will give them all the
+information relating to the protection of personal data and the
+processing carried out via the Platform.
+
+In accordance with the /French Data Protection Act No. 78-17 of 6
+January 1978, and Regulation (EU) 2016/679 of the European Parliament
+and of the Council of 27 April 2016 on the protection of natural persons
+with regard to the processing of personal data and on the free movement
+of such data, and repealing Directive 95/46/EC (General Data Protection
+Regulation, known as the GDPR)/, the Operator ensures the implementation
+of the rights of the data subjects.
+
+The User whose personal data is processed has the right to access,
+rectify, update, data portability and deletion of information concerning
+them, as well as a right to limit the processing in accordance with
+Sections 49, 50, 51, 53 and 55 of the French Data Protection Act and the
+provisions of Articles 15, 16, 17 and 18 of the General Data Protection
+Regulation (GDPR).
+
+In accordance with the provisions of Section 56 of the French Data
+Protection Act and Article 21 of the GDPR, the User may also, for
+legitimate reasons, object to the processing of data concerning them,
+without reason and without charge.
+
+The User can also define the fate of their data after death and choose
+that NUMISTA communicates or not their data to a third party that the
+User will have previously designated.
+
+The User can exercise their rights by sending an email to the address
+contact@numista.com <mailto:contact@numista.com> or by sending a letter
+to: /NUMISTA - 9 boulevard Albert 1er - 06600 ANTIBES, FRANCE/.
+
+Finally, the User may also lodge a complaint with the supervisory
+authorities, in particular the French /Commission Nationale de
+l’Informatique et des Libertés/(the “/CNIL/”) (https://www.cnil.fr/fr/
+plaintes <https://www.cnil.fr/fr/plaintes>)
+
+
+      Section 13.2. On processing carried out by Collectors
+
+The Collector may, as the data controller, have to collect and process
+the personal data of another Collector in the context of a Swap of
+Collectibles carried out from the Platform for the sole purpose of
+carrying out the Swap concerned or for delivery. It may also retain
+Collectors' data in order to meet their legal obligations or to manage
+any disputes with these Collectors. In accordance with the regulations,
+the Collector will delete the personal data of other Collectors after
+the necessary period.
+
+The Collector warrants that it processes this data in compliance with
+the rights and obligations arising from the French Data Protection Act
+and the GDPR, bearing in mind that the processing of data in the
+domestic context does not fall within the scope of the GDPR.
+
+
+    SECTION 14. USERS SERVICE
+
+Any questions or complaints regarding the use or operation of the
+Platform can be made in the following ways:
+
+  * On the Platform's forum;
+  * By email to the address contact@numista.com
+    <mailto:contact@numista.com>;
+  * By mail to /NUMISTA - 9 boulevard Albert 1er - 06600 ANTIBES, FRANCE/.
+
+
+    SECTION 15. VALIDITY OF THE TOU
+
+If any provision of these ToU is found to be invalid by any applicable
+legislation or regulation and/or by a court decision, it shall be deemed
+unwritten and shall not affect the validity of the remaining provisions,
+which shall remain in full force and effect.
+
+Such a modification or decision does not authorise Users to disregard
+these Terms of Use.
+
+
+    SECTION 16. MODIFICATION OF THE TOU
+
+These Terms of Use apply to any User browsing the Platform.
+
+The ToU may be modified and updated by NUMISTA at any time, in
+particular to adapt to legislative or regulatory changes.
+
+The applicable ToU are those in force at the time of the browsing on the
+Platform.
+
+
+    SECTION 17. GENERAL PROVISIONS
+
+The fact that one of the Parties has not demanded the application of any
+clause of these ToU, whether permanently or temporarily, shall in no
+case be considered as a waiver of said clause.
+
+In case of difficulty of interpretation between any of the titles
+appearing at the head of the clauses, and any of these clauses, the
+titles will be declared non-existent.
+
+In case of any discrepancy between the English language version and the
+French language version of this Agreement, the latter must prevail.
+
+
+    SECTION 18. JURISDICTION AND GOVERNING LAW
+
+THESE TOU, AS WELL AS THE RELATIONS BETWEEN THE USER AND NUMISTA, ARE
+GOVERNED BY FRENCH LAW.
+
+In the event of a dispute between NUMISTA and a User concerning the
+interpretation, performance and termination of these ToU, the Parties
+will endeavor to settle it amicably.
+
+In such a case, the User is first invited to contact the Operator's
+customer service by email at contact@numista.com
+<mailto:contact@numista.com> or by mail at the following address: /
+NUMISTA - 9 boulevard Albert 1er - 06600 ANTIBES, FRANCE/.
+
+If no agreement is reached, an optional mediation procedure will be
+proposed, conducted in a spirit of fairness and good faith with a view
+to reaching an amicable agreement in the event of any dispute relating
+to this contract, including those concerning its validity.
+
+To initiate this mediation, the consumer User may contact the following
+mediator: /Centre de médiation des conciliateurs de justice (CM2C)/, who
+may be contacted by post at the address /14 rue Saint Jean – 75017
+PARIS, FRANCE/, by email to cm2c@cm2c.net <mailto:cm2c@cm2c.net>, or by
+filling in a form on the website accessible at the following address:
+https://www.cm2c.net/declarer-un-litige.php <https://www.cm2c.net/
+declarer-un-litige.php>.
+
+The Party wishing to initiate the mediation process must first inform
+the other Party by a registered letter with acknowledgement of receipt,
+indicating the elements of the dispute.
+
+The mediation is not mandatory. The User or NUMISTA can withdraw from
+the process at any time.
+
+IN THE EVENT THAT MEDIATION FAILS OR IS NOT CONSIDERED, THE DISPUTE THAT
+MAY HAVE GIVEN RISE TO MEDIATION WILL BE REFERRED TO THE COMPETENT COURT.
+
+------------------------------------------------------------------------
+
+
+    APPENDIX 1: Information on civil and tax obligations
+
+Online platform operators have an obligation to inform any user who
+carries out commercial transactions on their platform.
+
+Useful information is gathered in educational sheets, recalling the
+rules applicable to the declaration of income and the payment of social
+contributions.
+
+This information can be found at the following addresses:
+
+  * Concerning tax obligations, link below:
+    https://www.impots.gouv.fr/portail/files/
+    media/1_metier/1_particulier/EV/1_declarer/141_autres_revenus/eco-
+    collabo-fiscal-vente-biens.pdf <https://www.impots.gouv.fr/portail/
+    files/media/1_metier/1_particulier/EV/1_declarer/141_autres_revenus/
+    eco-collabo-fiscal-vente-biens.pdf>
+  * On www.urssaf.fr, concerning social obligations, link below:
+    https://www.urssaf.fr/portail/home/espaces-dedies/activites-
+    relevant-de-leconomie.html <https://www.urssaf.fr/portail/home/
+    espaces-dedies/activites-relevant-de-leconomie.html>
+    https://www.economie.gouv.fr/files/files/PDF/
+    cotisations_sociales_vente.pdf <https://www.economie.gouv.fr/files/
+    files/PDF/cotisations_sociales_vente.pdf>
+
+We remind you that the explanations below are given for information
+purposes only and do not replace the reading of French legislative
+instruments, administrative comments and case law. We would also like to
+insist on the fact that the rules set out above are subject to change
+(in particular the different thresholds which are reassessed each year)
+and that each User of the Platform is solely responsible for their legal
+obligations.
+
+In addition, the tax authorities and social security funds are able to
+complete this basic information and answer any questions.
+
+NUMISTA therefore recommends that all Users contact their tax office,
+social security office or a specialist adviser in case of doubt.
+
+Catawiki
+
+<https://www.catawiki.com/en/a/1203270?
+view_lot=100921687&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=World%20Coins+ENG> United States. 10 Cents 1918/1962 (12 Monedas) (No reserve price) <https://www.catawiki.com/en/a/1203270?view_lot=100921687&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=World%20Coins+ENG> €37.00 <https://www.catawiki.com/en/a/1203270?view_lot=100921687&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=World%20Coins+ENG>
+<https://www.catawiki.com/en/a/1203342?
+view_lot=100724481&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=Ancient%20Coins+ENG> Roman Empire. Diva Faustina. Sestertius Minted in Rome after her death in 141 A.D. <https://www.catawiki.com/en/a/1203342?view_lot=100724481&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=Ancient%20Coins+ENG> €50.00 <https://www.catawiki.com/en/a/1203342?view_lot=100724481&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=Ancient%20Coins+ENG>
+<https://www.catawiki.com/en/a/1202646?
+view_lot=100928715&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=World%20Coins+ENG> Italy, Kingdom Umberto I. 1 Lira 1887 (No reserve price) <https://www.catawiki.com/en/a/1202646?view_lot=100928715&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=World%20Coins+ENG> €1.00 <https://www.catawiki.com/en/a/1202646?view_lot=100928715&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=World%20Coins+ENG>
+<https://www.catawiki.com/en/a/1202646?
+view_lot=101060224&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=World%20Coins+ENG> Italy. Vittorio Emanuele II. 5 Lire 1873 (No reserve price) <https://www.catawiki.com/en/a/1202646?view_lot=101060224&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=World%20Coins+ENG> €1.00 <https://www.catawiki.com/en/a/1202646?view_lot=101060224&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=World%20Coins+ENG>
+<https://www.catawiki.com/en/a/1205089?
+view_lot=101063825&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=World%20Coins+ENG> Portugal. 2 Silver (1x 1000 Escudos + 1x 2.50 Escudos) Coins (31.53 g) 1944/1997 (No reserve price) <https://www.catawiki.com/en/a/1205089?view_lot=101063825&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=World%20Coins+ENG> €1.00 <https://www.catawiki.com/en/a/1205089?view_lot=101063825&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=World%20Coins+ENG>
+<https://www.catawiki.com/en/a/1204268?
+view_lot=100735016&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=Ancient%20Coins+ENG> Achaemenid Kingdom. Time of Darios I to Xerxes II. Siglos (485-420 BC) Sardes (No reserve price) <https://www.catawiki.com/en/a/1204268?view_lot=100735016&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=Ancient%20Coins+ENG> €3.00 <https://www.catawiki.com/en/a/1204268?view_lot=100735016&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=Ancient%20Coins+ENG>
+<https://www.catawiki.com/en/a/1204888?
+view_lot=100986627&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=World%20Coins+ENG> Netherlands. Wilhelmina. 1 Gulden 1914/1915, 2 stuks (No reserve price) <https://www.catawiki.com/en/a/1204888?view_lot=100986627&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=World%20Coins+ENG> €36.00 <https://www.catawiki.com/en/a/1204888?view_lot=100986627&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=World%20Coins+ENG>
+<https://www.catawiki.com/en/a/1203200?
+view_lot=101054143&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=World%20Coins+ENG> . China, Song dynasty Emperor Taizong. AE Cash ND (976-983) (No reserve price) <https://www.catawiki.com/en/a/1203200?view_lot=101054143&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=World%20Coins+ENG> €2.00 <https://www.catawiki.com/en/a/1203200?view_lot=101054143&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=World%20Coins+ENG>
+<https://www.catawiki.com/en/a/1204617?
+view_lot=101025605&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=World%20Coins+ENG> British India. George VI. 1 Rupia 1942 - NGC MS63 <https://www.catawiki.com/en/a/1204617?view_lot=101025605&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=World%20Coins+ENG> €70.00 <https://www.catawiki.com/en/a/1204617?view_lot=101025605&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=World%20Coins+ENG>
+
+Catawiki
+
+<https://www.catawiki.com/en/a/1203270?
+view_lot=100921687&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=World%20Coins+ENG> United States. 10 Cents 1918/1962 (12 Monedas) (No reserve price) <https://www.catawiki.com/en/a/1203270?view_lot=100921687&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=World%20Coins+ENG> €37.00 <https://www.catawiki.com/en/a/1203270?view_lot=100921687&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=World%20Coins+ENG>
+<https://www.catawiki.com/en/a/1203342?
+view_lot=100724481&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=Ancient%20Coins+ENG> Roman Empire. Diva Faustina. Sestertius Minted in Rome after her death in 141 A.D. <https://www.catawiki.com/en/a/1203342?view_lot=100724481&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=Ancient%20Coins+ENG> €50.00 <https://www.catawiki.com/en/a/1203342?view_lot=100724481&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=Ancient%20Coins+ENG>
+<https://www.catawiki.com/en/a/1202646?
+view_lot=100928715&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=World%20Coins+ENG> Italy, Kingdom Umberto I. 1 Lira 1887 (No reserve price) <https://www.catawiki.com/en/a/1202646?view_lot=100928715&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=World%20Coins+ENG> €1.00 <https://www.catawiki.com/en/a/1202646?view_lot=100928715&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=World%20Coins+ENG>
+<https://www.catawiki.com/en/a/1202646?
+view_lot=101060224&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=World%20Coins+ENG> Italy. Vittorio Emanuele II. 5 Lire 1873 (No reserve price) <https://www.catawiki.com/en/a/1202646?view_lot=101060224&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=World%20Coins+ENG> €1.00 <https://www.catawiki.com/en/a/1202646?view_lot=101060224&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=World%20Coins+ENG>
+<https://www.catawiki.com/en/a/1205089?
+view_lot=101063825&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=World%20Coins+ENG> Portugal. 2 Silver (1x 1000 Escudos + 1x 2.50 Escudos) Coins (31.53 g) 1944/1997 (No reserve price) <https://www.catawiki.com/en/a/1205089?view_lot=101063825&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=World%20Coins+ENG> €1.00 <https://www.catawiki.com/en/a/1205089?view_lot=101063825&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=World%20Coins+ENG>
+<https://www.catawiki.com/en/a/1204268?
+view_lot=100735016&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=Ancient%20Coins+ENG> Achaemenid Kingdom. Time of Darios I to Xerxes II. Siglos (485-420 BC) Sardes (No reserve price) <https://www.catawiki.com/en/a/1204268?view_lot=100735016&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=Ancient%20Coins+ENG> €3.00 <https://www.catawiki.com/en/a/1204268?view_lot=100735016&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=Ancient%20Coins+ENG>
+<https://www.catawiki.com/en/a/1204888?
+view_lot=100986627&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=World%20Coins+ENG> Netherlands. Wilhelmina. 1 Gulden 1914/1915, 2 stuks (No reserve price) <https://www.catawiki.com/en/a/1204888?view_lot=100986627&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=World%20Coins+ENG> €36.00 <https://www.catawiki.com/en/a/1204888?view_lot=100986627&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=World%20Coins+ENG>
+<https://www.catawiki.com/en/a/1203200?
+view_lot=101054143&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=World%20Coins+ENG> . China, Song dynasty Emperor Taizong. AE Cash ND (976-983) (No reserve price) <https://www.catawiki.com/en/a/1203200?view_lot=101054143&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=World%20Coins+ENG> €2.00 <https://www.catawiki.com/en/a/1203200?view_lot=101054143&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=World%20Coins+ENG>
+<https://www.catawiki.com/en/a/1204617?
+view_lot=101025605&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=World%20Coins+ENG> British India. George VI. 1 Rupia 1942 - NGC MS63 <https://www.catawiki.com/en/a/1204617?view_lot=101025605&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=World%20Coins+ENG> €70.00 <https://www.catawiki.com/en/a/1204617?view_lot=101025605&utm_content=Numista&utm_source=coop&utm_medium=affiliate&utm_campaign=World%20Coins+ENG>
+
+About Numista <https://en.numista.com/info.php> – Numista Team <https://
+en.numista.com/team.php> – Terms of Use <https://en.numista.com/
+conditions.php> – Privacy policy <https://en.numista.com/privacy.php> –
+Legal information <https://en.numista.com/legal.php> – Advertise
+<https://en.numista.com/advertising.php> – Releases <https://
+en.numista.com/release_notes.php> – API <https://en.numista.com/api/
+index.php> – Premium account <https://en.numista.com/vous/premium/
+introduction.php> – Contact us <https://en.numista.com/contact.php>
+
+Numista.com  2007 – 2026
+
+<
+
+>
+

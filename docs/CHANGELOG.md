@@ -1,11 +1,22 @@
 # Changelog
 
-All notable changes to the OpenNumismat Enrichment Tool.
+All notable changes to NumiSync Wizard for OpenNumismat.
 
 ## Fix History (Compressed)
 
 | Date | Files | Summary |
 |------|-------|---------|
+| Feb 3 | index.html, app.js, main.css | **UI Compaction** - Stats bar + summary on same row (~250px saved), pagination moved to footer, error/skip counts as hover tooltips |
+| Feb 3 | index.html, app.js, main.css, user-manual.html | **Logo Integration** - Added logo_with_text.svg to header, welcome screen, About dialog, EULA, and User Manual; icon.png/icon.ico added to build folder for app icon |
+| Feb 3 | Multiple | **Rebrand** - Renamed from "Numismat Enrichment Tool" to "NumiSync Wizard" with subtitle "for OpenNumismat" |
+| Feb 3 | index.js | Help menu - User Manual opens in dedicated Electron window (F1), centered on same screen as main window |
+| Feb 3 | index.js, preload.js, app.js | Task 3.0 Application Menu Bar - Settings menu now separates App Settings (API key, backup) from Data Settings (fetch options, field mappings) |
+| Feb 3 | index.js, preload.js, app.js | Task 3.0 Application Menu Bar - cross-platform Electron menu, Recent Collections tracking, keyboard shortcuts, menu state management |
+| Feb 3 | PHASE3-WORK-PLAN.md | Added Task 3.0 Application Menu Bar - cross-platform Electron menu with Recent Collections, state management |
+| Feb 3 | main.css | Issue picker image zoom - hover to enlarge 4x (matching coin selection behavior), overflow handling |
+| Feb 3 | index.js, preload.js, index.html, app.js | Default Collection feature - auto-load on startup, browse/set/clear in Settings |
+| Feb 3 | index.html, app.js, main.css | Task 2.5 Legal & Compliance - EULA modal, first-launch acceptance, Numista attribution in Settings |
+| Feb 3 | electron-builder.yml, package.json, LICENSE.txt, build/*, docs/BUILD-GUIDE.md | Task 2.4 Packaging - electron-builder config, NSIS installer, build scripts, build documentation |
 | Feb 2 | app.js, main.css | Advanced Field Mapping UI - tab bar, source dropdowns, bulk enable/disable |
 | Feb 2 | opennumismat-db.js, settings-manager.js, index.js, index.html, app.js | Backup policy - maxBackups setting, autoBackup enforcement, PROTECTED_FIELDS guard |
 | Feb 2 | mintmark-normalizer.js (NEW), numista-api.js, app.js, preload.js | Advanced matching - mintmark normalization, Dice coefficient fuzzy matching, issuer code caching |
@@ -79,8 +90,8 @@ All notable changes to the OpenNumismat Enrichment Tool.
 - 2.1 Advanced Matching & Normalization - COMPLETE
 - 2.2 Backup Policy & Data Safety - COMPLETE
 - 2.3 User-Configurable Field Mapping - COMPLETE
-- 2.4 Packaging & Distribution - NOT STARTED
-- 2.5 Legal & Compliance - NOT STARTED
+- 2.4 Packaging & Distribution - COMPLETE
+- 2.5 Legal & Compliance - COMPLETE
 - 2.6 About Page & Donation Link - NOT STARTED
 - 2.7 Multi-Source Data Fetching - NOT STARTED
 - 2.8 OpenNumismat Plugin Integration - NOT STARTED

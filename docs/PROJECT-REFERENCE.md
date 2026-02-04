@@ -1,4 +1,4 @@
-# OpenNumismat Enrichment Tool - Project Reference
+# NumiSync Wizard for OpenNumismat - Project Reference
 
 **Purpose:** Architecture reference for implementation. Read when building features.
 **Last Updated:** February 3, 2026
@@ -16,7 +16,10 @@ numismat-enrichment/
 │   ├── renderer/
 │   │   ├── index.html        # UI structure (HAS EMOJIS)
 │   │   ├── app.js            # UI logic (HAS EMOJIS)
-│   │   └── styles/main.css   # Styles
+│   │   ├── styles/main.css   # Styles
+│   │   └── images/           # Logo and branding assets
+│   │       ├── logo_with_text.svg   # Full logo (header, welcome, about, EULA, manual)
+│   │       └── logo_no_text.svg     # Icon-only logo (source for app icon)
 │   └── modules/
 │       ├── opennumismat-db.js      # SQLite database access
 │       ├── numista-api.js          # Numista API wrapper
@@ -28,9 +31,14 @@ numismat-enrichment/
 │       ├── freshness-calculator.js # Pricing age calculation
 │       ├── image-handler.js        # Image operations
 │       └── mintmark-normalizer.js  # Mintmark utilities
+├── build/
+│   ├── icon.png              # App icon for dev/Linux (500x500)
+│   ├── icon.ico              # App icon for Windows builds (256x256)
+│   └── ICONS-README.txt      # Icon conversion instructions
 ├── docs/
 │   ├── PROJECT-REFERENCE.md  # THIS FILE
 │   ├── CHANGELOG.md          # Compressed fix history
+│   ├── user-manual.html      # User manual (Help > User Manual, F1)
 │   └── (archived docs)
 └── CLAUDE.md                 # Operating rules (root level)
 ```
@@ -203,8 +211,7 @@ app.js (renderer)
 | Phase | Status |
 |-------|--------|
 | Phase 1 (Core functionality) | COMPLETE |
-| Phase 2 (Enhanced features) | COMPLETE except Task 2.7 |
-| Notes Work Plan Phase 1 | COMPLETE |
-| Notes Work Plan Phase 2 | PARTIAL |
+| Phase 2 (Enhanced features) | COMPLETE |
+| Phase 3 (Numista Collection Sync) | IN PROGRESS |
 
-See `NOTES-WORK-PLAN.md` for current work items.
+See `PHASE3-WORK-PLAN.md` for current work items.

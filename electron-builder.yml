@@ -1,0 +1,67 @@
+# Electron Builder Configuration
+# See: https://www.electron.build/configuration/configuration
+
+appId: com.numisync.wizard
+productName: NumiSync Wizard
+copyright: Copyright 2026 Shane Burkhardt
+
+# Directories
+directories:
+  output: dist
+  buildResources: build
+
+# Files to include in the app
+files:
+  - src/**/*
+  - package.json
+  - node_modules/**/*
+  - "!node_modules/*/{CHANGELOG.md,README.md,readme.md,test,__tests__,tests,*.md}"
+  - "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}"
+  - "!**/._*"
+  - "!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}"
+
+# Extra resources (accessible via process.resourcesPath)
+extraResources:
+  - from: swagger.yaml
+    to: swagger.yaml
+
+# Windows-specific configuration
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: build/icon.ico
+  # File associations for .db files
+  fileAssociations:
+    - ext: db
+      name: OpenNumismat Collection
+      description: OpenNumismat coin collection database
+      icon: build/icon.ico
+
+# NSIS installer configuration
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: NumiSync Wizard
+  uninstallDisplayName: NumiSync Wizard
+  license: LICENSE.txt
+  installerIcon: build/icon.ico
+  uninstallerIcon: build/icon.ico
+  installerHeaderIcon: build/icon.ico
+  deleteAppDataOnUninstall: false
+
+# Publish configuration for auto-updates (GitHub releases)
+publish:
+  - provider: github
+    owner: inguy24
+    repo: numismat-enrichment
+    releaseType: release
+
+# asar packaging for better performance
+asar: true
+asarUnpack:
+  - "**/*.node"

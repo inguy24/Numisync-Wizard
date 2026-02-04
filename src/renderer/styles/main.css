@@ -55,6 +55,18 @@ body {
   font-weight: 600;
 }
 
+.app-header h1 .subtitle {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+  margin-left: 0.5rem;
+}
+
+.app-logo {
+  height: 100px;
+  width: auto;
+}
+
 .app-main {
   flex: 1;
   overflow-y: auto;
@@ -64,8 +76,89 @@ body {
 .app-footer {
   background: var(--surface);
   border-top: 1px solid var(--border);
-  padding: 0.75rem 2rem;
-  min-height: 50px;
+  padding: 0.5rem 1.5rem;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  position: relative;
+}
+
+.footer-left {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.footer-center {
+  flex: 0 0 auto;
+}
+
+.footer-right {
+  flex: 1;
+  text-align: right;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.footer-right .separator {
+  margin: 0 0.5rem;
+  color: var(--border);
+}
+
+.footer-pagination {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.footer-pagination .pagination-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  font-size: 0.75rem;
+  color: var(--text-color);
+  transition: all 0.2s;
+}
+
+.footer-pagination .pagination-btn:hover:not(:disabled) {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: white;
+}
+
+.footer-pagination .pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.footer-pagination .pagination-info {
+  padding: 0.25rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  min-width: 100px;
+  text-align: center;
+}
+
+.footer-progress-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--border);
+}
+
+.footer-progress-bar .progress-fill {
+  height: 100%;
+  background: var(--primary-color);
+  transition: width 0.3s ease;
 }
 
 /* ==================================================================
@@ -152,6 +245,12 @@ body {
   margin-bottom: 0.5rem;
 }
 
+.welcome-logo {
+  height: 120px;
+  width: auto;
+  margin-bottom: 1rem;
+}
+
 .welcome-container p {
   color: var(--text-secondary);
   margin-bottom: 2rem;
@@ -198,99 +297,133 @@ body {
   gap: 0.5rem;
 }
 
-.progress-summary {
+/* Compact Stats Bar with Summary Wrapper */
+.compact-stats-wrapper {
   display: flex;
-  gap: 1rem;
-  margin-bottom: 2rem;
-  flex-wrap: wrap;
-}
-
-.progress-summary .stat-card-total {
-  flex: 0 0 130px;
-}
-
-.progress-summary .data-type-card {
-  flex: 1 1 180px;
-}
-
-.stat-card {
-  background: var(--surface);
-  padding: 1.5rem;
-  border-radius: 0.5rem;
-  border: 1px solid var(--border);
-  text-align: center;
-}
-
-.stat-card-total {
-  min-width: 120px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.stat-value {
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--primary-color);
+  align-items: stretch;
+  gap: 0.75rem;
   margin-bottom: 0.5rem;
 }
 
-.data-type-value {
+.compact-stats {
+  display: flex;
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  gap: 0;
+  flex-shrink: 0;
+}
+
+.compact-stat-item {
+  padding: 0.25rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.compact-stat-total {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding-left: 0.5rem;
+}
+
+.compact-stat-value {
   font-size: 1.5rem;
-  margin-bottom: 0.25rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  line-height: 1;
 }
 
-.stat-of {
-  font-size: 1rem;
-  font-weight: 400;
-  color: var(--text-secondary);
-}
-
-.stat-label {
-  font-size: 0.875rem;
+.compact-stat-label {
+  font-size: 0.7rem;
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
-.data-type-card .stat-label {
-  margin-bottom: 0.25rem;
-}
-
-.data-type-card.data-type-hidden {
-  display: none;
-}
-
-.progress-bar {
-  height: 6px;
+.compact-stat-divider {
+  width: 1px;
+  height: 28px;
   background: var(--border);
-  border-radius: 3px;
-  overflow: hidden;
-  margin-bottom: 0.5rem;
+  margin: 0 0.25rem;
 }
 
-.progress-bar-fill {
+.compact-stat-header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.375rem;
+}
+
+.compact-stat-name {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.compact-stat-nums {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.compact-progress-bar {
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+  min-width: 80px;
+}
+
+.compact-progress-fill {
   height: 100%;
   background: var(--primary-color);
-  border-radius: 3px;
+  border-radius: 2px;
   width: 0%;
   transition: width 0.4s ease;
 }
 
-.stat-secondary {
+/* Stats Summary (right side) */
+.stats-summary {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.125rem;
+  padding: 0.25rem 0.75rem;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
   font-size: 0.75rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.summary-line {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  flex-wrap: wrap;
+  white-space: nowrap;
+}
+
+.summary-line strong {
+  color: var(--text-color);
+  font-weight: 600;
+  min-width: 50px;
+}
+
+.summary-count {
   color: var(--text-secondary);
-  display: none;
 }
 
-.stat-secondary.visible {
-  display: block;
+.summary-sep {
+  color: var(--border);
+  margin: 0 0.125rem;
 }
 
-.stat-sep {
-  margin: 0 0.25rem;
-}
-
+/* Legacy support for any remaining usage */
 .stat-clickable {
   cursor: pointer;
 }
@@ -299,19 +432,14 @@ body {
   text-decoration: underline;
 }
 
-.stat-error-count.has-errors {
-  color: #dc2626;
-  font-weight: 600;
-}
-
 .filters {
   background: var(--surface);
-  padding: 1rem;
+  padding: 0.5rem 1rem;
   border-radius: 0.5rem;
   border: 1px solid var(--border);
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
   display: flex;
-  gap: 2rem;
+  gap: 1.5rem;
   align-items: center;
   flex-wrap: wrap;
 }
@@ -1727,6 +1855,8 @@ body {
   border-radius: 6px;
   padding: 15px;
   margin-bottom: 20px;
+  overflow: visible;
+  position: relative;
 }
 
 .issue-picker-info p {
@@ -1740,18 +1870,23 @@ body {
   border-radius: 4px;
   border-left: 4px solid #3498db;
   font-size: 14px;
+  overflow: visible;
+  position: relative;
 }
 
 .user-coin-info-content {
   display: flex;
   align-items: flex-start;
   gap: 15px;
+  overflow: visible;
 }
 
 .user-coin-images {
   display: flex;
   gap: 8px;
   flex-shrink: 0;
+  overflow: visible;
+  position: relative;
 }
 
 .issue-picker-coin-img {
@@ -1761,6 +1896,32 @@ body {
   border-radius: 4px;
   border: 1px solid #dee2e6;
   background: #f8f9fa;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.issue-picker-coin-img:hover {
+  transform: scale(4);
+  transform-origin: top left;
+  z-index: 10000;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  border-color: var(--primary-color);
+}
+
+/* Issue Picker modal overflow handling - allow zoomed images to escape modal bounds */
+#issuePickerModal .modal-content {
+  overflow: visible;
+}
+
+#issuePickerModal .modal-body {
+  overflow: visible;
+}
+
+/* Keep the issue options list scrollable */
+#issuePickerModal .issue-options-list {
+  max-height: 50vh;
+  overflow-y: auto;
 }
 
 .no-images-text {
@@ -2173,4 +2334,129 @@ body {
   font-size: 0.7rem;
   color: var(--text-secondary);
   font-style: italic;
+}
+
+/* ==================================================================
+   EULA Modal Styles
+   ================================================================== */
+
+.modal-large {
+  max-width: 700px;
+  width: 90%;
+}
+
+.eula-body {
+  padding: 0;
+}
+
+.eula-scroll-container {
+  max-height: 50vh;
+  overflow-y: auto;
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 0.25rem;
+  margin-bottom: 1rem;
+  background: var(--surface);
+}
+
+#eulaContent h4 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  color: var(--text-color);
+}
+
+#eulaContent h5 {
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+  color: var(--text-color);
+}
+
+#eulaContent p {
+  margin-bottom: 0.5rem;
+  line-height: 1.5;
+}
+
+#eulaContent ul {
+  margin-left: 1.25rem;
+  margin-bottom: 0.75rem;
+}
+
+#eulaContent li {
+  margin-bottom: 0.25rem;
+  line-height: 1.4;
+}
+
+.eula-attribution {
+  padding: 1rem;
+  background: #e8f4f8;
+  border-radius: 0.25rem;
+  text-align: center;
+}
+
+.eula-attribution p {
+  margin: 0.25rem 0;
+}
+
+.eula-attribution a {
+  color: var(--primary-color);
+}
+
+.eula-footer {
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.eula-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.eula-checkbox-row input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.eula-checkbox-row label {
+  cursor: pointer;
+  user-select: none;
+}
+
+.eula-buttons {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+/* ==================================================================
+   About & Attribution Section in Settings
+   ================================================================== */
+
+.about-info {
+  margin-bottom: 1rem;
+}
+
+.about-info p {
+  margin: 0.25rem 0;
+}
+
+.about-info a {
+  color: var(--primary-color);
+}
+
+.attribution-box {
+  padding: 1rem;
+  background: #e8f4f8;
+  border-radius: 0.25rem;
+  border-left: 4px solid var(--primary-color);
+}
+
+.attribution-box p {
+  margin: 0.25rem 0;
+}
+
+.attribution-box a {
+  color: var(--primary-color);
+  font-weight: 500;
 }

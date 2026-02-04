@@ -9,7 +9,7 @@
  * - Settings management via SettingsManager
  * - Progress tracking via ProgressTracker
  */
-const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { execSync } = require('child_process');
@@ -33,6 +33,13 @@ let progressTracker = null;
 /** @type {SettingsManager|null} */
 let settingsManager = null;
 const imageHandler = new ImageHandler();
+
+// Menu state - tracks whether items should be enabled/disabled
+let menuState = {
+  collectionLoaded: false,
+  fieldComparisonActive: false,
+  recentCollections: []
+};
 
 /**
  * Create the main application window
@@ -66,7 +73,393 @@ function createWindow() {
   });
 }
 
-app.whenReady().then(createWindow);
+/** @type {BrowserWindow|null} */
+let manualWindow = null;
+
+/**
+ * Open the User Manual in a dedicated window
+ * @returns {void}
+ */
+function openUserManual() {
+  // If window already exists, focus it
+  if (manualWindow && !manualWindow.isDestroyed()) {
+    manualWindow.focus();
+    return;
+  }
+
+  // Position on same screen as main window
+  const windowOptions = {
+    width: 900,
+    height: 700,
+    title: 'User Manual - NumiSync Wizard',
+    icon: path.join(__dirname, '../../build/icon.png'),
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true
+    }
+  };
+
+  // Center relative to main window if it exists
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    const mainBounds = mainWindow.getBounds();
+    windowOptions.x = Math.round(mainBounds.x + (mainBounds.width - windowOptions.width) / 2);
+    windowOptions.y = Math.round(mainBounds.y + (mainBounds.height - windowOptions.height) / 2);
+  }
+
+  manualWindow = new BrowserWindow(windowOptions);
+  manualWindow.loadFile(path.join(__dirname, '../../docs/user-manual.html'));
+  manualWindow.setMenuBarVisibility(false);
+
+  manualWindow.on('closed', () => {
+    manualWindow = null;
+  });
+}
+
+// ============================================================================
+// Application Menu
+// ============================================================================
+
+/**
+ * Send a menu action to the renderer process
+ * @param {string} channel - IPC channel name
+ * @param {*} data - Optional data to send
+ */
+function sendMenuAction(channel, data = null) {
+  if (mainWindow && mainWindow.webContents) {
+    mainWindow.webContents.send(channel, data);
+  }
+}
+
+/**
+ * Build the application menu template
+ * @returns {Array} Menu template array
+ */
+function buildMenuTemplate() {
+  const isMac = process.platform === 'darwin';
+
+  // Build Recent Collections submenu
+  const recentSubmenu = [];
+  if (menuState.recentCollections.length === 0) {
+    recentSubmenu.push({ label: '(No Recent Collections)', enabled: false });
+  } else {
+    menuState.recentCollections.forEach((filePath, index) => {
+      const filename = filePath.split(/[\\/]/).pop();
+      recentSubmenu.push({
+        label: `${index + 1}. ${filename}`,
+        click: () => sendMenuAction('menu:load-recent', filePath)
+      });
+    });
+    recentSubmenu.push({ type: 'separator' });
+    recentSubmenu.push({
+      label: 'Clear Recent Collections',
+      click: () => sendMenuAction('menu:clear-recent')
+    });
+  }
+
+  const template = [
+    // macOS App menu
+    ...(isMac ? [{
+      label: app.name,
+      submenu: [
+        { label: 'About NumiSync Wizard', click: () => sendMenuAction('menu:about') },
+        { type: 'separator' },
+        { label: 'Preferences...', accelerator: 'CmdOrCtrl+,', click: () => sendMenuAction('menu:open-app-settings') },
+        { type: 'separator' },
+        { role: 'hide' },
+        { role: 'hideOthers' },
+        { role: 'unhide' },
+        { type: 'separator' },
+        { role: 'quit' }
+      ]
+    }] : []),
+
+    // File menu
+    {
+      label: 'File',
+      submenu: [
+        {
+          label: 'Load Collection...',
+          accelerator: 'CmdOrCtrl+O',
+          click: () => sendMenuAction('menu:load-collection')
+        },
+        {
+          label: 'Recent Collections',
+          id: 'recent-collections',
+          submenu: recentSubmenu
+        },
+        { type: 'separator' },
+        {
+          label: 'Close Collection',
+          accelerator: 'CmdOrCtrl+W',
+          id: 'close-collection',
+          enabled: menuState.collectionLoaded,
+          click: () => sendMenuAction('menu:close-collection')
+        },
+        { type: 'separator' },
+        {
+          label: 'Set as Default Collection',
+          id: 'set-default',
+          enabled: menuState.collectionLoaded,
+          click: () => sendMenuAction('menu:set-default')
+        },
+        {
+          label: 'Clear Default Collection',
+          id: 'clear-default',
+          click: () => sendMenuAction('menu:clear-default')
+        },
+        ...(isMac ? [] : [
+          { type: 'separator' },
+          { label: 'Exit', accelerator: 'Alt+F4', role: 'quit' }
+        ])
+      ]
+    },
+
+    // Edit menu
+    {
+      label: 'Edit',
+      submenu: [
+        {
+          label: 'Select All Fields',
+          accelerator: 'CmdOrCtrl+A',
+          id: 'select-all-fields',
+          enabled: menuState.fieldComparisonActive,
+          click: () => sendMenuAction('menu:select-all-fields')
+        },
+        {
+          label: 'Select None',
+          accelerator: 'CmdOrCtrl+Shift+A',
+          id: 'select-none',
+          enabled: menuState.fieldComparisonActive,
+          click: () => sendMenuAction('menu:select-none')
+        },
+        { type: 'separator' },
+        {
+          label: 'Select Empty Fields Only',
+          id: 'select-empty',
+          enabled: menuState.fieldComparisonActive,
+          click: () => sendMenuAction('menu:select-empty')
+        },
+        {
+          label: 'Select Different Fields Only',
+          id: 'select-different',
+          enabled: menuState.fieldComparisonActive,
+          click: () => sendMenuAction('menu:select-different')
+        }
+      ]
+    },
+
+    // View menu
+    {
+      label: 'View',
+      submenu: [
+        {
+          label: 'Filter by Status',
+          id: 'filter-status',
+          enabled: menuState.collectionLoaded,
+          submenu: [
+            { label: 'All', type: 'radio', checked: true, click: () => sendMenuAction('menu:filter-status', 'all') },
+            { label: 'Unprocessed', type: 'radio', click: () => sendMenuAction('menu:filter-status', 'unprocessed') },
+            { label: 'Complete', type: 'radio', click: () => sendMenuAction('menu:filter-status', 'complete') },
+            { label: 'Partial', type: 'radio', click: () => sendMenuAction('menu:filter-status', 'partial') },
+            { label: 'Skipped', type: 'radio', click: () => sendMenuAction('menu:filter-status', 'skipped') }
+          ]
+        },
+        {
+          label: 'Filter by Freshness',
+          id: 'filter-freshness',
+          enabled: menuState.collectionLoaded,
+          submenu: [
+            { label: 'All', type: 'radio', checked: true, click: () => sendMenuAction('menu:filter-freshness', 'all') },
+            { label: 'Current', type: 'radio', click: () => sendMenuAction('menu:filter-freshness', 'current') },
+            { label: 'Recent', type: 'radio', click: () => sendMenuAction('menu:filter-freshness', 'recent') },
+            { label: 'Aging', type: 'radio', click: () => sendMenuAction('menu:filter-freshness', 'aging') },
+            { label: 'Outdated', type: 'radio', click: () => sendMenuAction('menu:filter-freshness', 'outdated') },
+            { label: 'Never', type: 'radio', click: () => sendMenuAction('menu:filter-freshness', 'never') }
+          ]
+        },
+        {
+          label: 'Sort By',
+          id: 'sort-by',
+          enabled: menuState.collectionLoaded,
+          submenu: [
+            { label: 'Title', type: 'radio', checked: true, click: () => sendMenuAction('menu:sort-by', 'title') },
+            { label: 'Year', type: 'radio', click: () => sendMenuAction('menu:sort-by', 'year') },
+            { label: 'Country', type: 'radio', click: () => sendMenuAction('menu:sort-by', 'country') },
+            { label: 'Last Updated', type: 'radio', click: () => sendMenuAction('menu:sort-by', 'last_update') },
+            { label: 'Pricing Freshness', type: 'radio', click: () => sendMenuAction('menu:sort-by', 'pricing_freshness') },
+            { label: 'Status', type: 'radio', click: () => sendMenuAction('menu:sort-by', 'status') }
+          ]
+        },
+        { type: 'separator' },
+        {
+          label: 'Reset Filters',
+          id: 'reset-filters',
+          enabled: menuState.collectionLoaded,
+          click: () => sendMenuAction('menu:reset-filters')
+        },
+        { type: 'separator' },
+        {
+          label: 'Refresh List',
+          accelerator: isMac ? 'CmdOrCtrl+R' : 'F5',
+          id: 'refresh-list',
+          enabled: menuState.collectionLoaded,
+          click: () => sendMenuAction('menu:refresh-list')
+        }
+      ]
+    },
+
+    // Settings menu (Windows/Linux only)
+    ...(isMac ? [] : [{
+      label: 'Settings',
+      submenu: [
+        {
+          label: 'App Settings...',
+          accelerator: 'CmdOrCtrl+,',
+          id: 'app-settings',
+          click: () => sendMenuAction('menu:open-app-settings')
+        },
+        { type: 'separator' },
+        {
+          label: 'Data Settings...',
+          id: 'data-settings',
+          enabled: menuState.collectionLoaded,
+          click: () => sendMenuAction('menu:open-data-settings')
+        },
+        {
+          label: 'Field Mappings...',
+          id: 'field-mappings',
+          enabled: menuState.collectionLoaded,
+          click: () => sendMenuAction('menu:open-field-mappings')
+        },
+        { type: 'separator' },
+        { label: 'Export Field Mappings...', id: 'export-mappings', enabled: menuState.collectionLoaded, click: () => sendMenuAction('menu:export-mappings') },
+        { label: 'Import Field Mappings...', id: 'import-mappings', enabled: menuState.collectionLoaded, click: () => sendMenuAction('menu:import-mappings') },
+        { type: 'separator' },
+        { label: 'Reset Field Mappings', id: 'reset-mappings', enabled: menuState.collectionLoaded, click: () => sendMenuAction('menu:reset-mappings') },
+        { label: 'Reset All Settings', id: 'reset-all', enabled: menuState.collectionLoaded, click: () => sendMenuAction('menu:reset-all') }
+      ]
+    }]),
+
+    // Window menu (macOS only)
+    ...(isMac ? [{
+      label: 'Window',
+      submenu: [
+        { role: 'minimize' },
+        { role: 'zoom' },
+        { type: 'separator' },
+        { role: 'front' }
+      ]
+    }] : []),
+
+    // Help menu
+    {
+      label: 'Help',
+      submenu: [
+        {
+          label: 'User Manual',
+          accelerator: 'F1',
+          click: () => openUserManual()
+        },
+        { type: 'separator' },
+        ...(isMac ? [] : [
+          { label: 'About NumiSync Wizard', click: () => sendMenuAction('menu:about') },
+          { type: 'separator' }
+        ]),
+        {
+          label: 'Numista Website',
+          click: () => shell.openExternal('https://en.numista.com')
+        },
+        {
+          label: 'Get Numista API Key',
+          click: () => shell.openExternal('https://en.numista.com/api/')
+        },
+        { type: 'separator' },
+        {
+          label: 'View License Agreement',
+          click: () => sendMenuAction('menu:view-eula')
+        }
+      ]
+    }
+  ];
+
+  return template;
+}
+
+/**
+ * Build and set the application menu
+ */
+function rebuildMenu() {
+  const template = buildMenuTemplate();
+  const menu = Menu.buildFromTemplate(template);
+  Menu.setApplicationMenu(menu);
+}
+
+/**
+ * Load recent collections from app settings
+ * @returns {Promise<Array<string>>} Array of file paths
+ */
+async function loadRecentCollections() {
+  try {
+    const settingsPath = path.join(app.getPath('userData'), 'settings.json');
+    if (fs.existsSync(settingsPath)) {
+      const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+      return settings.recentCollections || [];
+    }
+    return [];
+  } catch (error) {
+    console.error('Error loading recent collections:', error);
+    return [];
+  }
+}
+
+/**
+ * Save recent collections to app settings
+ * @param {Array<string>} collections - Array of file paths
+ */
+async function saveRecentCollections(collections) {
+  try {
+    const settingsPath = path.join(app.getPath('userData'), 'settings.json');
+    let settings = {};
+    if (fs.existsSync(settingsPath)) {
+      settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+    }
+    settings.recentCollections = collections;
+    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
+  } catch (error) {
+    console.error('Error saving recent collections:', error);
+  }
+}
+
+/**
+ * Add a collection to the recent collections list
+ * @param {string} collectionPath - Path to collection file
+ */
+async function addToRecentCollections(collectionPath) {
+  let recent = await loadRecentCollections();
+
+  // Remove if already exists (to move to front)
+  recent = recent.filter(p => p !== collectionPath);
+
+  // Add to front
+  recent.unshift(collectionPath);
+
+  // Limit to 10
+  if (recent.length > 10) {
+    recent = recent.slice(0, 10);
+  }
+
+  await saveRecentCollections(recent);
+  menuState.recentCollections = recent;
+  rebuildMenu();
+}
+
+app.whenReady().then(async () => {
+  createWindow();
+
+  // Load recent collections and build menu
+  menuState.recentCollections = await loadRecentCollections();
+  rebuildMenu();
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
@@ -229,7 +622,12 @@ ipcMain.handle('load-collection', async (event, filePath) => {
     // Get progress stats
     const progress = progressTracker.getProgress();
     console.log('Progress stats:', progress.statistics);
-    
+
+    // Add to recent collections and update menu state
+    await addToRecentCollections(filePath);
+    menuState.collectionLoaded = true;
+    rebuildMenu();
+
     return {
       success: true,
       filePath,
@@ -761,7 +1159,7 @@ ipcMain.handle('get-progress-stats', async () => {
 ipcMain.handle('get-app-settings', async () => {
   try {
     const settingsPath = path.join(app.getPath('userData'), 'settings.json');
-    
+
     if (fs.existsSync(settingsPath)) {
       const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
       return { success: true, settings };
@@ -774,7 +1172,8 @@ ipcMain.handle('get-app-settings', async () => {
           searchDelay: 2000,
           imageHandling: 'url',
           autoBackup: true,
-          maxBackups: 5
+          maxBackups: 5,
+          defaultCollectionPath: '' // Path to auto-load on startup (empty = prompt user)
         }
       };
     }
@@ -787,7 +1186,18 @@ ipcMain.handle('get-app-settings', async () => {
 ipcMain.handle('save-app-settings', async (event, settings) => {
   try {
     const settingsPath = path.join(app.getPath('userData'), 'settings.json');
-    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
+
+    // IMPORTANT: Merge with existing settings to preserve fields not in the form
+    // (e.g., eulaAccepted, defaultCollectionPath)
+    let existingSettings = {};
+    if (fs.existsSync(settingsPath)) {
+      existingSettings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+    }
+
+    // Merge: new settings override existing, but preserve fields not in new settings
+    const mergedSettings = { ...existingSettings, ...settings };
+
+    fs.writeFileSync(settingsPath, JSON.stringify(mergedSettings, null, 2), 'utf8');
 
     // Sync API key to collection-specific settings if a collection is loaded
     if (settingsManager && settings.apiKey) {
@@ -815,6 +1225,100 @@ ipcMain.handle('save-app-settings', async (event, settings) => {
     return { success: true };
   } catch (error) {
     console.error('Error saving app settings:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// ============================================================================
+// IPC HANDLERS - Default Collection Path
+// ============================================================================
+
+/**
+ * Get the default collection path (for auto-loading on startup)
+ * @returns {Promise<{success: boolean, path: string|null}>}
+ */
+ipcMain.handle('get-default-collection', async () => {
+  try {
+    const settingsPath = path.join(app.getPath('userData'), 'settings.json');
+
+    if (fs.existsSync(settingsPath)) {
+      const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+      const defaultPath = settings.defaultCollectionPath || '';
+
+      // Verify the file still exists (skip check for empty path)
+      if (defaultPath) {
+        try {
+          // Use fs.accessSync for better network path support
+          fs.accessSync(defaultPath, fs.constants.R_OK);
+        } catch (accessError) {
+          console.warn('Default collection path not accessible:', defaultPath);
+          return { success: true, path: null, warning: 'File not accessible: ' + accessError.message };
+        }
+      }
+
+      return { success: true, path: defaultPath || null };
+    }
+
+    return { success: true, path: null };
+  } catch (error) {
+    console.error('Error getting default collection:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+/**
+ * Set the default collection path
+ * @param {Event} event
+ * @param {string} collectionPath - Path to the .db file (empty string to clear)
+ * @returns {Promise<{success: boolean}>}
+ */
+ipcMain.handle('set-default-collection', async (event, collectionPath) => {
+  try {
+    const settingsPath = path.join(app.getPath('userData'), 'settings.json');
+
+    // Load existing settings or create new
+    let settings = {};
+    if (fs.existsSync(settingsPath)) {
+      settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+    }
+
+    // Update the default collection path
+    settings.defaultCollectionPath = collectionPath || '';
+
+    // Save settings
+    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
+    console.log('Default collection path set to:', collectionPath || '(none)');
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error setting default collection:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+/**
+ * Browse for a collection file to set as default
+ * Opens file picker and returns selected path (does not load it)
+ * @returns {Promise<{success: boolean, path: string|null}>}
+ */
+ipcMain.handle('browse-default-collection', async () => {
+  try {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: 'Select Default Collection',
+      properties: ['openFile'],
+      filters: [
+        { name: 'OpenNumismat Collections', extensions: ['db'] },
+        { name: 'All Files', extensions: ['*'] }
+      ]
+    });
+
+    if (result.canceled) {
+      return { success: true, path: null };
+    }
+
+    return { success: true, path: result.filePaths[0] };
+  } catch (error) {
+    console.error('Error browsing for default collection:', error);
     return { success: false, error: error.message };
   }
 });
@@ -1056,6 +1560,17 @@ ipcMain.handle('open-external', async (event, url) => {
   }
 });
 
+// Get app version from package.json
+ipcMain.handle('get-app-version', async () => {
+  return app.getVersion();
+});
+
+// Open user manual window
+ipcMain.handle('open-manual', async () => {
+  openUserManual();
+  return { success: true };
+});
+
 // ============================================================================
 // Field Mapping IPC Handlers
 // ============================================================================
@@ -1187,4 +1702,51 @@ ipcMain.handle('reset-field-mappings', async () => {
   }
 });
 
-console.log('Numismat Enrichment Tool - Main process started');
+// ============================================================================
+// IPC HANDLERS - Menu State & Recent Collections
+// ============================================================================
+
+/**
+ * Update menu state from renderer process
+ * Used to enable/disable menu items based on app state
+ */
+ipcMain.handle('menu:update-state', async (event, state) => {
+  try {
+    menuState = { ...menuState, ...state };
+    rebuildMenu();
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating menu state:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+/**
+ * Get recent collections list
+ */
+ipcMain.handle('get-recent-collections', async () => {
+  try {
+    const collections = await loadRecentCollections();
+    return { success: true, collections };
+  } catch (error) {
+    console.error('Error getting recent collections:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+/**
+ * Clear recent collections list
+ */
+ipcMain.handle('clear-recent-collections', async () => {
+  try {
+    await saveRecentCollections([]);
+    menuState.recentCollections = [];
+    rebuildMenu();
+    return { success: true };
+  } catch (error) {
+    console.error('Error clearing recent collections:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+console.log('NumiSync Wizard - Main process started');

@@ -1,6 +1,6 @@
 /**
  * Default Field Mapping Configuration
- * OpenNumismat-Numista Data Enrichment Tool
+ * NumiSync Wizard for OpenNumismat
  * 
  * Maps OpenNumismat database fields to Numista API response fields.
  * Users can customize these mappings in their preferences.

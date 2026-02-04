@@ -3,8 +3,11 @@ node_modules/
 
 # Build outputs
 dist/
-build/
 out/
+
+# Build resources are kept (icons, etc.) - only ignore generated files
+build/*.exe
+build/*.msi
 
 # Environment variables
 .env

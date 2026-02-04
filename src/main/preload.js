@@ -102,7 +102,21 @@ const apiMethods = {
   resetFieldMappings: () => ipcRenderer.invoke('reset-field-mappings'),
 
   // Utility
-  openExternal: (url) => ipcRenderer.invoke('open-external', url)
+  openExternal: (url) => ipcRenderer.invoke('open-external', url),
+  getAppVersion: () => ipcRenderer.invoke('get-app-version'),
+  openManual: () => ipcRenderer.invoke('open-manual'),
+
+  // Default Collection (auto-load on startup)
+  getDefaultCollection: () => ipcRenderer.invoke('get-default-collection'),
+  setDefaultCollection: (path) => ipcRenderer.invoke('set-default-collection', path),
+  browseDefaultCollection: () => ipcRenderer.invoke('browse-default-collection'),
+
+  // Recent Collections
+  getRecentCollections: () => ipcRenderer.invoke('get-recent-collections'),
+  clearRecentCollections: () => ipcRenderer.invoke('clear-recent-collections'),
+
+  // Menu State
+  updateMenuState: (state) => ipcRenderer.invoke('menu:update-state', state)
 };
 
 // Expose as both 'electronAPI' (for backward compatibility) and 'api' (for new code)
@@ -111,3 +125,40 @@ contextBridge.exposeInMainWorld('api', apiMethods);
 
 // Expose diceCoefficient as a standalone utility for renderer-side confidence scoring
 contextBridge.exposeInMainWorld('stringSimilarity', { diceCoefficient });
+
+/**
+ * Menu event listeners for renderer process
+ * Allows main process to send menu action events to renderer
+ */
+contextBridge.exposeInMainWorld('menuEvents', {
+  /**
+   * Register a callback for menu actions from main process
+   * @param {function} callback - Function to call with (action, data) parameters
+   */
+  onMenuAction: (callback) => {
+    ipcRenderer.on('menu:load-collection', () => callback('load-collection'));
+    ipcRenderer.on('menu:load-recent', (_, path) => callback('load-recent', path));
+    ipcRenderer.on('menu:close-collection', () => callback('close-collection'));
+    ipcRenderer.on('menu:select-all-fields', () => callback('select-all-fields'));
+    ipcRenderer.on('menu:select-none', () => callback('select-none'));
+    ipcRenderer.on('menu:select-empty', () => callback('select-empty'));
+    ipcRenderer.on('menu:select-different', () => callback('select-different'));
+    ipcRenderer.on('menu:filter-status', (_, val) => callback('filter-status', val));
+    ipcRenderer.on('menu:filter-freshness', (_, val) => callback('filter-freshness', val));
+    ipcRenderer.on('menu:sort-by', (_, val) => callback('sort-by', val));
+    ipcRenderer.on('menu:reset-filters', () => callback('reset-filters'));
+    ipcRenderer.on('menu:refresh-list', () => callback('refresh-list'));
+    ipcRenderer.on('menu:open-app-settings', () => callback('open-app-settings'));
+    ipcRenderer.on('menu:open-data-settings', () => callback('open-data-settings'));
+    ipcRenderer.on('menu:open-field-mappings', () => callback('open-field-mappings'));
+    ipcRenderer.on('menu:export-mappings', () => callback('export-mappings'));
+    ipcRenderer.on('menu:import-mappings', () => callback('import-mappings'));
+    ipcRenderer.on('menu:reset-mappings', () => callback('reset-mappings'));
+    ipcRenderer.on('menu:reset-all', () => callback('reset-all'));
+    ipcRenderer.on('menu:set-default', () => callback('set-default'));
+    ipcRenderer.on('menu:clear-default', () => callback('clear-default'));
+    ipcRenderer.on('menu:clear-recent', () => callback('clear-recent'));
+    ipcRenderer.on('menu:about', () => callback('about'));
+    ipcRenderer.on('menu:view-eula', () => callback('view-eula'));
+  }
+});

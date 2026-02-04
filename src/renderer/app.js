@@ -1,5 +1,5 @@
 /**
- * Numismat Enrichment Tool - Main Application
+ * NumiSync Wizard - Main Application
  * Handles all UI interactions and coordinates with backend
  */
 
@@ -35,6 +35,113 @@ const AppState = {
 };
 
 // =============================================================================
+// EULA Configuration
+// =============================================================================
+
+const EULA_VERSION = '1.0';
+
+const EULA_CONTENT = `
+<div style="text-align: center; margin-bottom: 15px;">
+  <img src="images/logo_with_text.svg" alt="NumiSync Wizard for OpenNumismat" style="height: 60px; width: auto;">
+</div>
+<p><strong>End User License Agreement - Version ${EULA_VERSION}</strong></p>
+<p><em>Last Updated: February 2026</em></p>
+
+<h5>1. Acceptance of Terms</h5>
+<p>By installing, copying, or otherwise using this software ("Software"), you agree to be bound by the terms of this End User License Agreement ("Agreement"). If you do not agree to these terms, do not install or use the Software.</p>
+
+<h5>2. License Grant</h5>
+<p>Subject to the terms of this Agreement, you are granted a limited, non-exclusive, non-transferable, non-sublicensable, revocable license to install and use the Software on devices you own or control, solely for your personal, non-commercial use in managing your coin collection.</p>
+
+<h5>3. Restrictions</h5>
+<p>You shall not:</p>
+<ul>
+  <li>Reverse engineer, decompile, disassemble, or attempt to derive the source code of the Software</li>
+  <li>Modify, adapt, translate, or create derivative works based on the Software</li>
+  <li>Rent, lease, lend, sell, redistribute, or sublicense the Software</li>
+  <li>Use the Software for any commercial purpose</li>
+  <li>Remove or alter any proprietary notices, labels, or marks on the Software</li>
+</ul>
+
+<h5>4. Third-Party Services</h5>
+<p>This Software uses the Numista API to retrieve numismatic data. By using this Software:</p>
+<ul>
+  <li>You acknowledge that you have your own separate agreement with Numista, obtained when you registered for an API key</li>
+  <li>You understand that your use of Numista's services is governed solely by your agreement with them</li>
+  <li>The Developer is not responsible for your interactions, dealings, or disputes with Numista</li>
+  <li>The Developer does not control and is not liable for any data provided by Numista</li>
+</ul>
+
+<h5>5. Intellectual Property</h5>
+<p>The Software is licensed, not sold. The Developer retains all right, title, and interest in and to the Software, including all intellectual property rights. This Agreement does not grant you any rights to trademarks or service marks of the Developer.</p>
+
+<h5>6. Disclaimer of Warranties</h5>
+<p><strong>THE SOFTWARE IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT.</strong></p>
+<ul>
+  <li>Pricing information is for reference only and may be inaccurate, incomplete, or outdated</li>
+  <li>Catalog data may contain errors or omissions</li>
+  <li>No guarantee of data accuracy, completeness, reliability, or timeliness is made</li>
+  <li>The Developer does not warrant that the Software will meet your requirements or operate uninterrupted or error-free</li>
+</ul>
+
+<h5>7. Limitation of Liability</h5>
+<p><strong>TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL THE DEVELOPER BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS, DATA, USE, GOODWILL, OR OTHER INTANGIBLE LOSSES, RESULTING FROM:</strong></p>
+<ul>
+  <li>Your use or inability to use the Software</li>
+  <li>Any loss, corruption, or modification of your OpenNumismat database or any other data</li>
+  <li>Any financial decisions made based on pricing or valuation data</li>
+  <li>Any unauthorized access to or alteration of your data</li>
+  <li>Any third-party conduct or content, including Numista</li>
+  <li>Any other matter relating to the Software</li>
+</ul>
+<p>In no event shall the Developer's total liability exceed the amount you paid for the Software (if any), or $10 USD, whichever is lesser.</p>
+
+<h5>8. Indemnification</h5>
+<p>You agree to indemnify, defend, and hold harmless the Developer from and against any claims, liabilities, damages, losses, and expenses, including reasonable attorneys' fees, arising out of or in any way connected with: (a) your use of the Software; (b) your violation of this Agreement; (c) your violation of any third-party rights, including Numista's terms of service; or (d) your violation of any applicable law or regulation.</p>
+
+<h5>9. User Responsibilities</h5>
+<p>You acknowledge and agree that:</p>
+<ul>
+  <li>You are responsible for maintaining backups of your data</li>
+  <li>You should close OpenNumismat before using this Software to avoid database conflicts</li>
+  <li>You are solely responsible for any decisions made based on data obtained through this Software</li>
+  <li>You will comply with all applicable laws in your use of the Software</li>
+</ul>
+
+<h5>10. Governing Law and Jurisdiction</h5>
+<p>This Agreement shall be governed by and construed in accordance with the laws of the State of California, United States of America, without regard to its conflict of law provisions. You agree to submit to the personal and exclusive jurisdiction of the courts located in California for the resolution of any disputes.</p>
+
+<h5>11. Dispute Resolution and Arbitration</h5>
+<p><strong>PLEASE READ THIS SECTION CAREFULLY. IT AFFECTS YOUR LEGAL RIGHTS.</strong></p>
+<p>Any dispute, controversy, or claim arising out of or relating to this Agreement, or the breach thereof, shall be determined by binding arbitration administered by a mutually agreed-upon arbitration service, in accordance with its rules then in effect. The arbitration shall be conducted in California, United States of America. The arbitrator's decision shall be final and binding, and judgment on the award may be entered in any court having jurisdiction.</p>
+
+<h5>12. Class Action Waiver</h5>
+<p><strong>YOU AND THE DEVELOPER AGREE THAT EACH MAY BRING CLAIMS AGAINST THE OTHER ONLY IN YOUR OR ITS INDIVIDUAL CAPACITY AND NOT AS A PLAINTIFF OR CLASS MEMBER IN ANY PURPORTED CLASS OR REPRESENTATIVE PROCEEDING.</strong> Unless both you and the Developer agree otherwise, the arbitrator may not consolidate more than one person's claims and may not otherwise preside over any form of a representative or class proceeding.</p>
+
+<h5>13. Force Majeure</h5>
+<p>The Developer shall not be liable for any failure or delay in performance under this Agreement due to circumstances beyond its reasonable control, including but not limited to acts of God, natural disasters, climate change, pandemics, war, terrorism, riots, embargoes, acts of civil or military authorities, fire, floods, earthquakes, accidents, strikes, or shortages of transportation, facilities, fuel, energy, labor, or materials.</p>
+
+<h5>14. Severability</h5>
+<p>If any provision of this Agreement is held to be illegal, invalid, or unenforceable by a court of competent jurisdiction, such provision shall be modified to the minimum extent necessary to make it legal, valid, and enforceable, or if modification is not possible, shall be severed from this Agreement. The remaining provisions shall continue in full force and effect.</p>
+
+<h5>15. Waiver</h5>
+<p>No failure or delay by the Developer in exercising any right, power, or remedy under this Agreement shall operate as a waiver thereof, nor shall any single or partial exercise of any right, power, or remedy preclude any other or further exercise thereof or the exercise of any other right, power, or remedy.</p>
+
+<h5>16. Entire Agreement</h5>
+<p>This Agreement constitutes the entire agreement between you and the Developer regarding the Software and supersedes all prior and contemporaneous agreements, proposals, or representations, written or oral, concerning its subject matter.</p>
+
+<h5>17. Termination</h5>
+<p>This Agreement is effective until terminated. Your rights under this Agreement will terminate automatically without notice if you fail to comply with any of its terms. Upon termination, you must cease all use of the Software and destroy all copies in your possession or control. Sections 5-16 shall survive any termination of this Agreement.</p>
+
+<h5>18. Contact</h5>
+<p>For questions about this Agreement, please visit the project's GitHub repository.</p>
+
+<p style="margin-top: 20px; padding-top: 10px; border-top: 1px solid var(--border-color);">
+<em>By clicking "I Accept", you acknowledge that you have read, understood, and agree to be bound by this End User License Agreement, including the arbitration provision and class action waiver.</em>
+</p>
+`;
+
+// =============================================================================
 // Screen Navigation
 // =============================================================================
 
@@ -49,6 +156,12 @@ function showScreen(screenName) {
   if (screen) {
     screen.classList.add('active');
     AppState.currentScreen = screenName;
+  }
+
+  // Show/hide footer pagination based on screen
+  const footerPagination = document.getElementById('footerPagination');
+  if (footerPagination) {
+    footerPagination.style.display = screenName === 'collection' ? 'flex' : 'none';
   }
 }
 
@@ -107,6 +220,215 @@ function showModal(title, body, showCancel = false) {
     document.getElementById('modalCancel').addEventListener('click', cancelHandler);
     document.getElementById('modalClose').addEventListener('click', cancelHandler);
   });
+}
+
+/**
+ * Show the About dialog with app info, links, and license status
+ */
+async function showAboutDialog() {
+  let version = '1.0.0';
+  try {
+    version = await window.electronAPI.getAppVersion();
+  } catch (e) {
+    console.error('Error getting app version:', e);
+  }
+
+  const aboutHtml = `
+    <div style="text-align: center;">
+      <img src="images/logo_with_text.svg" alt="NumiSync Wizard for OpenNumismat" style="height: 80px; width: auto; margin-bottom: 10px;">
+      <p style="margin: 5px 0;">Version ${version}</p>
+
+      <div style="margin: 20px 0; padding: 15px; background: var(--bg-secondary, #f5f5f5); border-radius: 8px;">
+        <p style="margin: 0;">Developed by <strong>Shane Burkhardt</strong></p>
+        <p style="margin: 5px 0; font-size: 0.9em; color: var(--text-secondary);">Copyright 2026 Shane Burkhardt</p>
+        <p style="margin: 5px 0; font-size: 0.9em; color: var(--text-secondary);">Licensed under MIT</p>
+      </div>
+
+      <div style="margin: 15px 0;">
+        <a href="#" id="aboutGithubLink" style="display: block; margin: 8px 0; color: var(--accent);">GitHub - Updates & Issues</a>
+        <a href="#" id="aboutManualLink" style="display: block; margin: 8px 0; color: var(--accent);">User Manual</a>
+        <a href="#" id="aboutEulaLink" style="display: block; margin: 8px 0; color: var(--accent);">End User License Agreement</a>
+      </div>
+
+      <div style="margin-top: 20px; padding: 15px; background: var(--bg-secondary, #f5f5f5); border-radius: 8px;">
+        <p style="margin: 0 0 10px 0; font-weight: bold;">License Status</p>
+        <span style="display: inline-block; padding: 4px 12px; background: var(--text-secondary, #666); color: white; border-radius: 4px; font-size: 0.85em;">Free Version</span>
+        <p style="margin: 10px 0 0 0; font-size: 0.85em; color: var(--text-secondary);">
+          <a href="#" id="aboutManageLicenseLink" style="color: var(--text-secondary);">Manage License</a>
+        </p>
+      </div>
+    </div>
+  `;
+
+  await showModal('About', aboutHtml);
+
+  // Wire up the links after modal is shown (they're now in DOM)
+  setTimeout(() => {
+    const githubLink = document.getElementById('aboutGithubLink');
+    const manualLink = document.getElementById('aboutManualLink');
+    const eulaLink = document.getElementById('aboutEulaLink');
+    const manageLicenseLink = document.getElementById('aboutManageLicenseLink');
+
+    if (githubLink) {
+      githubLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        window.electronAPI.openExternal('https://github.com/inguy24/numismat-enrichment');
+      });
+    }
+
+    if (manualLink) {
+      manualLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        window.electronAPI.openManual();
+      });
+    }
+
+    if (eulaLink) {
+      eulaLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        document.getElementById('modal').style.display = 'none';
+        showEulaModal(false);
+      });
+    }
+
+    if (manageLicenseLink) {
+      manageLicenseLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        // Placeholder for future license management
+        showStatus('License management coming soon');
+      });
+    }
+  }, 0);
+}
+
+// =============================================================================
+// EULA Management
+// =============================================================================
+
+/**
+ * Check if EULA has been accepted for current version
+ * @returns {Promise<boolean>} True if EULA has been accepted
+ */
+async function isEulaAccepted() {
+  try {
+    const result = await window.electronAPI.getAppSettings();
+    if (result.success && result.settings) {
+      return result.settings.eulaAccepted === true &&
+             result.settings.eulaVersion === EULA_VERSION;
+    }
+    return false;
+  } catch (error) {
+    console.error('Error checking EULA status:', error);
+    return false;
+  }
+}
+
+/**
+ * Save EULA acceptance to app settings
+ * @returns {Promise<boolean>} True if saved successfully
+ */
+async function saveEulaAcceptance() {
+  try {
+    const result = await window.electronAPI.getAppSettings();
+    const settings = result.success ? result.settings : {};
+
+    settings.eulaAccepted = true;
+    settings.eulaAcceptedAt = new Date().toISOString();
+    settings.eulaVersion = EULA_VERSION;
+
+    const saveResult = await window.electronAPI.saveAppSettings(settings);
+    return saveResult.success;
+  } catch (error) {
+    console.error('Error saving EULA acceptance:', error);
+    return false;
+  }
+}
+
+/**
+ * Show the EULA modal
+ * @param {boolean} isFirstLaunch - If true, user must accept or app will exit
+ * @returns {Promise<boolean>} True if user accepted, false if declined
+ */
+function showEulaModal(isFirstLaunch = true) {
+  return new Promise((resolve) => {
+    const modal = document.getElementById('eulaModal');
+    const content = document.getElementById('eulaContent');
+    const checkbox = document.getElementById('eulaAcceptCheckbox');
+    const acceptBtn = document.getElementById('eulaAcceptBtn');
+    const declineBtn = document.getElementById('eulaDeclineBtn');
+    const numistaLink = document.getElementById('eulaNumistaLink');
+
+    // Populate content
+    content.innerHTML = EULA_CONTENT;
+
+    // Reset state
+    checkbox.checked = false;
+    acceptBtn.disabled = true;
+
+    // Update button text based on context
+    if (isFirstLaunch) {
+      declineBtn.textContent = 'Decline and Exit';
+    } else {
+      declineBtn.textContent = 'Close';
+    }
+
+    // Checkbox enables accept button
+    const checkboxHandler = () => {
+      acceptBtn.disabled = !checkbox.checked;
+    };
+    checkbox.addEventListener('change', checkboxHandler);
+
+    // Accept handler
+    const acceptHandler = async () => {
+      const saved = await saveEulaAcceptance();
+      modal.style.display = 'none';
+      cleanup();
+      resolve(saved);
+    };
+
+    // Decline handler
+    const declineHandler = () => {
+      modal.style.display = 'none';
+      cleanup();
+      if (isFirstLaunch) {
+        window.close();
+      }
+      resolve(false);
+    };
+
+    // Numista link handler
+    const numistaLinkHandler = (e) => {
+      e.preventDefault();
+      window.electronAPI.openExternal('https://en.numista.com');
+    };
+
+    const cleanup = () => {
+      checkbox.removeEventListener('change', checkboxHandler);
+      acceptBtn.removeEventListener('click', acceptHandler);
+      declineBtn.removeEventListener('click', declineHandler);
+      numistaLink.removeEventListener('click', numistaLinkHandler);
+    };
+
+    acceptBtn.addEventListener('click', acceptHandler);
+    declineBtn.addEventListener('click', declineHandler);
+    numistaLink.addEventListener('click', numistaLinkHandler);
+
+    // Show modal
+    modal.style.display = 'flex';
+  });
+}
+
+/**
+ * Check and show EULA on app startup if not accepted
+ * @returns {Promise<boolean>} True if EULA is accepted (or was just accepted)
+ */
+async function checkEulaOnStartup() {
+  const accepted = await isEulaAccepted();
+  if (!accepted) {
+    const userAccepted = await showEulaModal(true);
+    return userAccepted;
+  }
+  return true;
 }
 
 // =============================================================================
@@ -205,9 +527,9 @@ function updateProgressStats() {
   document.getElementById('statTotal').textContent = total;
 
   const dataTypes = [
-    { key: 'basicData', cardId: 'cardBasicData', mergedId: 'statBasicMerged', totalId: 'statBasicTotal', barId: 'barBasicData', secId: 'secBasicData', errId: 'errBasicData', skipId: 'skipBasicData' },
-    { key: 'issueData', cardId: 'cardIssueData', mergedId: 'statIssueMerged', totalId: 'statIssueTotal', barId: 'barIssueData', secId: 'secIssueData', errId: 'errIssueData', skipId: 'skipIssueData' },
-    { key: 'pricingData', cardId: 'cardPricingData', mergedId: 'statPricingMerged', totalId: 'statPricingTotal', barId: 'barPricingData', secId: 'secPricingData', errId: 'errPricingData', skipId: 'skipPricingData' }
+    { key: 'basicData', cardId: 'cardBasicData', mergedId: 'statBasicMerged', totalId: 'statBasicTotal', barId: 'barBasicData', label: 'Basic Data' },
+    { key: 'issueData', cardId: 'cardIssueData', mergedId: 'statIssueMerged', totalId: 'statIssueTotal', barId: 'barIssueData', label: 'Issue Data' },
+    { key: 'pricingData', cardId: 'cardPricingData', mergedId: 'statPricingMerged', totalId: 'statPricingTotal', barId: 'barPricingData', label: 'Pricing Data' }
   ];
 
   dataTypes.forEach(dt => {
@@ -221,23 +543,17 @@ function updateProgressStats() {
     document.getElementById(dt.totalId).textContent = total;
     document.getElementById(dt.barId).style.width = pct + '%';
 
-    const errEl = document.getElementById(dt.errId);
-    const skipEl = document.getElementById(dt.skipId);
-    const secEl = document.getElementById(dt.secId);
-
-    errEl.textContent = errors + ' error' + (errors !== 1 ? 's' : '');
-    skipEl.textContent = skipped + ' skipped';
-
-    if (errors > 0) {
-      errEl.classList.add('has-errors');
-    } else {
-      errEl.classList.remove('has-errors');
-    }
-
-    if (errors > 0 || skipped > 0) {
-      secEl.classList.add('visible');
-    } else {
-      secEl.classList.remove('visible');
+    // Build tooltip with error/skip details
+    const cardEl = document.getElementById(dt.cardId);
+    if (cardEl) {
+      let tooltip = `${dt.label}: ${merged}/${total} merged (${pct}%)`;
+      if (errors > 0 || skipped > 0) {
+        tooltip += '\n';
+        if (errors > 0) tooltip += `${errors} error${errors !== 1 ? 's' : ''}`;
+        if (errors > 0 && skipped > 0) tooltip += ', ';
+        if (skipped > 0) tooltip += `${skipped} skipped`;
+      }
+      cardEl.title = tooltip;
     }
   });
 }
@@ -582,37 +898,42 @@ function calculateFilterCounts(allCoins) {
 }
 
 /**
- * Update the filter summary display with counts
+ * Update the stats summary row display with counts
  */
 function updateFilterSummary() {
+  const summaryRow = document.getElementById('statsSummaryRow');
   if (!AppState.allCoins || AppState.allCoins.length === 0) {
-    document.getElementById('filterSummary').style.display = 'none';
+    if (summaryRow) summaryRow.style.display = 'none';
     return;
   }
 
   const counts = calculateFilterCounts(AppState.allCoins);
-  const summaryEl = document.getElementById('filterSummary');
 
-  const html = `
-    <div class="filter-summary-section">
-      <strong>Status:</strong>
-      <span class="filter-count">Complete: ${counts.status.complete}</span>
-      <span class="filter-count">Partial: ${counts.status.partial}</span>
-      <span class="filter-count">Unprocessed: ${counts.status.unprocessed}</span>
-      <span class="filter-count">Skipped: ${counts.status.skipped}</span>
-    </div>
-    <div class="filter-summary-section">
-      <strong>Pricing:</strong>
-      <span class="filter-count">Current: ${counts.freshness.current}</span>
-      <span class="filter-count">Recent: ${counts.freshness.recent}</span>
-      <span class="filter-count">Aging: ${counts.freshness.aging}</span>
-      <span class="filter-count">Outdated: ${counts.freshness.outdated}</span>
-      <span class="filter-count">Never: ${counts.freshness.never}</span>
-    </div>
-  `;
+  // Update status counts
+  const countComplete = document.getElementById('countComplete');
+  const countPartial = document.getElementById('countPartial');
+  const countUnprocessed = document.getElementById('countUnprocessed');
+  const countSkipped = document.getElementById('countSkipped');
 
-  summaryEl.innerHTML = html;
-  summaryEl.style.display = 'flex';
+  if (countComplete) countComplete.textContent = `Complete: ${counts.status.complete}`;
+  if (countPartial) countPartial.textContent = `Partial: ${counts.status.partial}`;
+  if (countUnprocessed) countUnprocessed.textContent = `Unprocessed: ${counts.status.unprocessed}`;
+  if (countSkipped) countSkipped.textContent = `Skipped: ${counts.status.skipped}`;
+
+  // Update freshness counts
+  const countCurrent = document.getElementById('countCurrent');
+  const countRecent = document.getElementById('countRecent');
+  const countAging = document.getElementById('countAging');
+  const countOutdated = document.getElementById('countOutdated');
+  const countNever = document.getElementById('countNever');
+
+  if (countCurrent) countCurrent.textContent = `Current: ${counts.freshness.current}`;
+  if (countRecent) countRecent.textContent = `Recent: ${counts.freshness.recent}`;
+  if (countAging) countAging.textContent = `Aging: ${counts.freshness.aging}`;
+  if (countOutdated) countOutdated.textContent = `Outdated: ${counts.freshness.outdated}`;
+  if (countNever) countNever.textContent = `Never: ${counts.freshness.never}`;
+
+  if (summaryRow) summaryRow.style.display = 'flex';
 }
 
 function renderCoinList() {
@@ -1349,6 +1670,8 @@ async function handleMatchSelection(matchIndex) {
 async function showFieldComparison() {
   showScreen('comparison');
   showStatus('Comparing fields...');
+  // Update menu state - field comparison is now active
+  updateMenuState({ fieldComparisonActive: true });
 
   try {
     const result = await window.electronAPI.compareFields({
@@ -2174,6 +2497,8 @@ document.getElementById('applyChangesBtn').addEventListener('click', async () =>
       showProgress(false);
       loadCoins();
       showScreen('collection');
+      // Leaving comparison screen after successful merge
+      updateMenuState({ fieldComparisonActive: false });
     }, 500);
 
   } catch (error) {
@@ -2193,14 +2518,20 @@ document.getElementById('closeCollectionBtn').addEventListener('click', () => {
   AppState.coins = [];
   showScreen('welcome');
   showStatus('');
+  // Update menu state
+  updateMenuState({ collectionLoaded: false, fieldComparisonActive: false });
 });
 
 document.getElementById('backToListBtn').addEventListener('click', () => {
   showScreen('collection');
+  // Leaving comparison screen
+  updateMenuState({ fieldComparisonActive: false });
 });
 
 document.getElementById('backToMatchesBtn').addEventListener('click', () => {
   showScreen('match');
+  // Leaving comparison screen
+  updateMenuState({ fieldComparisonActive: false });
 });
 
 document.getElementById('skipCoinBtn').addEventListener('click', async () => {
@@ -2209,13 +2540,17 @@ document.getElementById('skipCoinBtn').addEventListener('click', async () => {
     status: 'skipped',
     metadata: {}
   });
-  
+
   showScreen('collection');
   loadCoins();
+  // Leaving comparison screen
+  updateMenuState({ fieldComparisonActive: false });
 });
 
 document.getElementById('cancelMergeBtn').addEventListener('click', () => {
   showScreen('match');
+  // Leaving comparison screen
+  updateMenuState({ fieldComparisonActive: false });
 });
 
 // =============================================================================
@@ -2409,6 +2744,49 @@ function loadSettingsScreen() {
   document.getElementById('maxBackupsInput').value = isUnlimited ? 5 : maxBackups;
   document.getElementById('unlimitedBackupsCheckbox').checked = isUnlimited;
   updateBackupControlsState();
+
+  // Load default collection path
+  loadDefaultCollectionDisplay();
+}
+
+/**
+ * Load and display the default collection path in settings
+ */
+async function loadDefaultCollectionDisplay() {
+  try {
+    const result = await window.electronAPI.getDefaultCollection();
+    updateDefaultCollectionUI(result.path);
+  } catch (error) {
+    console.error('Error loading default collection:', error);
+    updateDefaultCollectionUI(null);
+  }
+}
+
+/**
+ * Update the default collection UI elements
+ * @param {string|null} path - The default collection path or null if not set
+ */
+function updateDefaultCollectionUI(path) {
+  const displayEl = document.getElementById('defaultCollectionPath');
+  const clearBtn = document.getElementById('clearDefaultCollectionBtn');
+  const useCurrentBtn = document.getElementById('useCurrentAsDefaultBtn');
+
+  if (path) {
+    // Extract just the filename for cleaner display
+    const filename = path.split(/[\\/]/).pop();
+    displayEl.innerHTML = `<strong>${filename}</strong><br><small style="color: var(--text-secondary, #666);">${path}</small>`;
+    clearBtn.style.display = 'inline-block';
+  } else {
+    displayEl.innerHTML = '<em>No default collection set</em>';
+    clearBtn.style.display = 'none';
+  }
+
+  // Show "Use Current Collection" button only if a collection is loaded and differs from default
+  if (AppState.collectionPath && AppState.collectionPath !== path) {
+    useCurrentBtn.style.display = 'inline-block';
+  } else {
+    useCurrentBtn.style.display = 'none';
+  }
 }
 
 function updateBackupControlsState() {
@@ -2468,11 +2846,130 @@ document.getElementById('resetSettingsBtn').addEventListener('click', async () =
 });
 
 // =============================================================================
+// Default Collection Settings
+// =============================================================================
+
+document.getElementById('browseDefaultCollectionBtn').addEventListener('click', async () => {
+  try {
+    const result = await window.electronAPI.browseDefaultCollection();
+    if (result.success && result.path) {
+      const setResult = await window.electronAPI.setDefaultCollection(result.path);
+      if (setResult.success) {
+        updateDefaultCollectionUI(result.path);
+        showStatus('Default collection set successfully');
+      } else {
+        showModal('Error', 'Failed to save default collection setting');
+      }
+    }
+  } catch (error) {
+    console.error('Error browsing for default collection:', error);
+    showModal('Error', 'Failed to browse for collection: ' + error.message);
+  }
+});
+
+document.getElementById('useCurrentAsDefaultBtn').addEventListener('click', async () => {
+  if (!AppState.collectionPath) {
+    showModal('Error', 'No collection is currently loaded');
+    return;
+  }
+
+  try {
+    const result = await window.electronAPI.setDefaultCollection(AppState.collectionPath);
+    if (result.success) {
+      updateDefaultCollectionUI(AppState.collectionPath);
+      showStatus('Current collection set as default');
+    } else {
+      showModal('Error', 'Failed to save default collection setting');
+    }
+  } catch (error) {
+    console.error('Error setting current as default:', error);
+    showModal('Error', 'Failed to set default collection: ' + error.message);
+  }
+});
+
+document.getElementById('clearDefaultCollectionBtn').addEventListener('click', async () => {
+  try {
+    const result = await window.electronAPI.setDefaultCollection('');
+    if (result.success) {
+      updateDefaultCollectionUI(null);
+      showStatus('Default collection cleared');
+    } else {
+      showModal('Error', 'Failed to clear default collection setting');
+    }
+  } catch (error) {
+    console.error('Error clearing default collection:', error);
+    showModal('Error', 'Failed to clear default collection: ' + error.message);
+  }
+});
+
+// =============================================================================
 // Initialization
 // =============================================================================
 
-showScreen('welcome');
-showStatus('Ready');
+/**
+ * Try to auto-load a default collection if one is configured
+ * @returns {Promise<boolean>} True if a collection was auto-loaded
+ */
+async function tryAutoLoadDefaultCollection() {
+  try {
+    const result = await window.electronAPI.getDefaultCollection();
+
+    if (!result.success || !result.path) {
+      return false;
+    }
+
+    // A default collection is configured - try to load it
+    console.log('Auto-loading default collection:', result.path);
+    showStatus('Loading default collection...');
+    showProgress(true, 30);
+
+    const loadResult = await window.electronAPI.loadCollection(result.path);
+
+    if (!loadResult.success) {
+      if (loadResult.error === 'cancelled') {
+        // User cancelled from the database-in-use dialog
+        showProgress(false);
+        showStatus('Collection load cancelled');
+        return false;
+      }
+
+      // Failed to load - show warning but don't block
+      console.error('Failed to auto-load default collection:', loadResult.error);
+      showProgress(false);
+      showStatus('');
+      showModal('Auto-Load Failed',
+        `Could not load your default collection:<br><br>` +
+        `<strong>${result.path}</strong><br><br>` +
+        `Error: ${loadResult.error}<br><br>` +
+        `The file may have been moved or deleted. You can update or clear the default in Settings.`
+      );
+      return false;
+    }
+
+    // Successfully loaded
+    AppState.collectionPath = loadResult.filePath;
+    AppState.collection = loadResult.summary;
+    AppState.progressStats = loadResult.progress.statistics;
+
+    showProgress(true, 100);
+    showStatus(`Loaded collection: ${loadResult.filePath}`);
+
+    await loadCollectionScreen();
+
+    setTimeout(() => {
+      showProgress(false);
+      showScreen('collection');
+    }, 500);
+
+    return true;
+  } catch (error) {
+    console.error('Error checking default collection:', error);
+    return false;
+  }
+}
+
+// Note: Auto-load is handled in the DOMContentLoaded handler after EULA check
+
 /**
  * Data Settings UI Handler
  * 
@@ -3242,26 +3739,321 @@ async function refreshSessionCounter() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+// =============================================================================
+// Menu Event Handling
+// =============================================================================
+
+/**
+ * Handle menu actions from main process
+ * @param {string} action - Menu action identifier
+ * @param {*} data - Optional data for the action
+ */
+async function handleMenuAction(action, data) {
+  console.log('Menu action received:', action, data);
+
+  switch (action) {
+    case 'load-collection':
+      document.getElementById('loadCollectionBtn').click();
+      break;
+
+    case 'load-recent':
+      // Load a collection from the recent list
+      if (data) {
+        showStatus('Loading collection...');
+        const result = await window.electronAPI.loadCollection(data);
+        if (result.success) {
+          AppState.collectionPath = result.filePath;
+          AppState.collection = result.summary;
+          await loadCollectionScreen();
+        } else if (result.error !== 'cancelled') {
+          showModal('Error', 'Failed to load collection: ' + result.error);
+        }
+      }
+      break;
+
+    case 'close-collection':
+      document.getElementById('closeCollectionBtn').click();
+      break;
+
+    case 'select-all-fields':
+      if (AppState.currentScreen === 'comparison' && AppState.fieldComparison) {
+        const selectAllBtn = document.getElementById('selectAllFieldsBtn');
+        if (selectAllBtn) selectAllBtn.click();
+      }
+      break;
+
+    case 'select-none':
+      if (AppState.currentScreen === 'comparison' && AppState.fieldComparison) {
+        const selectNoneBtn = document.getElementById('selectNoneFieldsBtn');
+        if (selectNoneBtn) selectNoneBtn.click();
+      }
+      break;
+
+    case 'select-empty':
+      if (AppState.currentScreen === 'comparison' && AppState.fieldComparison) {
+        const selectEmptyBtn = document.getElementById('selectEmptyFieldsBtn');
+        if (selectEmptyBtn) selectEmptyBtn.click();
+      }
+      break;
+
+    case 'select-different':
+      if (AppState.currentScreen === 'comparison' && AppState.fieldComparison) {
+        const selectDiffBtn = document.getElementById('selectDifferentFieldsBtn');
+        if (selectDiffBtn) selectDiffBtn.click();
+      }
+      break;
+
+    case 'filter-status':
+      if (AppState.collectionPath) {
+        const statusFilter = document.getElementById('statusFilter');
+        if (statusFilter) {
+          statusFilter.value = data;
+          AppState.filterSort.statusFilter = data;
+          AppState.pagination.currentPage = 1;
+          loadCoins();
+        }
+      }
+      break;
+
+    case 'filter-freshness':
+      if (AppState.collectionPath) {
+        const freshnessFilter = document.getElementById('freshnessFilter');
+        if (freshnessFilter) {
+          freshnessFilter.value = data;
+          AppState.filterSort.freshnessFilter = data;
+          AppState.pagination.currentPage = 1;
+          loadCoins();
+        }
+      }
+      break;
+
+    case 'sort-by':
+      if (AppState.collectionPath) {
+        const sortBy = document.getElementById('sortBy');
+        if (sortBy) {
+          sortBy.value = data;
+          AppState.filterSort.sortBy = data;
+          AppState.pagination.currentPage = 1;
+          loadCoins();
+        }
+      }
+      break;
+
+    case 'reset-filters':
+      if (AppState.collectionPath) {
+        const resetBtn = document.getElementById('resetFiltersBtn');
+        if (resetBtn) resetBtn.click();
+      }
+      break;
+
+    case 'refresh-list':
+      if (AppState.collectionPath) {
+        loadCoins();
+      }
+      break;
+
+    case 'open-app-settings':
+      // Open App Settings screen (API key, backup, default collection)
+      {
+        const result = await window.electronAPI.getAppSettings();
+        if (result.success) {
+          AppState.settings = result.settings;
+          loadSettingsScreen();
+          showScreen('settings');
+        }
+      }
+      break;
+
+    case 'open-data-settings':
+      // Open Data Settings modal on Fetch Settings tab (collection-specific)
+      if (dataSettingsUI && AppState.collectionPath) {
+        dataSettingsUI.openModal();
+        dataSettingsUI.switchTab('fetchSettingsTab');
+      }
+      break;
+
+    case 'open-field-mappings':
+      // Open Data Settings modal on Field Mappings tab
+      if (dataSettingsUI && AppState.collectionPath) {
+        dataSettingsUI.openModal();
+        dataSettingsUI.switchTab('fieldMappingsTab');
+      }
+      break;
+
+    case 'export-mappings':
+      if (AppState.collectionPath) {
+        const result = await window.electronAPI.exportFieldMappings();
+        if (result.success) {
+          showStatus('Field mappings exported');
+        }
+      }
+      break;
+
+    case 'import-mappings':
+      if (AppState.collectionPath) {
+        const result = await window.electronAPI.importFieldMappings();
+        if (result.success) {
+          showStatus('Field mappings imported');
+          if (dataSettingsUI) {
+            dataSettingsUI.loadFieldMappings();
+          }
+        }
+      }
+      break;
+
+    case 'reset-mappings':
+      if (AppState.collectionPath) {
+        const confirmed = await new Promise(resolve => {
+          showModal('Confirm Reset', 'Reset all field mappings to defaults?', true);
+          document.getElementById('modalConfirmBtn').onclick = () => {
+            document.getElementById('confirmModal').style.display = 'none';
+            resolve(true);
+          };
+          document.getElementById('modalCancelBtn').onclick = () => {
+            document.getElementById('confirmModal').style.display = 'none';
+            resolve(false);
+          };
+        });
+        if (confirmed) {
+          await window.electronAPI.resetFieldMappings();
+          showStatus('Field mappings reset to defaults');
+          if (dataSettingsUI) {
+            dataSettingsUI.loadFieldMappings();
+          }
+        }
+      }
+      break;
+
+    case 'reset-all':
+      if (AppState.collectionPath) {
+        const confirmed = await new Promise(resolve => {
+          showModal('Confirm Reset', 'Reset ALL settings to defaults? This includes fetch settings, currency, and field mappings.', true);
+          document.getElementById('modalConfirmBtn').onclick = () => {
+            document.getElementById('confirmModal').style.display = 'none';
+            resolve(true);
+          };
+          document.getElementById('modalCancelBtn').onclick = () => {
+            document.getElementById('confirmModal').style.display = 'none';
+            resolve(false);
+          };
+        });
+        if (confirmed) {
+          await window.electronAPI.resetSettings();
+          showStatus('All settings reset to defaults');
+          if (dataSettingsUI) {
+            await dataSettingsUI.loadSettings();
+            dataSettingsUI.loadFieldMappings();
+          }
+        }
+      }
+      break;
+
+    case 'set-default':
+      if (AppState.collectionPath) {
+        await window.electronAPI.setDefaultCollection(AppState.collectionPath);
+        showStatus('Default collection set');
+      }
+      break;
+
+    case 'clear-default':
+      await window.electronAPI.setDefaultCollection('');
+      showStatus('Default collection cleared');
+      break;
+
+    case 'clear-recent':
+      await window.electronAPI.clearRecentCollections();
+      showStatus('Recent collections cleared');
+      break;
+
+    case 'about':
+      showAboutDialog();
+      break;
+
+    case 'view-eula':
+      showEulaModal(false);
+      break;
+
+    default:
+      console.warn('Unknown menu action:', action);
+  }
+}
+
+/**
+ * Update menu state in main process
+ * Call this when app state changes that affects menu items
+ * @param {Object} state - State object with collectionLoaded and/or fieldComparisonActive
+ */
+function updateMenuState(state) {
+  if (window.electronAPI && window.electronAPI.updateMenuState) {
+    window.electronAPI.updateMenuState(state).catch(err => {
+      console.error('Error updating menu state:', err);
+    });
+  }
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  // Show welcome screen initially while we check EULA and default collection
+  showScreen('welcome');
+  showStatus('Starting...');
+
+  // Check EULA acceptance first before initializing the app
+  const eulaOk = await checkEulaOnStartup();
+  if (!eulaOk) {
+    // User declined EULA - window.close() was called in the handler
+    return;
+  }
+
   dataSettingsUI = new DataSettingsUI();
 
-  // Load initial settings and update status bar
-  window.api.getSettings().then(settings => {
-    if (dataSettingsUI) {
-      dataSettingsUI.updateStatusBarDisplay(settings.fetchSettings);
-    }
-  }).catch(error => {
-    console.error('Error loading initial settings:', error);
-  });
+  // Setup menu event listeners
+  if (window.menuEvents) {
+    window.menuEvents.onMenuAction(handleMenuAction);
+    console.log('Menu event listeners registered');
+  }
 
-  // Load session call count
-  window.api.getStatistics().then(stats => {
-    if (dataSettingsUI) {
-      dataSettingsUI.updateSessionCallDisplay(stats.sessionCallCount || 0);
-    }
-  }).catch(error => {
-    console.error('Error loading statistics:', error);
-  });
+  // Try to auto-load default collection (after EULA is accepted)
+  const autoLoaded = await tryAutoLoadDefaultCollection();
+
+  if (!autoLoaded) {
+    // No default collection or failed to load - show welcome screen
+    showScreen('welcome');
+    showStatus('Ready');
+  } else {
+    // Collection was loaded - update status bar displays
+    window.api.getSettings().then(settings => {
+      if (dataSettingsUI) {
+        dataSettingsUI.updateStatusBarDisplay(settings.fetchSettings);
+      }
+    }).catch(error => {
+      console.error('Error loading initial settings:', error);
+    });
+
+    window.api.getStatistics().then(stats => {
+      if (dataSettingsUI) {
+        dataSettingsUI.updateSessionCallDisplay(stats.sessionCallCount || 0);
+      }
+    }).catch(error => {
+      console.error('Error loading statistics:', error);
+    });
+  }
+
+  // Wire up "View EULA" link in Settings
+  const viewEulaLink = document.getElementById('viewEulaLink');
+  if (viewEulaLink) {
+    viewEulaLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      showEulaModal(false); // Not first launch - can just close
+    });
+  }
+
+  // Wire up Numista website link in Settings
+  const numistaWebsiteLink = document.getElementById('numistaWebsiteLink');
+  if (numistaWebsiteLink) {
+    numistaWebsiteLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.electronAPI.openExternal('https://en.numista.com');
+    });
+  }
 });
 
 // ============================================================

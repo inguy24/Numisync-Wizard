@@ -2,8 +2,10 @@
 
 ## 1. DOCUMENTATION HIERARCHY
 - **Read `docs/PROJECT-REFERENCE.md`** for architecture, IPC handlers, data flow when implementing features
-- **Read `docs/NOTES-WORK-PLAN.md`** for current work items and priorities
+- **Read `docs/PHASE3-WORK-PLAN.md`** for current work items and priorities
 - **Update `docs/CHANGELOG.md`** after completing fixes or features
+- **Update `docs/PROJECT-REFERENCE.md`** if task completion changes project status, phase progress, or architecture
+- **Archive completed work plans** to `docs/archive/` with `-COMPLETE` suffix (e.g., `PHASE2-WORK-PLAN-COMPLETE.md`)
 - **NEVER** assume project state; verify against documentation first
 
 ## 2. CODING & REPOSITORY STANDARDS

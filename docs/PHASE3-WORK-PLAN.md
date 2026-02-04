@@ -1,492 +1,297 @@
-# Phase 3 Work Plan - OpenNumismat Enrichment Tool
+# Phase 3 Work Plan - Numista Collection Sync
 
-**Project:** OpenNumismat-Numista Data Enrichment Tool
+**Project:** NumiSync Wizard for OpenNumismat
 **Phase:** Phase 3 - Numista Collection Management
-**Date Created:** February 1, 2026
-**Status:** Planning - Ready for Implementation
+**Created:** February 1, 2026
+**Last Updated:** February 3, 2026
 
 ---
 
-## Executive Summary
+## Quick Summary
 
-Phase 3 adds bi-directional sync capability, allowing users to add coins from their OpenNumismat collection to their Numista online collection. This enables:
-
-- **Add coins to Numista** - Push OpenNumismat coins to cloud collection
-- **OAuth 2.0 authentication** - Secure user authorization
-- **Comprehensive data mapping** - All available OpenNumismat fields map to Numista
-- **Selective sync** - Choose which coins to add (not forced sync)
-- **Collection management** - Select target Numista collection
-- **Grade mapping** - Convert OpenNumismat grades to Numista standard grades
-- **Sync status tracking** - Know which coins have been added
-
-**Key Benefits:**
-- Backup collection data to cloud
-- Access collection from mobile/web via Numista
-- Share collection with other collectors
-- Leverage Numista's swap marketplace
-- Unified collection management
+Phase 3 adds one-way sync from OpenNumismat → Numista, enabling users to push coins to their Numista online collection with OAuth 2.0 authentication, comprehensive data mapping, and sync status tracking.
 
 ---
 
-## Architecture Decisions Summary
+## Task Status Dashboard
 
-| Decision Point | Choice | Rationale |
-|----------------|--------|-----------|
-| **OAuth Flow** | Client Credentials | Simple, works for single-user desktop app |
-| **Direction** | One-way: OpenNumismat → Numista | Prevents sync conflicts, clear source of truth |
-| **Sync Strategy** | Manual, selective | User controls what gets added |
-| **User ID Storage** | In settings file | Required for API calls |
-| **Token Storage** | Secure storage (encrypted) | Security best practice |
-| **Token Refresh** | On-demand | Request new token when needed |
-| **Collection Selection** | User chooses target collection | Flexibility for multi-collection users |
-| **Duplicate Detection** | Check by Numista ID before adding | Prevent duplicates |
-| **Sync Status Storage** | Metadata in note field | Consistent with Phase 2 |
-| **Data Mapping** | Comprehensive field mapping | Utilize all available data |
+| ID | Task | Status | Priority | Dependencies |
+|----|------|--------|----------|--------------|
+| **COMPLETED** |
+| 3.0 | Application Menu Bar | ✅ Complete | HIGH | None |
+| **CORE IMPLEMENTATION** |
+| 3.1 | OAuth 2.0 Integration | ⏳ Pending | CRITICAL | None |
+| 3.2 | Data Mapper (Reverse Direction) | ⏳ Pending | HIGH | 3.1 |
+| 3.3 | Collection Selection UI | ⏳ Pending | MEDIUM | 3.1 |
+| 3.4 | Add Coin UI & Flow | ⏳ Pending | HIGH | 3.1, 3.2, 3.3 |
+| 3.5 | Sync Status Display | ⏳ Pending | MEDIUM | 3.4 |
+| **ENHANCEMENTS (Optional)** |
+| 3.6 | Batch Add Feature | ⏳ Pending | LOW | 3.4 |
+| 3.7 | Update Existing Coin | ⏳ Pending | LOW | 3.4 |
+| 3.8 | About Page & Licensing System | ⏳ Pending | MEDIUM | None |
+| 3.9 | Fast Pricing Update 💎 PREMIUM | ⏳ Pending | MEDIUM | 3.8 |
+| **DEFERRED TO FUTURE PHASE** |
+| 3.10 | Multi-Source Data Fetching | 🔮 Future | — | Phase 4+ |
+| 3.11 | OpenNumismat Plugin Integration | 🔮 Future | — | After packaging |
+
+**Legend:** ✅ Complete | 🔄 In Progress | ⏳ Pending | 🔮 Future/Deferred
+
+**Critical Path:** 3.1 → 3.2 → 3.4 (OAuth → Data Mapper → Add Coin UI)
 
 ---
 
-## OAuth 2.0 Implementation Strategy
-
-### Flow Type: Client Credentials (Simple)
-
-**Why Client Credentials:**
-- Each user provides their own Numista API key
-- API key is also the `client_secret`
-- No browser redirects needed
-- No authorization prompts
-- Works perfectly for desktop app
-
-### Authentication Flow
+## Task Dependency Graph
 
 ```
-User Opens Settings
-  ↓
-User enters:
-  - Numista API Key
-  - Numista User ID (optional - can auto-detect)
-  ↓
-App requests OAuth token:
-  GET /oauth_token
-  - grant_type: client_credentials
-  - scope: edit_collection
-  - Headers: Numista-API-Key: {user's key}
-  ↓
-Numista returns:
-  - access_token: "abc123..."
-  - token_type: "Bearer"
-  - expires_in: 3600
-  ↓
-App stores token securely (encrypted)
-  ↓
-User adds coin to Numista:
-  POST /users/{user_id}/collected_items
-  - Headers:
-    - Numista-API-Key: {user's key}
-    - Authorization: Bearer {access_token}
-  - Body: coin data
-  ↓
-Success: Coin added to Numista collection
-```
+3.0 Menu Bar ✅
+      (independent - already complete)
 
-### Token Management
+3.1 OAuth 2.0 ⏳
+  ├──→ 3.2 Data Mapper ⏳
+  │      └──→ 3.4 Add Coin UI ⏳
+  │             ├──→ 3.5 Sync Status ⏳
+  │             ├──→ 3.6 Batch Add ⏳
+  │             └──→ 3.7 Update Coin ⏳
+  └──→ 3.3 Collection Selection ⏳
+         └──→ 3.4 Add Coin UI ⏳
 
-**Storage:**
-- Encrypt token using electron-store or similar
-- Store in settings file (encrypted section)
-- Never log token to console or files
-
-**Expiration Handling:**
-```javascript
-async function ensureValidToken() {
-  const token = getStoredToken();
-  const expiry = getTokenExpiry();
-
-  if (!token || Date.now() >= expiry) {
-    // Token missing or expired
-    const newToken = await requestNewToken();
-    storeToken(newToken, Date.now() + 3600000); // 1 hour
-    return newToken;
-  }
-
-  return token;
-}
-```
-
-**Refresh Strategy:**
-- Check expiry before each API call
-- Request new token if expired/missing
-- No refresh token needed (client credentials generates new token each time)
-
----
-
-## Prerequisites
-
-### What Users Need
-
-1. **Numista Account** (free or paid)
-   - Create at https://en.numista.com/
-
-2. **Numista API Key**
-   - Request from Numista (usually provided with account)
-   - Contact: developer support or settings page
-
-3. **Numista User ID**
-   - Option A: User provides it (found in profile URL)
-   - Option B: App auto-detects via `/me` endpoint (if available)
-   - Format: Integer (e.g., 12345)
-
-4. **API Quota Awareness**
-   - Free tier: Limited calls per day
-   - Paid tier: Higher quota
-   - Each coin add = 1 API call
-
-### What Developers Need
-
-**From Numista:**
-- API documentation (already have: swagger.yaml)
-- Client ID (may not be needed for client credentials)
-- Confirmation that client credentials flow works
-
-**Libraries:**
-- `axios` (already installed)
-- `electron-store` (for secure settings storage) - or similar
-- No OAuth library needed (simple GET request)
-
----
-
-## Data Mapping: OpenNumismat → Numista
-
-### Numista API Fields (POST /users/{user_id}/collected_items)
-
-**Required:**
-- `type` (integer) - Numista Type ID
-
-**Optional - Directly Mapped:**
-| Numista Field | OpenNumismat Field | Transform |
-|---------------|-------------------|-----------|
-| `issue` | issue_id (from metadata) | Direct |
-| `quantity` | quantity | Default 1 if empty |
-| `grade` | grade | See grade mapping below |
-| `for_swap` | N/A | User checkbox in UI |
-| `private_comment` | note (user notes only) | Strip metadata |
-| `price` → `value` | price (selected grade) | From price_unc/xf/vf/f |
-| `price` → `currency` | N/A | From settings (USD/EUR/etc) |
-| `storage_location` | location | Direct |
-| `acquisition_place` | saleplace | Direct |
-| `acquisition_date` | saledate | Format YYYY-MM-DD |
-| `serial_number` | serial | Direct |
-| `weight` | weight | Direct (grams) |
-| `size` | diameter | Direct (mm) |
-
-**Optional - Not Available in OpenNumismat:**
-| Numista Field | OpenNumismat Equivalent | Strategy |
-|---------------|------------------------|----------|
-| `axis` | N/A | Omit (not in OpenNumismat) |
-| `grading_details` | N/A | Omit (advanced grading) |
-| `internal_id` | id (OpenNumismat ID) | Could use for reference |
-| `collection` | N/A | User selects in UI |
-| `public_comment` | N/A | Omit or user inputs |
-
-### Grade Mapping
-
-**Numista Grades:** `g`, `vg`, `f`, `vf`, `xf`, `au`, `unc`
-
-**OpenNumismat Grades:** Flexible text field (varies by user)
-
-**Mapping Strategy:**
-```javascript
-function mapGradeToNumista(openNumismatGrade) {
-  if (!openNumismatGrade) return null;
-
-  const grade = openNumismatGrade.toLowerCase().trim();
-
-  // Direct matches
-  const directMap = {
-    'g': 'g', 'good': 'g',
-    'vg': 'vg', 'very good': 'vg',
-    'f': 'f', 'fine': 'f',
-    'vf': 'vf', 'very fine': 'vf',
-    'xf': 'xf', 'ef': 'xf', 'extremely fine': 'xf', 'extra fine': 'xf',
-    'au': 'au', 'about uncirculated': 'au',
-    'unc': 'unc', 'uncirculated': 'unc', 'bu': 'unc', 'ms': 'unc'
-  };
-
-  if (directMap[grade]) return directMap[grade];
-
-  // Partial matches
-  if (grade.includes('unc') || grade.includes('bu') || grade.includes('ms')) return 'unc';
-  if (grade.includes('au')) return 'au';
-  if (grade.includes('xf') || grade.includes('ef') || grade.includes('extremely')) return 'xf';
-  if (grade.includes('vf') || grade.includes('very fine')) return 'vf';
-  if (grade.includes('fine')) return 'f';
-  if (grade.includes('vg') || grade.includes('very good')) return 'vg';
-  if (grade.includes('good')) return 'g';
-
-  // Default: omit grade if can't map
-  return null;
-}
-```
-
-**UI Enhancement:**
-- Show preview of mapped grade before adding
-- Allow user to override mapping
-- Warn if grade couldn't be mapped
-
-### Price Selection Strategy
-
-**Problem:** OpenNumismat has 4 prices (unc, xf, vf, f), user may have filled some/all
-
-**Strategy:**
-```javascript
-function selectPriceForNumista(coin, selectedGrade) {
-  // If user specified grade, use matching price
-  if (selectedGrade) {
-    const priceMap = {
-      'unc': coin.price_unc,
-      'au': coin.price_unc,  // AU closest to UNC
-      'xf': coin.price_xf,
-      'vf': coin.price_vf,
-      'f': coin.price_f,
-      'vg': coin.price_f,    // VG closest to F
-      'g': coin.price_f      // G closest to F
-    };
-
-    if (priceMap[selectedGrade]) {
-      return priceMap[selectedGrade];
-    }
-  }
-
-  // No grade or no matching price, use first available
-  return coin.price_unc || coin.price_xf || coin.price_vf || coin.price_f || null;
-}
+3.8 About Page & Licensing ⏳
+      (independent - can start anytime)
+  └──→ 3.9 Fast Pricing Update 💎 PREMIUM ⏳
 ```
 
 ---
 
-## Sync Status Tracking
+# COMPLETED TASKS
 
-### Metadata Extension
+## 3.0 - Application Menu Bar ✅ COMPLETE
 
-Add `numistaSync` section to existing metadata structure:
+**Completed:** February 3, 2026
 
-```json
-{
-  "version": "2.0",
-  "basicData": { ... },
-  "issueData": { ... },
-  "pricingData": { ... },
-  "numistaSync": {
-    "status": "SYNCED",
-    "timestamp": "2026-02-01T14:30:00Z",
-    "collectedItemId": 987654,
-    "collection": "Main Collection",
-    "collectionId": 5,
-    "lastSyncedData": {
-      "grade": "xf",
-      "quantity": 1,
-      "price": 25.50,
-      "currency": "USD"
-    }
-  }
-}
-```
+Implemented a fully customized Electron menu bar with cross-platform support (Windows + macOS), Recent Collections feature, and keyboard accelerators.
 
-### Status Values
+<details>
+<summary>Click to expand implementation details</summary>
 
-| Status | Meaning |
-|--------|---------|
-| `NOT_SYNCED` | Coin never added to Numista |
-| `SYNCED` | Successfully added to Numista |
-| `SYNC_FAILED` | Add attempt failed (API error) |
-| `DUPLICATE` | Already exists in Numista collection |
+### Menu Structure Implemented
 
-### Duplicate Detection
+| Menu | Items |
+|------|-------|
+| **App** (macOS only) | About, Preferences, Hide, Quit |
+| **File** | Load Collection, Recent Collections, Close Collection, Set/Clear Default, Exit (Win) |
+| **Edit** | Select All Fields, Select None, Select Empty Only, Select Different Only |
+| **View** | Filter by Status, Filter by Freshness, Sort By, Reset Filters, Refresh List |
+| **Settings** (Win) | App Settings, Data Settings, Field Mappings, Export/Import/Reset Mappings, Reset All |
+| **Window** (macOS only) | Minimize, Zoom, Bring All to Front |
+| **Help** | User Manual (F1), About (Win), Numista Website, Get Numista API Key, View EULA |
 
-**Before adding, check:**
-1. Does metadata contain `numistaSync.status === 'SYNCED'`?
-2. If yes, warn user: "This coin was already added to Numista on {date}"
-3. Offer options: "Skip", "Add Anyway (will create duplicate)", "Update Existing"
+### Keyboard Shortcuts
 
-**API Check:**
-- Could query `/users/{user_id}/collected_items` to verify
-- Performance concern: would require 1 API call per coin
-- Better: Trust local metadata, offer manual verification
+| Action | Shortcut |
+|--------|----------|
+| Load Collection | CmdOrCtrl+O |
+| Close Collection | CmdOrCtrl+W |
+| Select All Fields | CmdOrCtrl+A |
+| Select None | CmdOrCtrl+Shift+A |
+| App Settings | CmdOrCtrl+, |
+| Refresh List | F5 / CmdOrCtrl+R |
+| User Manual | F1 |
+
+### Files Modified
+- `src/main/index.js` - Menu creation, IPC handlers, state management
+- `src/main/preload.js` - Expose menu event listeners
+- `src/renderer/app.js` - Handle menu-triggered events
+- `src/modules/settings-manager.js` - Add recentCollections to settings schema
+
+### Verification (All Passed)
+- [x] All menu items trigger correct actions
+- [x] Keyboard shortcuts function on both platforms
+- [x] Menu items enable/disable based on app state
+- [x] Recent Collections populates and works
+- [x] User Manual opens in Electron window on same screen
+
+</details>
 
 ---
 
-## Implementation Tasks
+# PENDING TASKS - Core Implementation
 
-### 3.1 - OAuth 2.0 Integration ⭐ CRITICAL FOUNDATION
+## 3.1 - OAuth 2.0 Integration ⏳
 
 **Priority:** CRITICAL - Required for all other features
-**Estimated Time:** 2 days
+**Dependencies:** None
+**Blocks:** 3.2, 3.3, 3.4
 
-**Tasks:**
-- [ ] Create `src/modules/numista-oauth.js`
-  - [ ] Implement `requestAccessToken(apiKey)`
-  - [ ] Implement `ensureValidToken()`
-  - [ ] Implement `storeToken(token, expiry)`
-  - [ ] Implement `getStoredToken()`
-  - [ ] Handle token expiration
+### Objective
+Implement OAuth 2.0 Client Credentials flow to authenticate users with the Numista API for write operations.
+
+### Sub-Tasks
+
+- [ ] **3.1.1** Create `src/modules/numista-oauth.js`
+  - [ ] `requestAccessToken(apiKey)` - Get token from Numista
+  - [ ] `ensureValidToken()` - Check/refresh token before API calls
+  - [ ] `storeToken(token, expiry)` - Persist encrypted token
+  - [ ] `getStoredToken()` - Retrieve and decrypt token
+  - [ ] Handle token expiration automatically
   - [ ] Handle API errors (invalid key, network failure)
-- [ ] Implement secure token storage
+
+- [ ] **3.1.2** Implement secure token storage
   - [ ] Research encryption options (electron-store, safeStorage)
   - [ ] Encrypt token before saving
   - [ ] Decrypt token on load
-- [ ] Add User ID detection
-  - [ ] Try auto-detection via API (if available)
-  - [ ] Fall back to user input
+  - [ ] Never log tokens or API keys
+
+- [ ] **3.1.3** Add User ID detection
+  - [ ] Try auto-detection via API `/me` endpoint
+  - [ ] Fall back to user input if unavailable
   - [ ] Store in settings file
-- [ ] Update settings UI
+
+- [ ] **3.1.4** Update settings UI
   - [ ] Add "Numista User ID" field
   - [ ] Add "Test Connection" button
   - [ ] Show token status (valid/expired/missing)
-  - [ ] Show last successful authentication
-- [ ] Add error handling
+  - [ ] Show last successful authentication timestamp
+
+- [ ] **3.1.5** Add error handling
   - [ ] Invalid API key → clear error message
   - [ ] Network failure → retry logic
   - [ ] Token expired → auto-refresh
   - [ ] Quota exceeded → warn user
 
-**Files to Create:**
+### Files to Create
 - `src/modules/numista-oauth.js` (NEW)
 
-**Files to Modify:**
-- `src/modules/settings-manager.js` (ADD userId, tokenData fields)
-- `src/renderer/index.html` (ADD User ID field, Test button)
-- `src/renderer/app.js` (ADD OAuth UI handlers)
-- `src/main/index.js` (ADD OAuth IPC handlers)
-- `src/main/preload.js` (ADD OAuth API methods)
+### Files to Modify
+- `src/modules/settings-manager.js` - Add userId, tokenData fields
+- `src/renderer/index.html` - Add User ID field, Test Connection button
+- `src/renderer/app.js` - Add OAuth UI handlers
+- `src/main/index.js` - Add OAuth IPC handlers
+- `src/main/preload.js` - Add OAuth API methods
 
-**Deliverable:** Working OAuth 2.0 authentication
-
-**Testing:**
-- [ ] Request token with valid API key
-- [ ] Request token with invalid API key (error handling)
-- [ ] Token storage and retrieval
-- [ ] Token expiration and refresh
-- [ ] Network failure during auth
+### Verification Checklist
+- [ ] Request token with valid API key → success
+- [ ] Request token with invalid API key → clear error
+- [ ] Token stored encrypted
+- [ ] Token retrieval and decryption works
+- [ ] Token expiration triggers auto-refresh
+- [ ] Network failure handled gracefully
 
 ---
 
-### 3.2 - Data Mapper (Reverse Direction) ⭐ CORE FEATURE
+## 3.2 - Data Mapper (Reverse Direction) ⏳
 
-**Priority:** HIGH - Needed for adding coins
-**Estimated Time:** 2 days
+**Priority:** HIGH
+**Dependencies:** 3.1
+**Blocks:** 3.4
 
-**Tasks:**
-- [ ] Create `src/modules/numista-uploader.js`
-  - [ ] Implement `mapCoinToNumista(coin, options)`
-  - [ ] Implement grade mapping logic
-  - [ ] Implement price selection logic
-  - [ ] Implement date formatting (YYYY-MM-DD)
-  - [ ] Strip metadata from notes
-  - [ ] Handle missing/null fields
-- [ ] Implement validation
+### Objective
+Map OpenNumismat coin data to Numista API format for uploading coins.
+
+### Sub-Tasks
+
+- [ ] **3.2.1** Create `src/modules/numista-uploader.js`
+  - [ ] `mapCoinToNumista(coin, options)` - Main mapping function
+  - [ ] Grade mapping logic (see Appendix B)
+  - [ ] Price selection logic (see Appendix C)
+  - [ ] Date formatting (YYYY-MM-DD)
+  - [ ] Strip metadata from notes (preserve user notes only)
+  - [ ] Handle missing/null fields gracefully
+
+- [ ] **3.2.2** Implement validation
   - [ ] Require Numista Type ID (from metadata)
   - [ ] Warn if no grade can be mapped
   - [ ] Warn if no price available
   - [ ] Validate date format
   - [ ] Validate numeric fields (weight, size)
-- [ ] Create preview functionality
+
+- [ ] **3.2.3** Create preview functionality
   - [ ] Show what data will be sent to Numista
   - [ ] Highlight fields that will be omitted
   - [ ] Show grade mapping result
   - [ ] Show selected price
-- [ ] Handle special cases
+
+- [ ] **3.2.4** Handle special cases
   - [ ] Multiple quantities → warn user
   - [ ] Missing Numista ID → error (can't add without it)
   - [ ] Issue ID present → include in request
   - [ ] Issue ID missing → omit (type-level add)
 
-**Files to Create:**
+### Files to Create
 - `src/modules/numista-uploader.js` (NEW)
 
-**Files to Modify:**
-- `src/modules/field-mapper.js` (REFERENCE for reverse mapping)
-
-**Deliverable:** Robust OpenNumismat → Numista data mapping
-
-**Testing:**
+### Verification Checklist
 - [ ] Map coin with all fields populated
 - [ ] Map coin with minimal data
-- [ ] Grade mapping (all variations)
-- [ ] Price selection logic
-- [ ] Note field stripping (preserve user notes, remove metadata)
-- [ ] Edge cases (nulls, empty strings, invalid formats)
+- [ ] Grade mapping works for all variations
+- [ ] Price selection based on grade works
+- [ ] User notes preserved, metadata stripped
+- [ ] Edge cases handled (nulls, empty strings)
 
 ---
 
-### 3.3 - Collection Selection UI ⭐ USER CONTROL
+## 3.3 - Collection Selection UI ⏳
 
-**Priority:** MEDIUM - Nice to have, defaults to main collection
-**Estimated Time:** 1 day
+**Priority:** MEDIUM
+**Dependencies:** 3.1
+**Blocks:** 3.4
 
-**Tasks:**
-- [ ] Fetch user's collections
+### Objective
+Allow users to select which Numista collection to add coins to.
+
+### Sub-Tasks
+
+- [ ] **3.3.1** Fetch user's collections
   - [ ] Call `GET /users/{user_id}/collections`
-  - [ ] Parse collection list
-  - [ ] Store in cache
-- [ ] Add collection selector UI
+  - [ ] Parse and cache collection list
+  - [ ] Handle empty collections list
+
+- [ ] **3.3.2** Add collection selector UI
   - [ ] Dropdown in "Add to Numista" modal
-  - [ ] Show collection name
-  - [ ] Default to first collection (or saved preference)
+  - [ ] Show collection names
+  - [ ] Default to first collection or saved preference
   - [ ] "Refresh Collections" button
-- [ ] Store collection preference
+
+- [ ] **3.3.3** Store collection preference
   - [ ] Save last-used collection in settings
   - [ ] Auto-select on next add
-- [ ] Handle edge cases
-  - [ ] User has no collections → error message, link to Numista
-  - [ ] API failure → allow proceed without selection (default collection)
 
-**Files to Modify:**
-- `src/modules/numista-api.js` (ADD getUserCollections method)
-- `src/renderer/index.html` (ADD collection dropdown)
-- `src/renderer/app.js` (ADD collection selection logic)
-- `src/main/index.js` (ADD get-collections IPC handler)
+- [ ] **3.3.4** Handle edge cases
+  - [ ] User has no collections → error message with link to Numista
+  - [ ] API failure → allow proceed with default collection
 
-**Deliverable:** User can select target Numista collection
+### Files to Modify
+- `src/modules/numista-api.js` - Add `getUserCollections()` method
+- `src/renderer/index.html` - Add collection dropdown
+- `src/renderer/app.js` - Add collection selection logic
+- `src/main/index.js` - Add get-collections IPC handler
 
-**UI Mock:**
-```
-┌──────────────────────────────────────────────────────────┐
-│ Add to Numista Collection                                │
-├──────────────────────────────────────────────────────────┤
-│                                                           │
-│ Coin: 1943 Lincoln Cent                                  │
-│                                                           │
-│ Target Collection:                                        │
-│ [Main Collection ▼        ]  [Refresh]                   │
-│   ├─ Main Collection (default)                           │
-│   ├─ US Coins                                            │
-│   ├─ World War II Collection                             │
-│   └─ For Swap                                            │
-│                                                           │
-│ Grade: XF (mapped from "Extremely Fine")                 │
-│ Price: $2.50 USD (from price_xf field)                   │
-│ Quantity: 1                                               │
-│                                                           │
-│ ☐ Available for swap                                     │
-│                                                           │
-│ [Preview Data]  [Add to Numista]  [Cancel]              │
-└──────────────────────────────────────────────────────────┘
-```
+### Verification Checklist
+- [ ] Collections fetched and displayed
+- [ ] Selection persists across sessions
+- [ ] Empty collection list handled gracefully
+- [ ] Default collection works
 
 ---
 
-### 3.4 - Add Coin UI & Flow ⭐ USER INTERFACE
+## 3.4 - Add Coin UI & Flow ⏳
 
-**Priority:** HIGH - Main user-facing feature
-**Estimated Time:** 2 days
+**Priority:** HIGH
+**Dependencies:** 3.1, 3.2, 3.3
+**Blocks:** 3.5, 3.6, 3.7
 
-**Tasks:**
-- [ ] Add "Add to Numista" button
+### Objective
+Implement the main user interface and flow for adding coins to Numista.
+
+### Sub-Tasks
+
+- [ ] **3.4.1** Add "Add to Numista" button
   - [ ] Show in coin detail view
   - [ ] Show in field comparison screen (after merge)
   - [ ] Disable if no Numista ID in metadata
   - [ ] Disable if not authenticated
-- [ ] Create "Add to Numista" modal
-  - [ ] Show coin preview (title, year, images)
+
+- [ ] **3.4.2** Create "Add to Numista" modal
+  - [ ] Coin preview (title, year, images)
   - [ ] Collection selector dropdown
   - [ ] Grade override dropdown
   - [ ] Price field (editable)
@@ -498,685 +303,503 @@ Add `numistaSync` section to existing metadata structure:
   - [ ] Private notes textarea
   - [ ] "Preview JSON" button
   - [ ] "Add" and "Cancel" buttons
-- [ ] Implement add flow
+
+- [ ] **3.4.3** Implement add flow
   - [ ] Validate authentication (token valid)
   - [ ] Map OpenNumismat data to Numista format
   - [ ] Show preview modal
-  - [ ] User confirms
-  - [ ] Call API to add coin
+  - [ ] User confirms → Call API
   - [ ] Update metadata with sync status
   - [ ] Show success message
   - [ ] Update UI (show sync icon)
-- [ ] Handle duplicate detection
+
+- [ ] **3.4.4** Handle duplicate detection
   - [ ] Check metadata for existing sync
   - [ ] Warn user if already synced
   - [ ] Offer options: Skip / Add Anyway / Update
-- [ ] Handle errors
+
+- [ ] **3.4.5** Handle errors
   - [ ] API errors → show clear message
   - [ ] Network errors → offer retry
   - [ ] Validation errors → highlight fields
   - [ ] Quota exceeded → inform user
 
-**Files to Modify:**
-- `src/renderer/index.html` (ADD "Add to Numista" modal)
-- `src/renderer/app.js` (ADD modal logic, add flow)
-- `src/renderer/styles/main.css` (ADD modal styling)
-- `src/main/index.js` (ADD add-coin-to-numista IPC handler)
-- `src/main/preload.js` (ADD addCoinToNumista API method)
+### Files to Modify
+- `src/renderer/index.html` - Add modal HTML
+- `src/renderer/app.js` - Add modal logic and flow
+- `src/renderer/styles/main.css` - Add modal styling
+- `src/main/index.js` - Add add-coin-to-numista IPC handler
+- `src/main/preload.js` - Add addCoinToNumista API method
 
-**Deliverable:** Complete UI for adding coins to Numista
-
-**UI Flow:**
+### UI Flow
 ```
 1. User clicks coin in list
 2. Coin details display
-3. User clicks "Add to Numista 📤" button
+3. User clicks "Add to Numista" button
 4. Modal opens with prefilled data
 5. User reviews/edits data
-6. User clicks "Preview JSON" (optional)
-7. User clicks "Add to Numista"
-8. Loading indicator appears
-9. Success: "✅ Coin added to Numista!"
-10. Metadata updated, sync icon shows in coin list
+6. User clicks "Add to Numista"
+7. Loading indicator appears
+8. Success: "Coin added to Numista!"
+9. Metadata updated, sync icon shows in coin list
 ```
+
+### Verification Checklist
+- [ ] Button shows only for eligible coins
+- [ ] Modal displays all fields correctly
+- [ ] Data prefilled from OpenNumismat
+- [ ] Successful add updates metadata
+- [ ] Duplicate warning works
+- [ ] Error messages are clear and actionable
 
 ---
 
-### 3.5 - Sync Status Display ⭐ UX ENHANCEMENT
+## 3.5 - Sync Status Display ⏳
 
-**Priority:** MEDIUM - Helpful for tracking
-**Estimated Time:** 1 day
+**Priority:** MEDIUM
+**Dependencies:** 3.4
 
-**Tasks:**
-- [ ] Add sync status icon to coin list
+### Objective
+Show visual indicators of Numista sync status throughout the UI.
+
+### Sub-Tasks
+
+- [ ] **3.5.1** Add sync status icon to coin list
   - [ ] 📤 = Synced to Numista
   - [ ] ⭕ = Not synced
   - [ ] ⚠️ = Sync failed
   - [ ] Show timestamp on hover
-- [ ] Add sync status to coin details
+
+- [ ] **3.5.2** Add sync status to coin details panel
   - [ ] Show last sync date
   - [ ] Show Numista collection name
   - [ ] Show collected item ID
-  - [ ] Show "View on Numista" link (deep link)
-- [ ] Add filter by sync status
-  - [ ] Synced
-  - [ ] Not Synced
-  - [ ] Sync Failed
-  - [ ] Show counts
-- [ ] Add sort by sync date
+  - [ ] "View on Numista" deep link
+
+- [ ] **3.5.3** Add filter by sync status
+  - [ ] Synced / Not Synced / Sync Failed
+  - [ ] Show counts per status
+
+- [ ] **3.5.4** Add sort by sync date
   - [ ] Most recently synced
   - [ ] Least recently synced
   - [ ] Never synced
 
-**Files to Modify:**
-- `src/renderer/app.js` (ADD sync icon rendering)
-- `src/renderer/index.html` (ADD filter option)
-- `src/renderer/styles/main.css` (ADD icon styling)
+### Files to Modify
+- `src/renderer/app.js` - Add sync icon rendering
+- `src/renderer/index.html` - Add filter option
+- `src/renderer/styles/main.css` - Add icon styling
 
-**Deliverable:** Visual sync status indicators
-
-**UI Examples:**
-```
-Coin List:
-┌────────────────────────────────────────────────────────┐
-│ [img] 1943 Lincoln Cent                       📤       │
-│       United States • Steel                            │
-│       Basic: ✅  Issue: ✅  Pricing: 🟢                 │
-│       Synced to Numista: Feb 1, 2026                   │
-└────────────────────────────────────────────────────────┘
-
-Coin Details:
-┌────────────────────────────────────────────────────────┐
-│ Numista Sync Status                                    │
-├────────────────────────────────────────────────────────┤
-│ ✅ Synced to Numista                                   │
-│ Collection: Main Collection                            │
-│ Synced: Feb 1, 2026 at 2:30 PM                        │
-│ Collected Item ID: 987654                              │
-│                                                         │
-│ [View on Numista] [Update Sync Data]                  │
-└────────────────────────────────────────────────────────┘
-```
+### Verification Checklist
+- [ ] Icons display correctly for each status
+- [ ] Hover shows sync details
+- [ ] Filter by sync status works
+- [ ] Sort by sync date works
+- [ ] "View on Numista" link opens correct URL
 
 ---
 
-### 3.6 - Batch Add Feature ⭐ EFFICIENCY
+# PENDING TASKS - Enhancements (Optional)
+
+## 3.6 - Batch Add Feature ⏳
 
 **Priority:** LOW - Nice to have
-**Estimated Time:** 2 days
+**Dependencies:** 3.4
 
-**Tasks:**
-- [ ] Add "Batch Add to Numista" feature
-  - [ ] Select multiple coins (checkboxes)
+### Objective
+Allow users to add multiple coins to Numista at once with rate limiting.
+
+### Sub-Tasks
+
+- [ ] **3.6.1** Add batch selection UI
+  - [ ] Checkboxes for coin selection
+  - [ ] "Select All" / "Select None" buttons
   - [ ] Show count: "5 coins selected"
   - [ ] "Add Selected to Numista" button
-- [ ] Implement batch processing
+
+- [ ] **3.6.2** Implement batch processing
   - [ ] Validate all selected coins (have Numista ID)
   - [ ] Show summary: "5 ready, 2 errors"
   - [ ] Process sequentially (respect API rate limit)
   - [ ] Show progress bar
   - [ ] Update metadata for each success
   - [ ] Collect errors for failed coins
-- [ ] Show batch results
-  - [ ] "✅ 5 coins added successfully"
-  - [ ] "⚠️ 2 coins failed: ..."
+
+- [ ] **3.6.3** Show batch results
+  - [ ] Success/failure summary
   - [ ] Detailed error list
   - [ ] "Retry Failed" button
-- [ ] Rate limiting
-  - [ ] Respect API quota (e.g., 1 call per second)
-  - [ ] Show estimated time
+
+- [ ] **3.6.4** Rate limiting
+  - [ ] Respect API quota (1 call per second)
   - [ ] Allow cancel mid-batch
 
-**Files to Modify:**
-- `src/renderer/index.html` (ADD batch UI)
-- `src/renderer/app.js` (ADD batch logic)
-- `src/main/index.js` (ADD batch-add handler with rate limiting)
-
-**Deliverable:** Efficient multi-coin sync
-
-**UI Mock:**
-```
-┌──────────────────────────────────────────────────────────┐
-│ Batch Add to Numista                                     │
-├──────────────────────────────────────────────────────────┤
-│                                                           │
-│ 15 coins selected                                        │
-│ 13 ready to add (have Numista ID)                       │
-│ 2 cannot be added (missing Numista ID)                  │
-│                                                           │
-│ Target Collection: [Main Collection ▼]                  │
-│ Grade Handling: [Use existing grades]                   │
-│                                                           │
-│ Progress: [████████░░] 8/13                             │
-│ Estimated time: 5 seconds remaining                     │
-│                                                           │
-│ ✅ 1943 Lincoln Cent - Added                            │
-│ ✅ 1944 Mercury Dime - Added                            │
-│ ⚠️ 1945 Wheat Penny - Failed (API error)                │
-│ ...                                                      │
-│                                                           │
-│ [Pause]  [Cancel]                                       │
-└──────────────────────────────────────────────────────────┘
-```
+### Files to Modify
+- `src/renderer/index.html` - Add batch UI
+- `src/renderer/app.js` - Add batch logic
+- `src/main/index.js` - Add batch-add handler with rate limiting
 
 ---
 
-### 3.7 - Update Existing Coin Feature ⭐ ADVANCED
+## 3.7 - Update Existing Coin Feature ⏳
 
 **Priority:** LOW - Future enhancement
-**Estimated Time:** 2 days
+**Dependencies:** 3.4
 
-**Tasks:**
-- [ ] Implement "Update on Numista" feature
+### Objective
+Allow users to update coins that have already been synced to Numista.
+
+### Sub-Tasks
+
+- [ ] **3.7.1** Implement "Update on Numista" feature
   - [ ] Only available if already synced
-  - [ ] Fetch current data from Numista (verify exists)
+  - [ ] Fetch current data from Numista
   - [ ] Compare OpenNumismat vs Numista data
   - [ ] Show differences
   - [ ] Allow user to select which changes to push
   - [ ] Call `PATCH /users/{user_id}/collected_items/{item_id}`
   - [ ] Update metadata timestamp
-- [ ] Handle edge cases
+
+- [ ] **3.7.2** Handle edge cases
   - [ ] Coin deleted from Numista → mark as NOT_SYNCED
   - [ ] Data conflicts → user decides
   - [ ] Numista has newer data → warn user
 
-**Files to Modify:**
-- `src/modules/numista-api.js` (ADD updateCollectedItem method)
-- `src/renderer/app.js` (ADD update flow)
-
-**Deliverable:** Ability to update existing Numista coins
-
-**Note:** This is Phase 3 stretch goal, can be deferred to Phase 4
+### Files to Modify
+- `src/modules/numista-api.js` - Add `updateCollectedItem()` method
+- `src/renderer/app.js` - Add update flow
 
 ---
 
-## Implementation Timeline
+## 3.8 - About Page & Licensing System ⏳
 
-### Week 1: OAuth Foundation
-**Days 1-2:**
-- [ ] 3.1 - OAuth 2.0 Integration
-- [ ] Test authentication thoroughly
-- [ ] Secure token storage
+**Priority:** MEDIUM
+**Dependencies:** None (can be done independently)
+**Blocks:** 3.9 (Fast Pricing Update)
 
-**Day 3:**
-- [ ] 3.2 - Data Mapper (reverse direction)
-- [ ] Test all mapping scenarios
+### Objective
+Implement About window with version info, update checking, and licensing system using Polar as merchant of record.
 
-**Days 4-5:**
-- [ ] 3.3 - Collection Selection UI
-- [ ] User testing of OAuth + Collections
+### Sub-Tasks
 
-**Deliverable:** Working authentication and data mapping
+#### 3.8.1 - About Window
+- [X] Create separate About window (not modal)
+- [X] Display app name, version (from package.json), author
+- [X] Add GitHub repository link
+- [X] Add "View EULA" link
+- [ ] Add "Check for Updates" button
+  - [ ] Call GitHub Releases API
+  - [ ] Show current vs latest version
+  - [ ] Show download link if update available
 
----
+#### 3.8.2 - Licensing Infrastructure
+- [ ] Add supporter status to settings schema
+  ```json
+  {
+    "supporter": {
+      "isSupporter": false,
+      "licenseKey": null,
+      "supportedAt": null,
+      "neverAskAgain": false
+    },
+    "lifetimeStats": {
+      "totalCoinsEnriched": 0
+    }
+  }
+  ```
+- [ ] Implement license key validation (Polar API)
+- [ ] Add IPC handlers for supporter status
+  - [ ] `get-supporter-status`
+  - [ ] `set-supporter-status`
+  - [ ] `validate-license-key`
+  - [ ] `get-lifetime-stats`
+  - [ ] `increment-lifetime-enrichments`
 
-### Week 2: Core Add Functionality
-**Days 1-2:**
-- [ ] 3.4 - Add Coin UI & Flow
-- [ ] Test single coin add
+#### 3.8.3 - License Prompt System
+- [ ] Create license prompt modal in main window
+- [ ] Show prompt at thresholds:
+  - [ ] Initial: 20 coins enriched
+  - [ ] Recurring: Every 50 coins (70, 120, 170...)
+- [ ] Display time saved calculation (2 min/coin)
+- [ ] Options: "Get License", "Enter Key", "Maybe Later", "Don't Ask Again"
 
-**Day 3:**
-- [ ] 3.5 - Sync Status Display
-- [ ] UI polish
+#### 3.8.4 - Premium Feature Gating
+- [ ] Create PREMIUM_FEATURES configuration
+  ```javascript
+  const PREMIUM_FEATURES = {
+    'fast-pricing': {
+      name: 'Fast Pricing Update',
+      description: 'Quickly refresh pricing for matched coins with 1 API call'
+    }
+  };
+  ```
+- [ ] Implement `requireLicense(featureId)` gate function
+- [ ] Add premium badge styling (gold gradient)
+- [ ] Show premium badge on gated features when unlicensed
 
-**Days 4-5:**
-- [ ] Bug fixes and refinement
-- [ ] User testing
-- [ ] Documentation
+### Files to Create
+- `src/renderer/about.html` - About window HTML
+- `src/renderer/about.js` - About window JavaScript
+- `src/renderer/styles/about.css` - About window styles
 
-**Deliverable:** Complete single-coin add feature
+### Files to Modify
+- `src/main/index.js` - About window creation, IPC handlers
+- `src/main/preload.js` - Expose API methods
+- `src/renderer/index.html` - License prompt modal
+- `src/renderer/app.js` - License logic, premium config
+- `src/renderer/styles/main.css` - Premium badge styles
+- `src/modules/settings-manager.js` - Supporter status schema
 
----
+### Configuration
 
-### Week 3: Advanced Features (Optional)
-**Days 1-3:**
-- [ ] 3.6 - Batch Add Feature
-- [ ] Rate limiting and progress tracking
+| Setting | Value |
+|---------|-------|
+| Payment Platform | Polar |
+| Initial Prompt | 20 coins enriched |
+| Recurring Prompt | Every 50 coins |
+| Time Saved Estimate | 2 minutes per coin |
 
-**Days 4-5:**
-- [ ] 3.7 - Update Existing Coin (stretch goal)
-- [ ] Final testing and polish
-
-**Deliverable:** Complete Phase 3 feature set
-
----
-
-## Dependencies
-
-### Task Dependencies
-```
-3.1 (OAuth 2.0)
-  ├─> 3.2 (Data Mapper)
-  │    ├─> 3.4 (Add Coin UI)
-  │    │    ├─> 3.5 (Sync Status)
-  │    │    └─> 3.6 (Batch Add)
-  │    └─> 3.7 (Update Coin)
-  └─> 3.3 (Collection Selection) ─> 3.4 (Add Coin UI)
-```
-
-**Critical Path:** 3.1 → 3.2 → 3.4
-
-**Parallel Work:**
-- 3.3 can be done in parallel with 3.2
-- 3.5 can be done in parallel with final testing
-
----
-
-## Data Flow Architecture
-
-### Add Coin to Numista Flow
-
-```
-1. User clicks "Add to Numista" on coin
-   ↓
-2. Check Authentication
-   - Token valid? → Continue
-   - Token expired? → Request new token
-   - No token? → Show setup instructions
-   ↓
-3. Check Prerequisites
-   - Has Numista ID? → Continue
-   - No Numista ID? → Error: "Enrich from Numista first"
-   ↓
-4. Load User's Collections (cached or fetch)
-   ↓
-5. Check Duplicate
-   - Metadata has sync status? → Warn user
-   - No sync status? → Continue
-   ↓
-6. Map OpenNumismat Data to Numista Format
-   - Extract all fields
-   - Map grade (with preview)
-   - Select price (based on grade)
-   - Format date
-   - Strip metadata from notes
-   ↓
-7. Show Preview Modal
-   - Prefilled data
-   - Collection selector
-   - Editable fields
-   - "Preview JSON" option
-   ↓
-8. User Confirms → Call API
-   POST /users/{user_id}/collected_items
-   Headers:
-     - Numista-API-Key: {apiKey}
-     - Authorization: Bearer {accessToken}
-   Body: {mapped coin data}
-   ↓
-9. Handle Response
-   Success (201):
-     - Extract collected_item.id
-     - Update metadata (numistaSync section)
-     - Write metadata to database
-     - Show success message
-     - Update UI (sync icon)
-
-   Error (400/401/500):
-     - Parse error message
-     - Show user-friendly error
-     - Offer retry
-     - Log for debugging
-   ↓
-10. Update Progress Tracker
-    - Increment sync count
-    - Update statistics
-```
+### Verification Checklist
+- [ ] About window opens from Help menu and Settings
+- [ ] Version displays correctly from package.json
+- [ ] Update check calls GitHub API and shows result
+- [ ] License prompt appears at 20 coins
+- [ ] "Don't Ask Again" prevents future prompts
+- [ ] Premium badge shows on gated features when unlicensed
+- [ ] License validation works with Polar API
 
 ---
 
-## API Endpoints Used
+## 3.9 - Fast Pricing Update 💎 PREMIUM ⏳
 
-### Authentication
-- `GET /oauth_token` - Get OAuth access token
+**Priority:** MEDIUM
+**Dependencies:** 3.8 (Licensing System)
+**License Required:** YES - This is a premium feature
 
-### Collection Management
-- `GET /users/{user_id}/collections` - List user's collections
-- `GET /users/{user_id}/collected_items` - List collected items (for duplicate check)
-- `POST /users/{user_id}/collected_items` - Add item to collection
-- `PATCH /users/{user_id}/collected_items/{item_id}` - Update item (Phase 3.7)
-- `DELETE /users/{user_id}/collected_items/{item_id}` - Delete item (future)
+### Objective
+Enable users to refresh pricing data for coins that have already been matched to a Numista type - without re-searching or re-matching. Uses only 1 API call per coin (vs 2-4 for full enrichment). This feature is gated behind the licensing system.
 
-### User Info (Optional)
-- `GET /me` - Get authenticated user info (if available, for auto-detecting user ID)
+### Sub-Tasks
 
----
+#### 3.9.1 - Fast Pricing Button
+- [ ] Add "Fast Pricing Update" button to Collection Overview toolbar
+- [ ] Show with PREMIUM badge when user is unlicensed
+- [ ] Gate behind `requireLicense('fast-pricing')` check
+- [ ] Disable button if no coins have Numista Type ID in metadata
 
-## Testing Strategy
+#### 3.9.2 - Single Coin Fast Pricing
+- [ ] Implement direct pricing fetch
+  - [ ] Read Numista Type ID from metadata
+  - [ ] Read Issue ID from metadata (if available)
+  - [ ] Call pricing API endpoint directly (`/types/{id}/issues/{issue_id}/prices`)
+  - [ ] Update pricing fields in database
+  - [ ] Update pricing metadata timestamp
+- [ ] Show confirmation: "Price updated: $X.XX (was $Y.YY)"
 
-### Unit Testing
-- [ ] OAuth token request (valid/invalid key)
-- [ ] Token storage and retrieval
-- [ ] Token expiration detection
-- [ ] Grade mapping (all variations)
-- [ ] Price selection logic
-- [ ] Data mapping (all fields)
-- [ ] Metadata stripping (preserve user notes)
-- [ ] Duplicate detection
+#### 3.9.3 - Batch Fast Pricing Update
+- [ ] Add "Update All Outdated Prices" option
+- [ ] Find coins with pricing > threshold (configurable: 3/6/12 months)
+- [ ] Process with rate limiting (1 call/second)
+- [ ] Show progress bar with cancel option
+- [ ] Report summary: "Updated 45 coins, 3 failed"
 
-### Integration Testing
-- [ ] OAuth flow end-to-end
-- [ ] Add coin (all required fields)
-- [ ] Add coin (minimal fields)
-- [ ] Add coin with issue ID
-- [ ] Add coin without issue ID
-- [ ] Collection selection
-- [ ] Duplicate warning
-- [ ] Error handling (API errors)
-- [ ] Metadata update after sync
+#### 3.9.4 - Outdated Prices Filter
+- [ ] Add "Outdated Prices" filter preset to View menu
+- [ ] Find coins with pricing older than 6 months
+- [ ] Show count in filter dropdown
 
-### User Acceptance Testing
-- [ ] Setup OAuth credentials
-- [ ] Add single coin
-- [ ] Add coin with custom grade
-- [ ] Add coin with price
-- [ ] Add to different collection
-- [ ] Batch add (if implemented)
-- [ ] View sync status
-- [ ] Filter by sync status
-- [ ] Handle API errors gracefully
-- [ ] Token expiration and refresh
+### Files to Modify
+- `src/renderer/index.html` - Add Fast Pricing button, progress UI
+- `src/renderer/app.js` - Add fast pricing handlers, license check
+- `src/main/index.js` - Add fast-pricing IPC handler
+- `src/modules/numista-api.js` - Add `getDirectPricing(typeId, issueId)` method
 
-### Performance Testing
-- [ ] Batch add 100 coins (with rate limiting)
-- [ ] Token refresh under load
-- [ ] Large collection selection dropdown
-
-### Security Testing
-- [ ] Token storage encryption
-- [ ] Token not logged/exposed
-- [ ] API key not logged/exposed
-- [ ] Secure settings file permissions
+### Verification Checklist
+- [ ] Button shows PREMIUM badge when unlicensed
+- [ ] Clicking gated feature shows license prompt
+- [ ] Single coin pricing update works for licensed users
+- [ ] Batch pricing respects rate limits (1 call/sec)
+- [ ] Metadata timestamps updated correctly
+- [ ] Outdated prices filter shows correct coins
 
 ---
 
-## Success Criteria
+# DEFERRED TASKS - Future Phases
 
-### Phase 3 Complete When:
-- [ ] ✅ OAuth 2.0 authentication working
-- [ ] ✅ Token storage secure (encrypted)
-- [ ] ✅ User can add single coin to Numista
-- [ ] ✅ Grade mapping works correctly
-- [ ] ✅ Price selection works correctly
-- [ ] ✅ Collection selection works
-- [ ] ✅ Duplicate detection working
-- [ ] ✅ Sync status displayed in UI
-- [ ] ✅ Metadata updated after sync
-- [ ] ✅ Filter by sync status works
-- [ ] ✅ Error handling comprehensive
-- [ ] ✅ User documentation complete
+## 3.10 - Multi-Source Data Fetching 🔮
 
-### Stretch Goals (Optional):
-- [ ] Batch add feature
-- [ ] Update existing coin feature
-- [ ] Auto-sync on merge
+**When:** Phase 4 or later
 
-### Quality Metrics:
-- [ ] No tokens logged or exposed
-- [ ] No API key leaks
-- [ ] Graceful handling of all API errors
-- [ ] No data loss on sync failures
-- [ ] User notes preserved after sync
-- [ ] Token refresh works automatically
-- [ ] Batch operations respect rate limits
+Extend the system to pull data from multiple sources (PCGS, NGC, Colnect, etc.) with an abstraction layer, source configuration, and conflict resolution.
+
+**Complexity:** Major undertaking. Defer until Numista integration is rock-solid.
 
 ---
 
-## Risk Assessment
+## 3.11 - OpenNumismat Plugin Integration 🔮
 
-### High Risk
-- **Security: Token/API key exposure** - Could compromise user's Numista account
-  - Mitigation: Encrypt storage, never log tokens, security audit
+**When:** After app is stable and packaged
 
-- **Data loss: Metadata corruption** - Sync status could corrupt user notes
-  - Mitigation: Use existing metadata manager, extensive testing
-
-- **API quota exhaustion** - Batch operations could hit rate limits
-  - Mitigation: Implement rate limiting, show quota warnings
-
-### Medium Risk
-- **Duplicate coins in Numista** - User adds same coin twice
-  - Mitigation: Check metadata, warn user, API duplicate detection
-
-- **Grade mapping failures** - Non-standard grades can't map
-  - Mitigation: Show preview, allow manual override, omit if can't map
-
-- **OAuth token expiration mid-batch** - Token expires during batch add
-  - Mitigation: Check expiry before each call, auto-refresh
-
-### Low Risk
-- **Collection selection errors** - User has no collections
-  - Mitigation: Clear error message, link to Numista
-
-- **Network failures** - API unreachable
-  - Mitigation: Retry logic, offline detection, error messages
+Support launching NumiSync Wizard as an external tool from OpenNumismat with database path passed as command-line argument.
 
 ---
 
-## Security Considerations
+# REFERENCE DOCUMENTATION
 
-### Token Storage
-**Requirement:** Access tokens must be stored securely
+## Appendix A: Architecture Decisions
 
-**Options:**
-1. **electron-store with encryption**
-   ```javascript
-   const Store = require('electron-store');
-   const store = new Store({
-     encryptionKey: 'user-specific-key'
-   });
-   ```
-
-2. **Electron safeStorage API** (Electron 13+)
-   ```javascript
-   const { safeStorage } = require('electron');
-   const encrypted = safeStorage.encryptString(token);
-   ```
-
-3. **node-keytar** (OS keychain)
-   ```javascript
-   const keytar = require('keytar');
-   await keytar.setPassword('numismat-app', 'oauth-token', token);
-   ```
-
-**Recommendation:** Use Electron safeStorage (simplest, built-in)
-
-### API Key Protection
-- Never log API key
-- Never include in error messages
-- Store in encrypted settings
-- Clear from memory after use
-
-### HTTPS Only
-- All API calls over HTTPS
-- Validate SSL certificates
-- No mixed content
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| OAuth Flow | Client Credentials | Simple, works for single-user desktop app |
+| Sync Direction | One-way: OpenNumismat → Numista | Prevents sync conflicts, clear source of truth |
+| Sync Strategy | Manual, selective | User controls what gets added |
+| User ID Storage | In settings file | Required for API calls |
+| Token Storage | Encrypted (safeStorage) | Security best practice |
+| Token Refresh | On-demand | Request new token when expired |
+| Collection Selection | User chooses target | Flexibility for multi-collection users |
+| Duplicate Detection | Check by metadata | Prevent duplicates |
+| Sync Status Storage | Metadata in note field | Consistent with Phase 2 |
 
 ---
 
-## User Documentation Requirements
+## Appendix B: Grade Mapping
 
-### Setup Guide
-- [ ] How to get Numista API key
-- [ ] How to find Numista User ID
-- [ ] How to configure OAuth
-- [ ] How to test connection
+**Numista Grades:** `g`, `vg`, `f`, `vf`, `xf`, `au`, `unc`
 
-### User Manual
-- [ ] How to add single coin
-- [ ] How to select collection
-- [ ] How to handle grade mapping
-- [ ] How to batch add coins
-- [ ] How to view sync status
-- [ ] How to filter by sync status
-
-### Troubleshooting
-- [ ] "Invalid API key" error
-- [ ] "Token expired" error
-- [ ] "Quota exceeded" error
-- [ ] "Network error" solutions
-- [ ] "Duplicate coin" warning
-
----
-
-## Future Enhancements (Phase 4)
-
-Potential features for Phase 4:
-- [ ] **Two-way sync** - Download from Numista to OpenNumismat
-- [ ] **Conflict resolution** - Handle data conflicts intelligently
-- [ ] **Auto-sync** - Automatically sync after enrichment
-- [ ] **Sync history** - Track all sync operations
-- [ ] **Bulk update** - Update multiple coins at once
-- [ ] **Delete from Numista** - Remove coins from online collection
-- [ ] **Swap marketplace integration** - Mark for swap, browse swap offers
-- [ ] **Image upload** - Upload OpenNumismat images to Numista
-- [ ] **Wishlist sync** - Sync wishlist items
-- [ ] **Collection statistics** - Compare local vs cloud stats
-
----
-
-## Notes & Decisions Log
-
-**2026-02-01:**
-- Decided on Client Credentials OAuth flow (simplest for desktop app)
-- Chose one-way sync (OpenNumismat → Numista) to avoid conflicts
-- Manual, selective sync (user controls what gets added)
-- Metadata extension for sync status tracking
-- Comprehensive grade mapping with user override
-- Price selection based on grade
-- Secure token storage using Electron safeStorage
-
-**Architecture Decision: One-Way Sync Rationale**
-- OpenNumismat is source of truth (local, controlled by user)
-- Numista is backup/cloud/sharing platform
-- Two-way sync creates conflicts (which data is newer?)
-- User can manage Numista collection on website if needed
-- Simplifies implementation significantly
-- Can add two-way sync in Phase 4 if demand exists
-
----
-
-**Document Status:** PLANNING COMPLETE - Ready for Implementation
-**Next Action:** Begin Task 3.1 - OAuth 2.0 Integration
-**Dependencies:** Phase 2 must be complete (metadata system required)
-
----
-
-## Appendix A: Example API Request
-
-### Add Coin to Numista (Complete Example)
-
-**Request:**
-```http
-POST https://api.numista.com/v3/users/12345/collected_items
-Headers:
-  Numista-API-Key: i883i335qeAa8fFHKXbWfkoIyZ1wuWJmvulRgwuA
-  Authorization: Bearer abc123xyz789...
-  Content-Type: application/json
-
-Body:
-{
-  "type": 11331,
-  "issue": 63444,
-  "quantity": 1,
-  "grade": "xf",
-  "for_swap": false,
-  "private_comment": "Beautiful example from grandfather's collection",
-  "price": {
-    "value": 2.50,
-    "currency": "USD"
-  },
-  "storage_location": "Safe - Drawer 2",
-  "acquisition_place": "Local coin shop",
-  "acquisition_date": "2024-12-15",
-  "weight": 2.70,
-  "size": 19.0
-}
+**Mapping Logic:**
+```javascript
+const gradeMap = {
+  'g': 'g', 'good': 'g',
+  'vg': 'vg', 'very good': 'vg',
+  'f': 'f', 'fine': 'f',
+  'vf': 'vf', 'very fine': 'vf',
+  'xf': 'xf', 'ef': 'xf', 'extremely fine': 'xf', 'extra fine': 'xf',
+  'au': 'au', 'about uncirculated': 'au',
+  'unc': 'unc', 'uncirculated': 'unc', 'bu': 'unc', 'ms': 'unc'
+};
 ```
 
-**Response (Success):**
+- Show preview of mapped grade before adding
+- Allow user to override mapping
+- Warn if grade couldn't be mapped
+
+---
+
+## Appendix C: Price Selection
+
+**OpenNumismat has 4 price fields:** `price_unc`, `price_xf`, `price_vf`, `price_f`
+
+**Selection Strategy:**
+1. If grade specified, use matching price field
+2. AU uses UNC price, VG/G use F price
+3. If no match, use first available price
+
+---
+
+## Appendix D: Metadata Extension
+
+Add `numistaSync` section to coin metadata:
+
 ```json
 {
-  "id": 987654,
-  "type": 11331,
-  "issue": 63444,
-  "quantity": 1,
-  "grade": "xf",
-  "for_swap": false,
-  "private_comment": "Beautiful example from grandfather's collection",
-  "price": {
-    "value": 2.50,
-    "currency": "USD"
-  },
-  "storage_location": "Safe - Drawer 2",
-  "acquisition_place": "Local coin shop",
-  "acquisition_date": "2024-12-15",
-  "weight": 2.70,
-  "size": 19.0,
-  "collection": {
-    "id": 5,
-    "name": "Main Collection"
+  "numistaSync": {
+    "status": "SYNCED",
+    "timestamp": "2026-02-01T14:30:00Z",
+    "collectedItemId": 987654,
+    "collection": "Main Collection",
+    "collectionId": 5
   }
 }
 ```
 
-**Response (Error):**
-```json
-{
-  "error": {
-    "code": "INVALID_VALUE",
-    "message": "Invalid value for parameter 'grade'",
-    "parameter": "grade"
-  }
-}
+**Status Values:**
+- `NOT_SYNCED` - Never added to Numista
+- `SYNCED` - Successfully added
+- `SYNC_FAILED` - Add attempt failed
+- `DUPLICATE` - Already exists in Numista
+
+---
+
+## Appendix E: API Endpoints
+
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /oauth_token` | Get OAuth access token |
+| `GET /users/{id}/collections` | List user's collections |
+| `GET /users/{id}/collected_items` | List collected items |
+| `POST /users/{id}/collected_items` | Add item to collection |
+| `PATCH /users/{id}/collected_items/{item_id}` | Update item |
+
+---
+
+## Appendix F: OAuth Flow
+
+```
+1. User enters Numista API Key in settings
+2. App requests token: GET /oauth_token
+   - grant_type: client_credentials
+   - scope: edit_collection
+   - Headers: Numista-API-Key: {key}
+3. Numista returns access_token (expires in 1 hour)
+4. App stores encrypted token
+5. Before each write API call, check token expiry
+6. If expired, request new token automatically
 ```
 
 ---
 
-## Appendix B: Settings File Extension
+## Appendix G: Data Field Mapping
 
-### Extended Settings Structure
+| Numista Field | OpenNumismat Field | Transform |
+|---------------|-------------------|-----------|
+| `type` | numista_id (from metadata) | Required |
+| `issue` | issue_id (from metadata) | Optional |
+| `quantity` | quantity | Default 1 |
+| `grade` | grade | See Appendix B |
+| `for_swap` | N/A | User checkbox |
+| `private_comment` | note | Strip metadata |
+| `price.value` | price_unc/xf/vf/f | See Appendix C |
+| `price.currency` | N/A | From settings |
+| `storage_location` | location | Direct |
+| `acquisition_place` | saleplace | Direct |
+| `acquisition_date` | saledate | Format YYYY-MM-DD |
+| `serial_number` | serial | Direct |
+| `weight` | weight | Grams |
+| `size` | diameter | mm |
+
+---
+
+## Appendix H: Settings Schema Extension
 
 ```json
 {
-  "version": "2.0",
-  "collectionPath": "C:\\Users\\User\\Documents\\my-collection.db",
-
   "apiConfiguration": {
-    "apiKey": "i883i335qeAa8fFHKXbWfkoIyZ1wuWJmvulRgwuA",
-    "userId": 12345,
-    "rateLimit": 2000
+    "apiKey": "...",
+    "userId": 12345
   },
-
   "oauthData": {
     "tokenEncrypted": "...",
-    "tokenExpiry": 1738512000000,
-    "lastAuthentication": "2026-02-01T14:30:00Z"
+    "tokenExpiry": 1738512000000
   },
-
   "numistaSync": {
     "enabled": true,
     "defaultCollectionId": 5,
-    "defaultCollectionName": "Main Collection",
-    "autoSyncOnMerge": false,
-    "gradeMapping": {
-      "Extremely Fine": "xf",
-      "Very Fine": "vf",
-      "Custom Grade 1": "unc"
-    }
-  },
-
-  "fetchSettings": {
-    "basicData": true,
-    "issueData": true,
-    "pricingData": true
-  },
-
-  "fieldMappings": { ... },
-  "uiPreferences": { ... }
+    "defaultCollectionName": "Main Collection"
+  }
 }
 ```
 
 ---
 
-**End of Phase 3 Work Plan**
+## Appendix I: Security Requirements
+
+1. **Token Storage:** Use Electron safeStorage API for encryption
+2. **API Key Protection:** Never log API key or tokens
+3. **HTTPS Only:** All API calls over HTTPS
+4. **Memory Cleanup:** Clear sensitive data after use
+
+---
+
+**Document Status:** Ready for Implementation
+**Next Action:** Begin Task 3.1 - OAuth 2.0 Integration
+**Prerequisites:** Phase 2 complete (metadata system required)
