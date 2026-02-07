@@ -55,7 +55,9 @@ class SettingsManager {
         basicData: true,      // Optional - can be independently fetched
         issueData: false,     // Optional - can be independently fetched
         pricingData: false,   // Optional - can be independently fetched
-        searchCategory: 'all' // 'all', 'default', 'coin', 'banknote', 'exonumia'
+        searchCategory: 'all', // 'all', 'default', 'coin', 'banknote', 'exonumia'
+        emptyMintmarkInterpretation: 'no_mint_mark', // 'no_mint_mark' or 'unknown'
+        enableAutoPropagate: true // Auto-detect and offer to propagate type data to matching coins
       },
       
       // Pricing currency preference
@@ -70,7 +72,8 @@ class SettingsManager {
         showThumbnails: true,
         autoBackup: true,
         maxBackups: 5,        // 0 = unlimited (no pruning), positive int = keep that many
-        imageHandling: 'url' // 'url' or 'blob'
+        imageHandling: 'url', // 'url' or 'blob'
+        stickyInfoBar: false  // Pin info bar to top when scrolling
       }
     };
   }
@@ -290,7 +293,9 @@ class SettingsManager {
       basicData: fetchSettings.basicData !== undefined ? fetchSettings.basicData : this.settings.fetchSettings.basicData,
       issueData: fetchSettings.issueData !== undefined ? fetchSettings.issueData : this.settings.fetchSettings.issueData,
       pricingData: fetchSettings.pricingData !== undefined ? fetchSettings.pricingData : this.settings.fetchSettings.pricingData,
-      searchCategory: fetchSettings.searchCategory !== undefined ? fetchSettings.searchCategory : this.settings.fetchSettings.searchCategory
+      searchCategory: fetchSettings.searchCategory !== undefined ? fetchSettings.searchCategory : this.settings.fetchSettings.searchCategory,
+      emptyMintmarkInterpretation: fetchSettings.emptyMintmarkInterpretation !== undefined ? fetchSettings.emptyMintmarkInterpretation : this.settings.fetchSettings.emptyMintmarkInterpretation,
+      enableAutoPropagate: fetchSettings.enableAutoPropagate !== undefined ? fetchSettings.enableAutoPropagate : this.settings.fetchSettings.enableAutoPropagate
     };
     this.saveSettings();
   }

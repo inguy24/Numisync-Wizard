@@ -31,14 +31,33 @@ const AppState = {
     freshnessFilter: 'all', // all, current, recent, aging, outdated, never
     sortBy: 'title', // title, year, country, last_update, pricing_freshness, status
     sortOrder: 'ASC' // ASC, DESC
-  }
+  },
+  // Scroll position preservation
+  collectionScrollPosition: 0,
+  // Fast Pricing Mode
+  fastPricingMode: false,
+  fastPricingSelected: new Set(),  // coin IDs
+  fastPricingUpdated: new Set(),   // coin IDs that were successfully updated this session
+  fastPricingFailed: new Set(),    // coin IDs that failed this session
+  fastPricingProgress: {
+    running: false,
+    total: 0,
+    completed: 0,
+    succeeded: 0,
+    failed: 0,
+    cancelled: false,
+    uiLocked: false,
+    errors: []  // [{coinId, title, error}]
+  },
+  // View Mode
+  viewMode: 'list' // 'list' or 'grid'
 };
 
 // =============================================================================
 // EULA Configuration
 // =============================================================================
 
-const EULA_VERSION = '1.0';
+const EULA_VERSION = '2.0';
 
 const EULA_CONTENT = `
 <div style="text-align: center; margin-bottom: 15px;">
@@ -53,87 +72,147 @@ const EULA_CONTENT = `
 <h5>2. License Grant</h5>
 <p>Subject to the terms of this Agreement, you are granted a limited, non-exclusive, non-transferable, non-sublicensable, revocable license to install and use the Software on devices you own or control, solely for your personal, non-commercial use in managing your coin collection.</p>
 
-<h5>3. Restrictions</h5>
+<h5>3. License Tiers</h5>
+<p>The Software is offered in two tiers:</p>
+<p><strong>(a) Free Version.</strong> The Free Version provides core functionality at no cost, including single-coin data enrichment from the Numista catalog. The Free Version may display periodic prompts encouraging upgrade to the Supporter Edition.</p>
+<p><strong>(b) Supporter Edition.</strong> The Supporter Edition is available through purchase of a license key and provides additional features including batch pricing updates (Fast Pricing Mode), batch type data propagation (Auto-Propagate), and removal of upgrade prompts. A Supporter license key:</p>
+<ul>
+  <li>May be activated on up to five (5) devices you own or control</li>
+  <li>Is non-transferable and may not be shared, sold, or given to others</li>
+  <li>Covers the current major version of the Software and all updates within that major version (e.g., version 1.x includes all 1.0, 1.1, 1.2 releases)</li>
+  <li>Does not automatically include future major versions (e.g., version 2.0); new major versions with significant added functionality may require a separate purchase</li>
+  <li>Entitles you to discounted pricing on future major version upgrades as a benefit of being an existing supporter</li>
+  <li>Grants access to premium features as they exist at time of purchase; future premium features may require additional purchase</li>
+  <li>Does not grant ownership of the Software, access to source code, or any intellectual property rights</li>
+  <li>May be deactivated from a device to free an activation slot for use on a different device</li>
+  <li>Is subject to validation through third-party license management services (currently Polar.sh)</li>
+</ul>
+<p>Both license tiers are subject to all other terms of this Agreement. The Developer reserves the right to modify features available in each tier.</p>
+
+<h5>4. Restrictions</h5>
 <p>You shall not:</p>
 <ul>
   <li>Reverse engineer, decompile, disassemble, or attempt to derive the source code of the Software</li>
   <li>Modify, adapt, translate, or create derivative works based on the Software</li>
-  <li>Rent, lease, lend, sell, redistribute, or sublicense the Software</li>
+  <li>Rent, lease, lend, sell, redistribute, or sublicense the Software or any license keys</li>
+  <li>Share, publish, or distribute license keys to any third party</li>
+  <li>Circumvent, disable, or interfere with license validation or activation systems</li>
   <li>Use the Software for any commercial purpose</li>
   <li>Remove or alter any proprietary notices, labels, or marks on the Software</li>
 </ul>
 
-<h5>4. Third-Party Services</h5>
-<p>This Software uses the Numista API to retrieve numismatic data. By using this Software:</p>
+<h5>5. Third-Party Services</h5>
+<p>This Software uses the Numista API to retrieve numismatic data and Polar.sh for license management. By using this Software:</p>
 <ul>
   <li>You acknowledge that you have your own separate agreement with Numista, obtained when you registered for an API key</li>
   <li>You understand that your use of Numista's services is governed solely by your agreement with them</li>
-  <li>The Developer is not responsible for your interactions, dealings, or disputes with Numista</li>
-  <li>The Developer does not control and is not liable for any data provided by Numista</li>
+  <li>You acknowledge that license validation requires communication with Polar.sh servers</li>
+  <li>The Developer is not responsible for your interactions, dealings, or disputes with Numista or Polar.sh</li>
+  <li>The Developer does not control and is not liable for any data provided by these third parties</li>
 </ul>
 
-<h5>5. Intellectual Property</h5>
-<p>The Software is licensed, not sold. The Developer retains all right, title, and interest in and to the Software, including all intellectual property rights. This Agreement does not grant you any rights to trademarks or service marks of the Developer.</p>
+<h5>6. Data Collection and Privacy</h5>
+<p>The Software is designed with privacy in mind:</p>
+<ul>
+  <li><strong>Local Data Only.</strong> Your coin collection data remains stored locally on your device in your OpenNumismat database. The Software does not upload, transmit, or store your collection data on any external servers.</li>
+  <li><strong>No Personal Information Collected.</strong> The Software does not collect, store, or transmit personal information such as your name, email address, location, or browsing history.</li>
+  <li><strong>API Communications.</strong> The Software makes requests to the Numista API to retrieve catalog data and to Polar.sh for license validation. These requests contain only the minimum information necessary for operation (such as coin identifiers for Numista lookups and license keys for validation).</li>
+  <li><strong>Device Fingerprint.</strong> For Supporter Edition license activation, a device fingerprint (derived from hardware identifiers) is generated and transmitted to Polar.sh solely to manage device activation limits. This fingerprint is not linked to your personal identity.</li>
+  <li><strong>Local Settings.</strong> Application preferences (such as your Numista API key and license activation status) are stored locally on your device and are not transmitted to the Developer.</li>
+</ul>
 
-<h5>6. Disclaimer of Warranties</h5>
+<h5>7. California Privacy Rights (CCPA/CPRA)</h5>
+<p>If you are a California resident, you have specific rights under the California Consumer Privacy Act (CCPA) and California Privacy Rights Act (CPRA):</p>
+<ul>
+  <li><strong>Right to Know.</strong> You have the right to know what personal information is collected. As stated above, this Software does not collect personal information.</li>
+  <li><strong>Right to Delete.</strong> You have the right to request deletion of personal information. Since no personal information is collected or stored by the Developer, there is nothing to delete. Your local application settings can be removed by uninstalling the Software.</li>
+  <li><strong>Right to Opt-Out of Sale.</strong> The Developer does not sell, share, or disclose personal information to third parties for monetary or other valuable consideration.</li>
+  <li><strong>Right to Non-Discrimination.</strong> You will not receive discriminatory treatment for exercising your privacy rights.</li>
+  <li><strong>Sensitive Personal Information.</strong> The Software does not collect sensitive personal information as defined under California law.</li>
+</ul>
+<p>For any privacy-related inquiries, please contact the Developer through the project's GitHub repository.</p>
+
+<h5>8. Intellectual Property</h5>
+<p>The Software is licensed, not sold. The Developer retains all right, title, and interest in and to the Software, including all intellectual property rights. This Agreement does not grant you any rights to trademarks or service marks of the Developer. Purchase of a Supporter Edition license grants only the right to use premium features; it does not constitute purchase of the Software itself or any intellectual property rights therein.</p>
+
+<h5>9. Disclaimer of Warranties</h5>
 <p><strong>THE SOFTWARE IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT.</strong></p>
 <ul>
   <li>Pricing information is for reference only and may be inaccurate, incomplete, or outdated</li>
   <li>Catalog data may contain errors or omissions</li>
   <li>No guarantee of data accuracy, completeness, reliability, or timeliness is made</li>
   <li>The Developer does not warrant that the Software will meet your requirements or operate uninterrupted or error-free</li>
+  <li>No guarantee is made regarding the continued availability of third-party services (Numista, Polar.sh)</li>
 </ul>
 
-<h5>7. Limitation of Liability</h5>
+<h5>10. Limitation of Liability</h5>
 <p><strong>TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL THE DEVELOPER BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS, DATA, USE, GOODWILL, OR OTHER INTANGIBLE LOSSES, RESULTING FROM:</strong></p>
 <ul>
   <li>Your use or inability to use the Software</li>
   <li>Any loss, corruption, or modification of your OpenNumismat database or any other data</li>
   <li>Any financial decisions made based on pricing or valuation data</li>
   <li>Any unauthorized access to or alteration of your data</li>
-  <li>Any third-party conduct or content, including Numista</li>
+  <li>Any third-party conduct or content, including Numista or Polar.sh</li>
+  <li>Interruption or unavailability of license validation services</li>
   <li>Any other matter relating to the Software</li>
 </ul>
 <p>In no event shall the Developer's total liability exceed the amount you paid for the Software (if any), or $10 USD, whichever is lesser.</p>
 
-<h5>8. Indemnification</h5>
+<h5>11. Refunds</h5>
+<p>Supporter Edition license purchases are processed through Polar.sh. Refund requests are subject to Polar.sh's refund policies. The Developer may, at its sole discretion, issue refunds for license purchases within a reasonable period after purchase. Refunds are not guaranteed and are evaluated on a case-by-case basis.</p>
+
+<h5>12. Indemnification</h5>
 <p>You agree to indemnify, defend, and hold harmless the Developer from and against any claims, liabilities, damages, losses, and expenses, including reasonable attorneys' fees, arising out of or in any way connected with: (a) your use of the Software; (b) your violation of this Agreement; (c) your violation of any third-party rights, including Numista's terms of service; or (d) your violation of any applicable law or regulation.</p>
 
-<h5>9. User Responsibilities</h5>
+<h5>13. User Responsibilities</h5>
 <p>You acknowledge and agree that:</p>
 <ul>
   <li>You are responsible for maintaining backups of your data</li>
   <li>You should close OpenNumismat before using this Software to avoid database conflicts</li>
   <li>You are solely responsible for any decisions made based on data obtained through this Software</li>
   <li>You will comply with all applicable laws in your use of the Software</li>
+  <li>You are responsible for maintaining the confidentiality of your license key</li>
 </ul>
 
-<h5>10. Governing Law and Jurisdiction</h5>
+<h5>14. No Obligation to Support or Maintain</h5>
+<p>The Developer is under no obligation to:</p>
+<ul>
+  <li>Provide updates, bug fixes, patches, or new versions of the Software</li>
+  <li>Provide technical support, customer service, or assistance of any kind</li>
+  <li>Maintain compatibility with future versions of operating systems, OpenNumismat, or third-party services</li>
+  <li>Continue operating, distributing, or making the Software available</li>
+</ul>
+<p>The Developer may, at its sole discretion, discontinue the Software, cease providing updates, or terminate license validation services at any time without notice or liability. Any updates, support, or maintenance provided are voluntary and do not create an ongoing obligation. Purchase of a Supporter Edition license does not entitle you to any guaranteed period of support, updates, or availability.</p>
+
+<h5>15. Governing Law and Jurisdiction</h5>
 <p>This Agreement shall be governed by and construed in accordance with the laws of the State of California, United States of America, without regard to its conflict of law provisions. You agree to submit to the personal and exclusive jurisdiction of the courts located in California for the resolution of any disputes.</p>
 
-<h5>11. Dispute Resolution and Arbitration</h5>
+<h5>16. Dispute Resolution and Arbitration</h5>
 <p><strong>PLEASE READ THIS SECTION CAREFULLY. IT AFFECTS YOUR LEGAL RIGHTS.</strong></p>
 <p>Any dispute, controversy, or claim arising out of or relating to this Agreement, or the breach thereof, shall be determined by binding arbitration administered by a mutually agreed-upon arbitration service, in accordance with its rules then in effect. The arbitration shall be conducted in California, United States of America. The arbitrator's decision shall be final and binding, and judgment on the award may be entered in any court having jurisdiction.</p>
 
-<h5>12. Class Action Waiver</h5>
+<h5>17. Class Action Waiver</h5>
 <p><strong>YOU AND THE DEVELOPER AGREE THAT EACH MAY BRING CLAIMS AGAINST THE OTHER ONLY IN YOUR OR ITS INDIVIDUAL CAPACITY AND NOT AS A PLAINTIFF OR CLASS MEMBER IN ANY PURPORTED CLASS OR REPRESENTATIVE PROCEEDING.</strong> Unless both you and the Developer agree otherwise, the arbitrator may not consolidate more than one person's claims and may not otherwise preside over any form of a representative or class proceeding.</p>
 
-<h5>13. Force Majeure</h5>
+<h5>18. Force Majeure</h5>
 <p>The Developer shall not be liable for any failure or delay in performance under this Agreement due to circumstances beyond its reasonable control, including but not limited to acts of God, natural disasters, climate change, pandemics, war, terrorism, riots, embargoes, acts of civil or military authorities, fire, floods, earthquakes, accidents, strikes, or shortages of transportation, facilities, fuel, energy, labor, or materials.</p>
 
-<h5>14. Severability</h5>
+<h5>19. Severability</h5>
 <p>If any provision of this Agreement is held to be illegal, invalid, or unenforceable by a court of competent jurisdiction, such provision shall be modified to the minimum extent necessary to make it legal, valid, and enforceable, or if modification is not possible, shall be severed from this Agreement. The remaining provisions shall continue in full force and effect.</p>
 
-<h5>15. Waiver</h5>
+<h5>20. Waiver</h5>
 <p>No failure or delay by the Developer in exercising any right, power, or remedy under this Agreement shall operate as a waiver thereof, nor shall any single or partial exercise of any right, power, or remedy preclude any other or further exercise thereof or the exercise of any other right, power, or remedy.</p>
 
-<h5>16. Entire Agreement</h5>
+<h5>21. Entire Agreement</h5>
 <p>This Agreement constitutes the entire agreement between you and the Developer regarding the Software and supersedes all prior and contemporaneous agreements, proposals, or representations, written or oral, concerning its subject matter.</p>
 
-<h5>17. Termination</h5>
-<p>This Agreement is effective until terminated. Your rights under this Agreement will terminate automatically without notice if you fail to comply with any of its terms. Upon termination, you must cease all use of the Software and destroy all copies in your possession or control. Sections 5-16 shall survive any termination of this Agreement.</p>
+<h5>22. Termination</h5>
+<p>This Agreement is effective until terminated. Your rights under this Agreement will terminate automatically without notice if you fail to comply with any of its terms. Upon termination, you must cease all use of the Software and destroy all copies in your possession or control. Supporter Edition license keys may be revoked for violation of this Agreement without refund. Sections 8-21 shall survive any termination of this Agreement.</p>
 
-<h5>18. Contact</h5>
+<h5>23. Changes to This Agreement</h5>
+<p>The Developer reserves the right to modify this Agreement at any time. Continued use of the Software after changes constitutes acceptance of the modified Agreement. Material changes will be indicated by updating the version number and "Last Updated" date.</p>
+
+<h5>24. Contact</h5>
 <p>For questions about this Agreement, please visit the project's GitHub repository.</p>
 
 <p style="margin-top: 20px; padding-top: 10px; border-top: 1px solid var(--border-color);">
@@ -158,10 +237,55 @@ function showScreen(screenName) {
     AppState.currentScreen = screenName;
   }
 
+  // Scroll to top when showing match screen (new coin selected)
+  if (screenName === 'match') {
+    const mainContent = document.querySelector('.app-main');
+    if (mainContent) {
+      mainContent.scrollTop = 0;
+    }
+  }
+
   // Show/hide footer pagination based on screen
   const footerPagination = document.getElementById('footerPagination');
   if (footerPagination) {
     footerPagination.style.display = screenName === 'collection' ? 'flex' : 'none';
+  }
+
+  // Note: Scroll restoration is handled by restoreCollectionScrollPosition()
+  // which should be called after the coin list is rendered
+}
+
+/**
+ * Restore scroll position when returning to the collection screen.
+ * Scrolls the previously clicked coin into view to maintain context.
+ */
+function restoreCollectionScrollPosition() {
+  if (AppState.currentScreen !== 'collection') return;
+
+  // If we have a current coin, scroll it into view
+  if (AppState.currentCoin && AppState.currentCoin.id) {
+    requestAnimationFrame(() => {
+      const coinElement = document.querySelector(`.coin-item[data-coin-id="${AppState.currentCoin.id}"]`);
+      if (coinElement) {
+        coinElement.scrollIntoView({ block: 'center', behavior: 'instant' });
+        return;
+      }
+      // Fallback to saved scroll position if coin not found on current page
+      if (AppState.collectionScrollPosition > 0) {
+        const mainContent = document.querySelector('.app-main');
+        if (mainContent) {
+          mainContent.scrollTop = AppState.collectionScrollPosition;
+        }
+      }
+    });
+  } else if (AppState.collectionScrollPosition > 0) {
+    // Fallback to saved scroll position
+    requestAnimationFrame(() => {
+      const mainContent = document.querySelector('.app-main');
+      if (mainContent) {
+        mainContent.scrollTop = AppState.collectionScrollPosition;
+      }
+    });
   }
 }
 
@@ -227,15 +351,59 @@ function showModal(title, body, showCancel = false) {
  */
 async function showAboutDialog() {
   let version = '1.0.0';
+  let supporterStatus = { supporter: { isSupporter: false }, polarConfig: { checkoutUrl: '' } };
+
   try {
     version = await window.electronAPI.getAppVersion();
   } catch (e) {
     console.error('Error getting app version:', e);
   }
 
+  try {
+    const result = await window.electronAPI.getSupporterStatus();
+    if (result.success) {
+      supporterStatus = result;
+    }
+  } catch (e) {
+    console.error('Error getting supporter status:', e);
+  }
+
+  const isSupporter = supporterStatus.supporter?.isSupporter || false;
+  const checkoutUrl = supporterStatus.polarConfig?.checkoutUrl || '';
+
+  const licenseBadge = isSupporter
+    ? '<span style="display: inline-block; padding: 4px 12px; background: linear-gradient(135deg, #FFD700, #FFA500); color: #333; border-radius: 4px; font-size: 0.85em; font-weight: bold;">Supporter</span>'
+    : '<span style="display: inline-block; padding: 4px 12px; background: var(--text-secondary, #666); color: white; border-radius: 4px; font-size: 0.85em;">Free Version</span>';
+
+  const licenseSection = isSupporter
+    ? `<p style="margin: 10px 0 0 0; font-size: 0.85em; color: var(--text-secondary);">
+         Thank you for supporting NumiSync!
+       </p>
+       <p style="margin: 5px 0 0 0;">
+         <a href="#" id="aboutRemoveLicenseLink" style="font-size: 0.8em; color: var(--text-secondary);">Remove License</a>
+       </p>`
+    : `<div style="margin-top: 15px;">
+         <button id="aboutPurchaseLicenseBtn"
+                 style="padding: 10px 24px; background: linear-gradient(135deg, #FFD700, #FFA500); color: #333; border: none; border-radius: 6px; cursor: pointer; font-size: 1em; font-weight: bold;">
+           Purchase License
+         </button>
+       </div>
+       <p style="margin: 15px 0 8px 0; font-size: 0.85em; color: var(--text-secondary);">
+         Already purchased? Enter your license key:
+       </p>
+       <div id="licenseEntrySection">
+         <input type="text" id="aboutLicenseKeyInput" placeholder="License key from email"
+                style="width: 200px; padding: 6px 10px; border: 1px solid var(--border-color, #ddd); border-radius: 4px; font-size: 0.85em;">
+         <button id="aboutActivateLicenseBtn"
+                 style="margin-left: 5px; padding: 6px 12px; background: var(--accent, #007bff); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85em;">
+           Activate
+         </button>
+         <p id="aboutLicenseMessage" style="margin: 8px 0 0 0; font-size: 0.8em;"></p>
+       </div>`;
+
   const aboutHtml = `
     <div style="text-align: center;">
-      <img src="images/logo_with_text.svg" alt="NumiSync Wizard for OpenNumismat" style="height: 80px; width: auto; margin-bottom: 10px;">
+      <img src="images/logo_with_text.svg" alt="NumiSync Wizard for OpenNumismat" style="height: 100px; width: auto; margin-bottom: 10px;">
       <p style="margin: 5px 0;">Version ${version}</p>
 
       <div style="margin: 20px 0; padding: 15px; background: var(--bg-secondary, #f5f5f5); border-radius: 8px;">
@@ -252,22 +420,26 @@ async function showAboutDialog() {
 
       <div style="margin-top: 20px; padding: 15px; background: var(--bg-secondary, #f5f5f5); border-radius: 8px;">
         <p style="margin: 0 0 10px 0; font-weight: bold;">License Status</p>
-        <span style="display: inline-block; padding: 4px 12px; background: var(--text-secondary, #666); color: white; border-radius: 4px; font-size: 0.85em;">Free Version</span>
-        <p style="margin: 10px 0 0 0; font-size: 0.85em; color: var(--text-secondary);">
-          <a href="#" id="aboutManageLicenseLink" style="color: var(--text-secondary);">Manage License</a>
-        </p>
+        ${licenseBadge}
+        ${licenseSection}
       </div>
     </div>
   `;
 
-  await showModal('About', aboutHtml);
+  // Show modal without awaiting - we need to wire up event handlers immediately
+  // (awaiting would wait until modal closes, at which point handlers would be useless)
+  showModal('About', aboutHtml);
 
   // Wire up the links after modal is shown (they're now in DOM)
   setTimeout(() => {
     const githubLink = document.getElementById('aboutGithubLink');
     const manualLink = document.getElementById('aboutManualLink');
     const eulaLink = document.getElementById('aboutEulaLink');
-    const manageLicenseLink = document.getElementById('aboutManageLicenseLink');
+    const purchaseLicenseBtn = document.getElementById('aboutPurchaseLicenseBtn');
+    const activateBtn = document.getElementById('aboutActivateLicenseBtn');
+    const licenseInput = document.getElementById('aboutLicenseKeyInput');
+    const licenseMessage = document.getElementById('aboutLicenseMessage');
+    const removeLicenseLink = document.getElementById('aboutRemoveLicenseLink');
 
     if (githubLink) {
       githubLink.addEventListener('click', (e) => {
@@ -291,14 +463,880 @@ async function showAboutDialog() {
       });
     }
 
-    if (manageLicenseLink) {
-      manageLicenseLink.addEventListener('click', (e) => {
+    if (purchaseLicenseBtn) {
+      purchaseLicenseBtn.addEventListener('click', () => {
+        const url = checkoutUrl || 'https://sandbox-api.polar.sh/v1/checkout-links/polar_cl_GU5TpVHT8Fj1XvA7NqBOpEtnoHPY9kSnlrloe240tb1/redirect';
+        window.electronAPI.openExternal(url);
+      });
+    }
+
+    if (activateBtn && licenseInput) {
+      const handleActivate = async () => {
+        const key = licenseInput.value.trim();
+        if (!key) {
+          if (licenseMessage) licenseMessage.textContent = 'Please enter a license key';
+          return;
+        }
+
+        activateBtn.disabled = true;
+        activateBtn.textContent = 'Validating...';
+        if (licenseMessage) licenseMessage.textContent = '';
+
+        try {
+          const result = await window.electronAPI.validateLicenseKey(key);
+
+          if (result.valid) {
+            if (licenseMessage) {
+              licenseMessage.style.color = 'var(--success, #28a745)';
+              licenseMessage.textContent = result.message;
+            }
+            // Refresh the dialog and version badge after a short delay
+            setTimeout(() => {
+              document.getElementById('modal').style.display = 'none';
+              updateVersionBadge();
+              showAboutDialog();
+            }, 1500);
+          } else {
+            if (licenseMessage) {
+              licenseMessage.style.color = 'var(--error, #dc3545)';
+              licenseMessage.textContent = result.message;
+            }
+            activateBtn.disabled = false;
+            activateBtn.textContent = 'Activate';
+          }
+        } catch (error) {
+          console.error('Error validating license:', error);
+          if (licenseMessage) {
+            licenseMessage.style.color = 'var(--error, #dc3545)';
+            licenseMessage.textContent = 'Error validating license';
+          }
+          activateBtn.disabled = false;
+          activateBtn.textContent = 'Activate';
+        }
+      };
+
+      activateBtn.addEventListener('click', handleActivate);
+      licenseInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') handleActivate();
+      });
+    }
+
+    if (removeLicenseLink) {
+      removeLicenseLink.addEventListener('click', async (e) => {
         e.preventDefault();
-        // Placeholder for future license management
-        showStatus('License management coming soon');
+        if (confirm('Are you sure you want to remove your license?')) {
+          await window.electronAPI.clearLicense();
+          document.getElementById('modal').style.display = 'none';
+          updateVersionBadge();
+          showAboutDialog();
+        }
       });
     }
   }, 0);
+}
+
+// =============================================================================
+// License Prompt Modal
+// =============================================================================
+
+/**
+ * Show a license prompt modal at enrichment thresholds
+ * @param {number} totalCoinsEnriched - Total coins enriched so far
+ */
+async function showLicensePromptModal(totalCoinsEnriched) {
+  // Calculate time saved (estimate 2 minutes per coin)
+  const minutesSaved = totalCoinsEnriched * 2;
+  const hoursSaved = Math.floor(minutesSaved / 60);
+  const remainingMinutes = minutesSaved % 60;
+  const timeSavedText = hoursSaved > 0
+    ? `${hoursSaved} hour${hoursSaved !== 1 ? 's' : ''} and ${remainingMinutes} minute${remainingMinutes !== 1 ? 's' : ''}`
+    : `${minutesSaved} minute${minutesSaved !== 1 ? 's' : ''}`;
+
+  let checkoutUrl = '';
+  try {
+    const result = await window.electronAPI.getSupporterStatus();
+    if (result.success) {
+      checkoutUrl = result.polarConfig?.checkoutUrl || '';
+    }
+  } catch (e) {
+    console.error('Error getting checkout URL:', e);
+  }
+
+  const promptHtml = `
+    <div style="text-align: center; max-width: 480px; margin: 0 auto;">
+      <img src="images/logo_with_text.svg" alt="NumiSync Wizard" style="height: 50px; width: auto; margin-bottom: 12px;">
+
+      <h3 style="margin: 0 0 12px 0; color: var(--text-primary);">Hi Fellow Collector!</h3>
+
+      <p style="margin: 0 0 12px 0; font-size: 0.95em; line-height: 1.5; text-align: left;">
+        I built NumiSync Wizard to save myself countless hours cataloging my coin collection in OpenNumismat.
+        You've now enriched <strong>${totalCoinsEnriched} coins</strong>, saving an estimated
+        <strong style="color: var(--accent);">${timeSavedText}</strong> of tedious data entry!
+      </p>
+
+      <p style="margin: 0 0 12px 0; font-size: 0.95em; line-height: 1.5; text-align: left;">
+        I know you hear pleas like this all the time, but I hope you'll consider supporting this
+        extremely niche software. For the price of a couple cups of coffee (outrageous these days, I know!),
+        you can become a supporter.
+      </p>
+
+      <div style="margin: 15px 0; padding: 12px; background: linear-gradient(135deg, #f8f9fa, #e9ecef); border-radius: 8px; text-align: left;">
+        <p style="margin: 0 0 8px 0; font-size: 0.9em; font-weight: 600;">A supporter license gets you:</p>
+        <ul style="margin: 0; padding-left: 20px; font-size: 0.85em; line-height: 1.6;">
+          <li><strong>Fast Pricing Mode</strong> - Batch update pricing across your collection</li>
+          <li><strong>Auto-Propagate</strong> - Apply type data to matching coins automatically</li>
+          <li>No more of these annoying messages!</li>
+          <li>Discounts on future premium features</li>
+          <li>The warm fuzzy feeling of supporting independent software</li>
+        </ul>
+      </div>
+
+      <p style="margin: 0 0 15px 0; font-size: 0.85em; color: var(--text-secondary); text-align: left;">
+        Your support helps cover development costs and keeps NumiSync improving for our community of collectors.
+      </p>
+
+      <p style="margin: 0 0 15px 0; font-size: 0.9em; text-align: right; font-style: italic;">
+        Sincerely,<br>Shane (your fellow collector)
+      </p>
+
+      <div style="margin: 15px 0;">
+        <button id="licensePromptGetBtn"
+                style="padding: 10px 20px; background: linear-gradient(135deg, #FFD700, #FFA500); color: #333; border: none; border-radius: 6px; cursor: pointer; font-size: 1em; font-weight: bold; margin-right: 10px;">
+          Become a Supporter
+        </button>
+        <button id="licensePromptEnterKeyBtn"
+                style="padding: 10px 20px; background: var(--accent, #007bff); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 1em;">
+          Enter License Key
+        </button>
+      </div>
+
+      <div style="margin-top: 12px;">
+        <a href="#" id="licensePromptLaterLink" style="color: var(--text-secondary); font-size: 0.85em;">Maybe Later</a>
+      </div>
+    </div>
+  `;
+
+  // Show modal without awaiting - need to wire up event handlers immediately
+  showModal('Support NumiSync', promptHtml, false);
+
+  // Wire up buttons
+  setTimeout(() => {
+    const getBtn = document.getElementById('licensePromptGetBtn');
+    const enterKeyBtn = document.getElementById('licensePromptEnterKeyBtn');
+    const laterLink = document.getElementById('licensePromptLaterLink');
+
+    if (getBtn) {
+      getBtn.addEventListener('click', () => {
+        const url = checkoutUrl || 'https://sandbox-api.polar.sh/v1/checkout-links/polar_cl_GU5TpVHT8Fj1XvA7NqBOpEtnoHPY9kSnlrloe240tb1/redirect';
+        window.electronAPI.openExternal(url);
+        document.getElementById('modal').style.display = 'none';
+      });
+    }
+
+    if (enterKeyBtn) {
+      enterKeyBtn.addEventListener('click', () => {
+        document.getElementById('modal').style.display = 'none';
+        showAboutDialog(); // About dialog has the license key entry
+      });
+    }
+
+    if (laterLink) {
+      laterLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        document.getElementById('modal').style.display = 'none';
+      });
+    }
+  }, 0);
+}
+
+// =============================================================================
+// Premium Feature Gating
+// =============================================================================
+
+/**
+ * Premium features configuration
+ */
+const PREMIUM_FEATURES = {
+  'fast-pricing': {
+    name: 'Fast Pricing Mode',
+    description: 'Batch update pricing for matched coins with 1 API call each'
+  },
+  'batch-type-propagation': {
+    name: 'Auto-Propagate',
+    description: 'Automatically propagate type data to matching coins'
+  }
+};
+
+/**
+ * Check if a premium feature is available
+ * @param {string} featureId - The feature identifier
+ * @returns {Promise<boolean>} True if feature is available (user is supporter)
+ */
+async function isPremiumFeatureAvailable(featureId) {
+  try {
+    const result = await window.electronAPI.getSupporterStatus();
+    return result.success && result.supporter?.isSupporter === true;
+  } catch (e) {
+    console.error('Error checking premium feature:', e);
+    return false;
+  }
+}
+
+/**
+ * Gate a premium feature - shows prompt if not available
+ * @param {string} featureId - The feature identifier
+ * @returns {Promise<boolean>} True if feature can be used
+ */
+async function requirePremiumFeature(featureId) {
+  const available = await isPremiumFeatureAvailable(featureId);
+
+  if (!available) {
+    const feature = PREMIUM_FEATURES[featureId] || { name: 'Premium Feature', description: '' };
+
+    let checkoutUrl = '';
+    try {
+      const result = await window.electronAPI.getSupporterStatus();
+      if (result.success) {
+        checkoutUrl = result.polarConfig?.checkoutUrl || '';
+      }
+    } catch (e) {
+      console.error('Error getting checkout URL:', e);
+    }
+
+    const promptHtml = `
+      <div style="text-align: center;">
+        <div style="margin-bottom: 15px;">
+          <span style="display: inline-block; padding: 4px 12px; background: linear-gradient(135deg, #FFD700, #FFA500); color: #333; border-radius: 4px; font-size: 0.85em; font-weight: bold;">PREMIUM</span>
+        </div>
+
+        <h3 style="margin: 0 0 10px 0;">${feature.name}</h3>
+
+        <p style="margin: 0 0 20px 0; color: var(--text-secondary);">
+          ${feature.description}
+        </p>
+
+        <p style="margin: 0 0 20px 0; font-size: 0.9em;">
+          This feature requires a supporter license to use.
+        </p>
+
+        <div style="margin: 20px 0;">
+          <button id="premiumGetLicenseBtn"
+                  style="padding: 10px 20px; background: linear-gradient(135deg, #FFD700, #FFA500); color: #333; border: none; border-radius: 6px; cursor: pointer; font-size: 1em; font-weight: bold; margin-right: 10px;">
+            Get a License
+          </button>
+          <button id="premiumEnterKeyBtn"
+                  style="padding: 10px 20px; background: var(--accent, #007bff); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 1em;">
+            Enter License Key
+          </button>
+        </div>
+      </div>
+    `;
+
+    // Show modal without awaiting - need to wire up event handlers immediately
+    showModal('Premium Feature', promptHtml);
+
+    // Wire up buttons
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const getBtn = document.getElementById('premiumGetLicenseBtn');
+        const enterKeyBtn = document.getElementById('premiumEnterKeyBtn');
+        const cancelBtn = document.getElementById('modalCancel');
+        const closeBtn = document.getElementById('modalClose');
+
+        const closeHandler = () => {
+          resolve(false);
+        };
+
+        if (getBtn) {
+          getBtn.addEventListener('click', () => {
+            const url = checkoutUrl || 'https://sandbox-api.polar.sh/v1/checkout-links/polar_cl_GU5TpVHT8Fj1XvA7NqBOpEtnoHPY9kSnlrloe240tb1/redirect';
+            window.electronAPI.openExternal(url);
+            document.getElementById('modal').style.display = 'none';
+            resolve(false);
+          });
+        }
+
+        if (enterKeyBtn) {
+          enterKeyBtn.addEventListener('click', () => {
+            document.getElementById('modal').style.display = 'none';
+            showAboutDialog();
+            resolve(false);
+          });
+        }
+
+        if (cancelBtn) cancelBtn.addEventListener('click', closeHandler);
+        if (closeBtn) closeBtn.addEventListener('click', closeHandler);
+      }, 0);
+    });
+  }
+
+  return true;
+}
+
+// =============================================================================
+// Batch Type Data Propagation (Task 3.12)
+// =============================================================================
+
+/**
+ * Normalize a catalog number by stripping known prefixes.
+ * Preserves full alphanumeric number (e.g., "322.1b" stays "322.1b")
+ * @param {string} rawValue - The raw catalog value from the database
+ * @returns {string} Normalized catalog number
+ */
+function normalizeCatalogNumber(rawValue) {
+  if (!rawValue || typeof rawValue !== 'string') return '';
+
+  // Known prefixes to strip (case insensitive)
+  const prefixes = [
+    /^krause#?\s*/i,
+    /^km[#\-\s]?\s*/i,
+    /^schön#?\s*/i,
+    /^numista#?\s*/i,
+    /^n#\s*/i
+  ];
+
+  let normalized = rawValue.trim();
+  for (const prefix of prefixes) {
+    normalized = normalized.replace(prefix, '');
+  }
+
+  return normalized.trim();
+}
+
+/**
+ * Get the catalog type assigned to each catalognum slot.
+ * Uses field mappings from AppState or defaults.
+ * @returns {Object} Mapping of slot to catalog type (e.g., { catalognum1: 'Krause', ... })
+ */
+function getCatalogSlotMapping() {
+  const fieldMappings = AppState.fieldMappings || {};
+
+  return {
+    catalognum1: fieldMappings.catalognum1?.catalogCode || 'KM',
+    catalognum2: fieldMappings.catalognum2?.catalogCode || 'Schön',
+    catalognum3: fieldMappings.catalognum3?.catalogCode || 'Y',
+    catalognum4: fieldMappings.catalognum4?.catalogCode || 'Numista'
+  };
+}
+
+/**
+ * Find coins in collection that match the enriched coin's type.
+ * Uses strict matching: numistaId is gold standard, catalog numbers require ALL populated slots to match.
+ * @param {Object} enrichedCoin - The coin that was just enriched
+ * @param {Object} numistaData - The Numista type data that was fetched
+ * @returns {Array<{coin: Object, matchReason: string}>} Matching coins with reason
+ */
+function findMatchingCoins(enrichedCoin, numistaData) {
+  const matches = [];
+  const enrichedNumistaId = numistaData?.id;
+
+  // Build catalog reference map from Numista data for quick lookup
+  // numistaData.references is array of { catalogue: { id, code }, number }
+  const numistaRefs = {};
+  if (numistaData?.references && Array.isArray(numistaData.references)) {
+    for (const ref of numistaData.references) {
+      if (ref.catalogue?.code && ref.number) {
+        // Normalize catalog code for case-insensitive matching
+        const catalogKey = ref.catalogue.code.toLowerCase().replace(/[^a-z]/g, '');
+        numistaRefs[catalogKey] = ref.number.toString();
+      }
+    }
+  }
+
+  const slotMapping = getCatalogSlotMapping();
+
+  for (const coin of AppState.allCoins) {
+    // Skip the enriched coin itself
+    if (coin.id === enrichedCoin.id) continue;
+
+    // Priority 1: Check numistaId in metadata (gold standard - 100% match)
+    const coinMetadata = coin.metadata?.basicData;
+    if (coinMetadata?.numistaId && coinMetadata.numistaId === enrichedNumistaId) {
+      matches.push({
+        coin,
+        matchReason: `Numista ID #${enrichedNumistaId}`
+      });
+      continue;
+    }
+
+    // Priority 2: Catalog number matching (strict - ALL populated slots must match)
+    // Only check if coin doesn't already have numistaId match
+    const catalogSlots = ['catalognum1', 'catalognum2', 'catalognum3', 'catalognum4'];
+    let hasAnyPopulated = false;
+    let allPopulatedMatch = true;
+    let matchedCatalog = null;
+
+    for (const slot of catalogSlots) {
+      const coinValue = coin[slot];
+      if (!coinValue || coinValue.trim() === '') continue;
+
+      hasAnyPopulated = true;
+
+      // Determine which catalog this slot maps to
+      const catalogType = slotMapping[slot];
+      if (!catalogType) {
+        // No catalog type configured for this slot - skip it for matching
+        continue;
+      }
+
+      // Normalize catalog type for lookup
+      const catalogKey = catalogType.toLowerCase().replace(/[^a-z]/g, '');
+      const numistaNumber = numistaRefs[catalogKey];
+
+      if (!numistaNumber) {
+        // Numista doesn't have this catalog type - can't match on this slot
+        // This is NOT a conflict, just no data to compare
+        continue;
+      }
+
+      // Normalize and compare
+      const normalizedCoinValue = normalizeCatalogNumber(coinValue);
+      if (normalizedCoinValue !== numistaNumber) {
+        // Conflict - this slot doesn't match
+        allPopulatedMatch = false;
+        break;
+      } else {
+        matchedCatalog = `${catalogType}# ${numistaNumber}`;
+      }
+    }
+
+    // Only add if we had populated slots AND all of them matched
+    if (hasAnyPopulated && allPopulatedMatch && matchedCatalog) {
+      matches.push({
+        coin,
+        matchReason: matchedCatalog
+      });
+    }
+  }
+
+  console.log(`[Batch Type] Found ${matches.length} matching coins for type ${enrichedNumistaId}`);
+  return matches;
+}
+
+/**
+ * Categorize matching coins into true duplicates vs same-type different issues.
+ * True duplicates: same type + year + mintmark (can receive all data including issue/pricing)
+ * Same type: different year or mintmark (can only receive type-level data)
+ * @param {Object} enrichedCoin - The coin that was just enriched
+ * @param {Array} matchingCoins - Array of {coin, matchReason} from findMatchingCoins
+ * @param {Object} issueData - The issue data from the enriched coin (contains year, mint_letter)
+ * @returns {Object} { duplicates: [], sameType: [] }
+ */
+function categorizeMatchingCoins(enrichedCoin, matchingCoins, issueData) {
+  const duplicates = [];
+  const sameType = [];
+  const previouslyEnriched = [];
+
+  // Get enriched coin's issue identifiers
+  const enrichedYear = enrichedCoin.year ? parseInt(enrichedCoin.year) : null;
+  const enrichedMintmark = (enrichedCoin.mintmark || '').trim().toLowerCase();
+  const enrichedType = (enrichedCoin.type || '').trim().toLowerCase();
+
+  for (const { coin, matchReason } of matchingCoins) {
+    const coinYear = coin.year ? parseInt(coin.year) : null;
+    const coinMintmark = (coin.mintmark || '').trim().toLowerCase();
+    const coinType = (coin.type || '').trim().toLowerCase();
+
+    // Check if this coin was previously enriched
+    const wasEnriched = coin.metadata?.basicData?.status === 'MERGED';
+
+    // Check if this is a true duplicate (same year + mintmark + type)
+    const yearMatches = enrichedYear === coinYear;
+    const mintmarkMatches = enrichedMintmark === coinMintmark;
+    const typeMatches = enrichedType === coinType;
+
+    const isDuplicate = yearMatches && mintmarkMatches && typeMatches;
+
+    if (wasEnriched) {
+      // Separate previously enriched coins
+      previouslyEnriched.push({ coin, matchReason, isDuplicate });
+    } else if (isDuplicate) {
+      duplicates.push({ coin, matchReason, isDuplicate: true });
+    } else {
+      sameType.push({ coin, matchReason, isDuplicate: false });
+    }
+  }
+
+  console.log(`[Batch Type] Categorized: ${duplicates.length} duplicates, ${sameType.length} same-type, ${previouslyEnriched.length} previously enriched`);
+  return { duplicates, sameType, previouslyEnriched };
+}
+
+/**
+ * Show the batch type propagation prompt after a successful merge.
+ * Detection is FREE (shows matching coins), applying data requires license.
+ * @param {Object} enrichedCoin - The coin that was just enriched
+ * @param {Object} numistaData - The Numista type data
+ * @param {Object} issueData - The issue data (optional)
+ * @param {Object} pricingData - The pricing data (optional)
+ */
+async function showBatchTypePropagationPrompt(enrichedCoin, numistaData, issueData, pricingData, selectedFields) {
+  // Check license status for button styling (local lookup, no API call)
+  const isSupporter = await isPremiumFeatureAvailable('batch-type-propagation');
+
+  const matchingCoins = findMatchingCoins(enrichedCoin, numistaData);
+
+  if (matchingCoins.length === 0) {
+    console.log('[Batch Type] No matching coins found, skipping prompt');
+    return;
+  }
+
+  const { duplicates, sameType, previouslyEnriched } = categorizeMatchingCoins(enrichedCoin, matchingCoins, issueData);
+  const unenrichedCount = duplicates.length + sameType.length;
+
+  // Get type title for display
+  const typeTitle = numistaData?.title || 'this type';
+  const typeId = numistaData?.id;
+
+  // Get first catalog reference for display
+  let catalogDisplay = '';
+  if (numistaData?.references && numistaData.references.length > 0) {
+    const firstRef = numistaData.references[0];
+    if (firstRef.catalogue?.code && firstRef.number) {
+      catalogDisplay = `${firstRef.catalogue.code}# ${firstRef.number}`;
+    }
+  }
+
+  // Build coin lists HTML
+  let duplicatesHtml = '';
+  if (duplicates.length > 0) {
+    duplicatesHtml = `
+      <div class="batch-type-section">
+        <h4 class="batch-type-section-title">True Duplicates (${duplicates.length} coins) - Can receive ALL data:</h4>
+        <ul class="batch-type-coin-list">
+          ${duplicates.slice(0, 10).map(({ coin }) =>
+            `<li>${coin.title || 'Untitled'} ${coin.year || ''} ${coin.mintmark || ''}</li>`
+          ).join('')}
+          ${duplicates.length > 10 ? `<li class="batch-type-more">... and ${duplicates.length - 10} more</li>` : ''}
+        </ul>
+      </div>
+    `;
+  }
+
+  let sameTypeHtml = '';
+  if (sameType.length > 0) {
+    sameTypeHtml = `
+      <div class="batch-type-section">
+        <h4 class="batch-type-section-title">Same Type, Different Issues (${sameType.length} coins) - Type data only:</h4>
+        <ul class="batch-type-coin-list batch-type-scrollable">
+          ${sameType.slice(0, 20).map(({ coin }) =>
+            `<li>${coin.title || 'Untitled'} ${coin.year || ''} ${coin.mintmark || ''}</li>`
+          ).join('')}
+          ${sameType.length > 20 ? `<li class="batch-type-more">... and ${sameType.length - 20} more</li>` : ''}
+        </ul>
+      </div>
+    `;
+  }
+
+  // Previously enriched coins section (shown separately with opt-in checkbox)
+  let previouslyEnrichedHtml = '';
+  if (previouslyEnriched.length > 0) {
+    previouslyEnrichedHtml = `
+      <div class="batch-type-section batch-type-enriched-section">
+        <h4 class="batch-type-section-title">
+          <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+            <input type="checkbox" id="includeEnrichedCheckbox" style="margin: 0;">
+            <span>Previously Enriched (${previouslyEnriched.length} coins)</span>
+          </label>
+        </h4>
+        <p class="batch-type-warning" style="color: var(--warning-color); font-size: 0.85em; margin: 0.25rem 0 0.5rem 1.5rem;">
+          These coins were already enriched from Numista. Check the box above to overwrite their data.
+        </p>
+        <ul class="batch-type-coin-list batch-type-scrollable" style="opacity: 0.6;">
+          ${previouslyEnriched.slice(0, 10).map(({ coin }) =>
+            `<li>${coin.title || 'Untitled'} ${coin.year || ''} ${coin.mintmark || ''}</li>`
+          ).join('')}
+          ${previouslyEnriched.length > 10 ? `<li class="batch-type-more">... and ${previouslyEnriched.length - 10} more</li>` : ''}
+        </ul>
+      </div>
+    `;
+  }
+
+  // Calculate initial count (without previously enriched)
+  const initialCount = unenrichedCount;
+  const totalWithEnriched = unenrichedCount + previouslyEnriched.length;
+
+  const modalHtml = `
+    <div class="batch-type-prompt">
+      <p class="batch-type-intro">
+        Found <strong><span id="batchTypeCount">${initialCount}</span> coin${initialCount === 1 ? '' : 's'}</strong> of the same type:
+      </p>
+      <p class="batch-type-type-info">
+        <strong>${typeTitle}</strong><br>
+        ${catalogDisplay ? `<span class="text-muted">${catalogDisplay}</span>` : ''}
+      </p>
+
+      ${duplicatesHtml}
+      ${sameTypeHtml}
+      ${previouslyEnrichedHtml}
+
+      <div class="batch-type-actions">
+        <button id="batchTypeApplyThis" class="btn btn-secondary">
+          Apply to This Coin Only
+        </button>
+        <button id="batchTypeApplyAll" class="btn ${isSupporter ? 'btn-secondary' : 'btn-primary btn-premium'}"${unenrichedCount === 0 ? ' disabled' : ''}>
+          Apply to All <span id="batchTypeButtonCount">${initialCount}</span>${isSupporter ? '' : ' <span class="premium-badge">💎</span>'}
+        </button>
+      </div>
+    </div>
+  `;
+
+  // Show the modal
+  const modal = document.getElementById('modal');
+  document.getElementById('modalTitle').textContent = 'Matching Coins Found';
+  document.getElementById('modalBody').innerHTML = modalHtml;
+  document.getElementById('modalOk').style.display = 'none';
+  document.getElementById('modalCancel').style.display = 'none';
+  modal.style.display = 'flex';
+
+  return new Promise((resolve) => {
+    const applyThisBtn = document.getElementById('batchTypeApplyThis');
+    const applyAllBtn = document.getElementById('batchTypeApplyAll');
+    const closeBtn = document.getElementById('modalClose');
+    const includeEnrichedCheckbox = document.getElementById('includeEnrichedCheckbox');
+    const countSpan = document.getElementById('batchTypeCount');
+    const buttonCountSpan = document.getElementById('batchTypeButtonCount');
+
+    // Track whether to include previously enriched coins
+    let includeEnriched = false;
+
+    // Update counts when checkbox changes
+    if (includeEnrichedCheckbox) {
+      includeEnrichedCheckbox.addEventListener('change', (e) => {
+        includeEnriched = e.target.checked;
+        const newCount = includeEnriched ? totalWithEnriched : unenrichedCount;
+        if (countSpan) countSpan.textContent = newCount;
+        if (buttonCountSpan) buttonCountSpan.textContent = newCount;
+        // Enable/disable button based on count
+        if (applyAllBtn) applyAllBtn.disabled = newCount === 0;
+        // Update enriched list opacity
+        const enrichedList = document.querySelector('.batch-type-enriched-section .batch-type-coin-list');
+        if (enrichedList) enrichedList.style.opacity = includeEnriched ? '1' : '0.6';
+      });
+    }
+
+    const cleanup = () => {
+      modal.style.display = 'none';
+      document.getElementById('modalOk').style.display = 'block';
+      document.getElementById('modalCancel').style.display = 'block';
+    };
+
+    const handleApplyThis = () => {
+      cleanup();
+      resolve({ action: 'this_only' });
+    };
+
+    const handleApplyAll = async () => {
+      cleanup();
+
+      // Only check premium if not already a supporter (we checked earlier for button styling)
+      if (!isSupporter) {
+        const canUse = await requirePremiumFeature('batch-type-propagation');
+        if (!canUse) {
+          resolve({ action: 'cancelled' });
+          return;
+        }
+      }
+
+      // Proceed with batch propagation - include previously enriched if checkbox was checked
+      resolve({
+        action: 'apply_all',
+        duplicates,
+        sameType,
+        previouslyEnriched: includeEnriched ? previouslyEnriched : [],
+        numistaData,
+        issueData,
+        pricingData,
+        selectedFields
+      });
+    };
+
+    const handleClose = () => {
+      cleanup();
+      resolve({ action: 'cancelled' });
+    };
+
+    if (applyThisBtn) applyThisBtn.addEventListener('click', handleApplyThis, { once: true });
+    if (applyAllBtn) applyAllBtn.addEventListener('click', handleApplyAll, { once: true });
+    if (closeBtn) closeBtn.addEventListener('click', handleClose, { once: true });
+  });
+}
+
+/**
+ * Apply batch type propagation to matching coins.
+ * @param {Object} result - Result from showBatchTypePropagationPrompt
+ * @returns {Promise<Object>} Result with success/failure counts
+ */
+async function applyBatchTypePropagation(result) {
+  if (result.action !== 'apply_all') {
+    return { success: true, applied: 0, skipped: 0 };
+  }
+
+  const { duplicates, sameType, previouslyEnriched = [], numistaData, issueData, pricingData, selectedFields } = result;
+  const allCoins = [...duplicates, ...sameType, ...previouslyEnriched];
+
+  // Show progress modal
+  const modal = document.getElementById('modal');
+  document.getElementById('modalTitle').textContent = 'Applying Type Data';
+  document.getElementById('modalBody').innerHTML = `
+    <div class="batch-propagate-progress">
+      <p>Applying type data to <strong>${allCoins.length}</strong> matching coins...</p>
+      <div class="fp-inline-progress" style="display: flex; margin: 1rem 0;">
+        <div class="fp-progress-bar" style="flex: 1;">
+          <div id="batchPropagateProgressFill" class="fp-progress-fill" style="width: 0%;"></div>
+        </div>
+        <span id="batchPropagateProgressText" class="fp-progress-text" style="min-width: 90px; text-align: right;">0/${allCoins.length} (0%)</span>
+      </div>
+      <p id="batchPropagateStatus" class="text-muted" style="font-size: 0.9em;">Starting...</p>
+    </div>
+  `;
+  document.getElementById('modalOk').style.display = 'none';
+  document.getElementById('modalCancel').style.display = 'none';
+  modal.style.display = 'flex';
+
+  const progressFill = document.getElementById('batchPropagateProgressFill');
+  const progressText = document.getElementById('batchPropagateProgressText');
+  const statusText = document.getElementById('batchPropagateStatus');
+
+  // Task 3.12.9: Enhanced tracking for skip reasons
+  let fullDataApplied = 0;  // True duplicates - all data applied
+  let typeOnlyApplied = 0;   // Same type - type data only
+  let errorCount = 0;
+  const errors = [];
+  const skippedIssueData = [];  // Coins where issue data was skipped with reasons
+
+  for (let i = 0; i < allCoins.length; i++) {
+    const { coin, isDuplicate, matchReason } = allCoins[i];
+
+    // Update progress bar
+    const completed = i + 1;
+    const percent = Math.round((completed / allCoins.length) * 100);
+    progressFill.style.width = `${percent}%`;
+    progressText.textContent = `${completed}/${allCoins.length} (${percent}%)`;
+    statusText.textContent = `Processing: ${coin.title || 'Untitled'} ${coin.year || ''}`;
+
+    try {
+      // Determine skip reason for issue data if not a duplicate
+      let issueSkipReason = null;
+      if (!isDuplicate) {
+        // Track why issue data was skipped for same-type coins
+        const coinYear = coin.year ? parseInt(coin.year) : null;
+        const coinMintmark = (coin.mintmark || '').trim().toLowerCase();
+        const enrichedYear = duplicates.length > 0 ? parseInt(duplicates[0].coin.year) || null : null;
+        const enrichedMintmark = duplicates.length > 0 ? (duplicates[0].coin.mintmark || '').trim().toLowerCase() : '';
+
+        if (coinYear !== enrichedYear) {
+          issueSkipReason = 'Different year';
+        } else if (coinMintmark !== enrichedMintmark) {
+          issueSkipReason = 'Different mintmark';
+        } else {
+          issueSkipReason = 'Different issue variant';
+        }
+      }
+
+      const propagateResult = await window.electronAPI.propagateTypeData({
+        coinId: coin.id,
+        numistaData,
+        issueData: isDuplicate ? issueData : null,
+        pricingData: isDuplicate ? pricingData : null,
+        isDuplicate,
+        sourceNumistaId: numistaData.id,
+        issueSkipReason: issueSkipReason,
+        selectedFields
+      });
+
+      if (propagateResult.success) {
+        if (isDuplicate) {
+          fullDataApplied++;
+        } else {
+          typeOnlyApplied++;
+          if (issueSkipReason) {
+            skippedIssueData.push({ coin, reason: issueSkipReason });
+          }
+        }
+      } else {
+        errorCount++;
+        errors.push({ coin, error: propagateResult.error });
+      }
+    } catch (error) {
+      errorCount++;
+      errors.push({ coin, error: error.message });
+    }
+  }
+
+  // Update progress to 100%
+  progressFill.style.width = '100%';
+  progressText.textContent = `${allCoins.length}/${allCoins.length} (100%)`;
+  statusText.textContent = 'Complete!';
+
+  // Task 3.12.9: Enhanced results display
+  const totalApplied = fullDataApplied + typeOnlyApplied;
+  let resultHtml = `<p><strong>Batch Update Complete</strong></p>`;
+
+  if (fullDataApplied > 0) {
+    resultHtml += `<p class="text-success">Full data applied: <strong>${fullDataApplied}</strong> coins (true duplicates)</p>`;
+  }
+
+  if (typeOnlyApplied > 0) {
+    resultHtml += `<p>Type data only: <strong>${typeOnlyApplied}</strong> coins (different issue)</p>`;
+  }
+
+  if (totalApplied === 0 && errorCount === 0) {
+    resultHtml += `<p>No coins were updated.</p>`;
+  }
+
+  // Show skipped issue data details (first 5)
+  if (skippedIssueData.length > 0) {
+    resultHtml += `
+      <div class="skip-info">
+        <h4>Issue/Pricing Skipped (${skippedIssueData.length} coins):</h4>
+        <ul class="skip-list">
+          ${skippedIssueData.slice(0, 5).map(s =>
+            `<li>${s.coin.title || 'Untitled'} ${s.coin.year || ''} ${s.coin.mintmark || ''}: ${s.reason}</li>`
+          ).join('')}
+          ${skippedIssueData.length > 5 ? `<li class="skip-more">... and ${skippedIssueData.length - 5} more</li>` : ''}
+        </ul>
+        <p class="skip-note">Type data was still applied. Use individual enrichment for issue/pricing.</p>
+      </div>
+    `;
+  }
+
+  // Show errors
+  if (errors.length > 0) {
+    resultHtml += `
+      <div class="error-list">
+        <h4>Errors (${errors.length}):</h4>
+        <ul>${errors.slice(0, 5).map(e => `<li>${e.coin.title || 'Untitled'}: ${e.error}</li>`).join('')}</ul>
+        ${errors.length > 5 ? `<li>... and ${errors.length - 5} more errors</li>` : ''}
+      </div>
+    `;
+  }
+
+  // Update modal with results (modal is already open)
+  document.getElementById('modalTitle').textContent = 'Batch Update Results';
+  document.getElementById('modalBody').innerHTML = resultHtml;
+  document.getElementById('modalOk').style.display = 'block';
+
+  // Wait for user to dismiss
+  await new Promise(resolve => {
+    const okBtn = document.getElementById('modalOk');
+    const closeBtn = document.getElementById('modalClose');
+    const handler = () => {
+      modal.style.display = 'none';
+      resolve();
+    };
+    okBtn.addEventListener('click', handler, { once: true });
+    closeBtn.addEventListener('click', handler, { once: true });
+  });
+
+  return {
+    success: true,
+    applied: totalApplied,
+    fullDataApplied,
+    typeOnlyApplied,
+    skipped: errorCount,
+    skippedIssueData,
+    errors
+  };
 }
 
 // =============================================================================
@@ -484,14 +1522,27 @@ document.getElementById('loadCollectionBtn').addEventListener('click', async () 
 });
 
 async function loadCollectionScreen() {
-  // Update title
+  // Update title in header
   const filename = AppState.collectionPath.split(/[\\/]/).pop();
-  document.getElementById('collectionTitle').textContent = filename;
+  document.getElementById('headerCollectionTitle').textContent = filename;
+
+  // Show header collection elements
+  document.getElementById('headerCollection').style.display = 'flex';
+  document.getElementById('headerCollectionActions').style.display = 'flex';
+  document.getElementById('dataSettingsBtn').style.display = 'flex';
 
   // Load collection-specific fetch settings for counter strip
   try {
     const collectionSettings = await window.api.getSettings();
     AppState.fetchSettings = collectionSettings.fetchSettings || { basicData: true, issueData: false, pricingData: false };
+
+    // Initialize view mode from saved preference
+    const savedViewMode = collectionSettings.uiPreferences?.defaultView || 'list';
+    setViewMode(savedViewMode, false); // Don't persist, just initialize
+
+    // Initialize sticky info bar from saved preference
+    const stickyInfoBar = collectionSettings.uiPreferences?.stickyInfoBar || false;
+    setStickyInfoBar(stickyInfoBar, false); // Don't persist, just initialize
   } catch (e) {
     console.error('Error loading fetch settings:', e);
     AppState.fetchSettings = { basicData: true, issueData: false, pricingData: false };
@@ -936,6 +1987,367 @@ function updateFilterSummary() {
   if (summaryRow) summaryRow.style.display = 'flex';
 }
 
+// =============================================================================
+// Fast Pricing Mode Functions
+// =============================================================================
+
+/**
+ * Check if a coin is eligible for fast pricing update
+ * @param {Object} coin - The coin object with statusInfo
+ * @returns {Object} - { eligible: boolean, reason?: string, numistaId?: number, issueId?: number }
+ */
+function checkFastPricingEligibility(coin) {
+  const status = coin.statusInfo;
+
+  if (!status) {
+    return { eligible: false, reason: 'No enrichment data' };
+  }
+
+  if (!status.basicData || status.basicData.status !== 'MERGED' || !status.basicData.numistaId) {
+    return { eligible: false, reason: 'Needs Numista match first' };
+  }
+
+  if (!status.issueData || !status.issueData.issueId) {
+    return { eligible: false, reason: 'Needs issue selection', needsIssue: true };
+  }
+
+  return {
+    eligible: true,
+    numistaId: status.basicData.numistaId,
+    issueId: status.issueData.issueId
+  };
+}
+
+/**
+ * Reset fast pricing progress state
+ */
+function resetFastPricingProgress() {
+  AppState.fastPricingProgress = {
+    running: false,
+    total: 0,
+    completed: 0,
+    succeeded: 0,
+    failed: 0,
+    cancelled: false,
+    uiLocked: false,
+    errors: []
+  };
+}
+
+/**
+ * Show/hide and update the inline progress bar in the toolbar
+ * @param {boolean} visible - Show or hide the progress bar
+ * @param {number} completed - Number of completed items
+ * @param {number} total - Total number of items
+ */
+function updateFpInlineProgress(visible, completed = 0, total = 0) {
+  const container = document.getElementById('fpInlineProgress');
+  const fill = document.getElementById('fpProgressFill');
+  const text = document.getElementById('fpProgressText');
+
+  if (!visible) {
+    container.style.display = 'none';
+    return;
+  }
+
+  container.style.display = 'flex';
+  const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+  fill.style.width = `${percent}%`;
+  text.textContent = `${completed}/${total} (${percent}%)`;
+}
+
+/**
+ * Enter fast pricing mode - shows checkboxes and toolbar
+ */
+function enterFastPricingMode() {
+  AppState.fastPricingMode = true;
+  AppState.fastPricingSelected.clear();
+  AppState.fastPricingUpdated.clear();
+  AppState.fastPricingFailed.clear();
+  resetFastPricingProgress();
+
+  document.getElementById('fastPricingToolbar').style.display = 'flex';
+  document.getElementById('fastPricingBtn').classList.add('btn-active');
+
+  renderCoinList();
+  updateFastPricingCounts();
+  showStatus('Select coins to update pricing', 'info');
+
+  // Sync menu state
+  updateMenuState({ fastPricingMode: true });
+}
+
+/**
+ * Exit fast pricing mode - hides checkboxes and toolbar
+ */
+function exitFastPricingMode() {
+  AppState.fastPricingMode = false;
+  AppState.fastPricingSelected.clear();
+  AppState.fastPricingUpdated.clear();
+  AppState.fastPricingFailed.clear();
+
+  document.getElementById('fastPricingToolbar').style.display = 'none';
+  document.getElementById('fastPricingBtn').classList.remove('btn-active');
+
+  renderCoinList();
+  showStatus('');
+
+  // Sync menu state
+  updateMenuState({
+    fastPricingMode: false,
+    fastPricingSelectedCount: 0,
+    fastPricingEligibleCount: 0
+  });
+}
+
+/**
+ * Update the counts displayed in the fast pricing toolbar
+ */
+function updateFastPricingCounts() {
+  const eligibleCount = AppState.allCoins.filter(c => checkFastPricingEligibility(c).eligible).length;
+  const selectedCount = AppState.fastPricingSelected.size;
+
+  document.getElementById('fpSelectedCount').textContent = selectedCount;
+  document.getElementById('fpEligibleCount').textContent = eligibleCount;
+  document.getElementById('fpUpdateCount').textContent = selectedCount;
+  document.getElementById('fpStartUpdate').disabled = selectedCount === 0;
+
+  // Sync menu state with current counts
+  updateMenuState({
+    fastPricingSelectedCount: selectedCount,
+    fastPricingEligibleCount: eligibleCount
+  });
+}
+
+/**
+ * Format seconds into human-readable duration
+ * @param {number} seconds - Total seconds
+ * @returns {string} - Formatted duration string
+ */
+function formatDuration(seconds) {
+  if (seconds < 60) return `~${seconds} seconds`;
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return secs > 0 ? `~${mins}m ${secs}s` : `~${mins} minutes`;
+}
+
+/**
+ * Show confirmation dialog before starting batch update
+ * @param {number} coinCount - Number of coins to update
+ * @returns {Promise<boolean>} - True if user confirms
+ */
+async function confirmFastPricingUpdate(coinCount) {
+  const estimatedSeconds = coinCount + Math.ceil(coinCount * 0.1);
+  const estimatedTime = formatDuration(estimatedSeconds);
+
+  const confirmed = await showModal(
+    'Confirm Pricing Update',
+    `<p>Ready to update pricing for <strong>${coinCount} coins</strong>.</p>
+     <p><strong>Estimated time:</strong> ${estimatedTime}</p>
+     <p><strong>Rate:</strong> 1 API call per second (Numista limit)</p>
+     <p>A backup will be created before starting.</p>
+     <p style="margin-top: 1rem;">Continue?</p>`,
+    true
+  );
+
+  return confirmed;
+}
+
+/**
+ * Lock/unlock UI during batch processing
+ * @param {boolean} locked - True to lock, false to unlock
+ */
+function lockUIForBatch(locked) {
+  AppState.fastPricingProgress.uiLocked = locked;
+
+  const buttons = [
+    'fastPricingBtn',
+    'fpSelectAllEligible',
+    'fpSelectDisplayed',
+    'fpSelectNone',
+    'fpStartUpdate',
+    'fpExitMode',
+    'closeCollectionBtn',
+    'dataSettingsBtn'
+  ];
+
+  buttons.forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) btn.disabled = locked;
+  });
+
+  const cancelBtn = document.getElementById('fpCancelUpdate');
+  if (cancelBtn) {
+    cancelBtn.style.display = locked ? 'inline-block' : 'none';
+  }
+
+  ['statusFilter', 'freshnessFilter', 'sortBy'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = locked;
+  });
+
+  const coinList = document.getElementById('coinList');
+  if (coinList) {
+    coinList.classList.toggle('fp-batch-running', locked);
+  }
+}
+
+/**
+ * Update a single coin row with success/failure indicator during batch
+ * Uses row styling only (green/red border + tint) - no icon replacement
+ * @param {number} coinId - The coin ID
+ * @param {boolean} success - True if update succeeded
+ */
+function updateCoinRowStatus(coinId, success) {
+  // Track which coins were updated/failed for persistent highlighting
+  // (must happen before early return so coins on other pages are tracked)
+  if (success) {
+    AppState.fastPricingUpdated.add(coinId);
+    AppState.fastPricingFailed.delete(coinId);
+  } else {
+    AppState.fastPricingFailed.add(coinId);
+    AppState.fastPricingUpdated.delete(coinId);
+  }
+
+  // Update DOM only if coin is currently visible on this page
+  const coinRow = document.querySelector(`.coin-item[data-coin-id="${coinId}"]`);
+  if (!coinRow) return;
+
+  // Hide the checkbox cell content when processed
+  const checkCell = coinRow.querySelector('.fast-pricing-checkbox-cell');
+  if (checkCell) {
+    checkCell.innerHTML = '<span class="fp-processed-marker"></span>';
+  }
+
+  coinRow.classList.remove('fp-updated', 'fp-failed');
+  coinRow.classList.add(success ? 'fp-updated' : 'fp-failed');
+}
+
+/**
+ * Show completion modal with results
+ * @param {boolean} wasCancelled - True if user cancelled the batch
+ */
+function showFpCompleteModal(wasCancelled = false) {
+  const progress = AppState.fastPricingProgress;
+  const remaining = AppState.fastPricingSelected.size;
+
+  const title = wasCancelled ? 'Update Cancelled' : 'Update Complete';
+
+  let body = `
+    <p><strong>Processed:</strong> ${progress.completed} of ${progress.total}</p>
+    <p class="text-success"><strong>Succeeded:</strong> ${progress.succeeded}</p>
+    <p class="text-danger"><strong>Failed:</strong> ${progress.failed}</p>
+  `;
+
+  if (wasCancelled && remaining > 0) {
+    body += `<p style="margin-top: 1rem;"><strong>${remaining} coins</strong> still selected - click "Update" to continue.</p>`;
+  }
+
+  if (progress.errors.length > 0) {
+    body += `<div class="error-list" style="margin-top: 1rem;">
+      <h4>Errors:</h4>
+      <ul>${progress.errors.map(e => `<li><strong>${e.title}</strong>: ${e.error}</li>`).join('')}</ul>
+    </div>`;
+  }
+
+  document.getElementById('fpCompleteModal').querySelector('.modal-header h3').textContent = title;
+  document.getElementById('fpCompleteModal').querySelector('.modal-body').innerHTML = body;
+  document.getElementById('fpCompleteModal').style.display = 'flex';
+}
+
+/**
+ * Start the fast pricing batch update process
+ */
+async function startFastPricingUpdate() {
+  const coins = Array.from(AppState.fastPricingSelected)
+    .map(id => AppState.allCoins.find(c => c.id === id))
+    .filter(c => c && checkFastPricingEligibility(c).eligible);
+
+  if (coins.length === 0) return;
+
+  const confirmed = await confirmFastPricingUpdate(coins.length);
+  if (!confirmed) return;
+
+  showStatus('Creating backup...', 'info');
+  const backupResult = await window.electronAPI.createBackupBeforeBatch();
+  if (!backupResult.success && !backupResult.skipped) {
+    const proceed = await showModal(
+      'Backup Failed',
+      `<p>Could not create backup: ${backupResult.error}</p>
+       <p>Continue anyway without backup?</p>`,
+      true
+    );
+    if (!proceed) return;
+  }
+
+  resetFastPricingProgress();
+  AppState.fastPricingProgress.running = true;
+  AppState.fastPricingProgress.total = coins.length;
+
+  lockUIForBatch(true);
+  updateFpInlineProgress(true, 0, coins.length);
+
+  for (let i = 0; i < coins.length; i++) {
+    if (AppState.fastPricingProgress.cancelled) break;
+
+    const coin = coins[i];
+
+    const statusText = `Updating: ${AppState.fastPricingProgress.succeeded} updated, ${AppState.fastPricingProgress.failed} failed`;
+    showStatus(statusText);
+    updateFpInlineProgress(true, i, coins.length);
+
+    let success = false;
+    try {
+      const elig = checkFastPricingEligibility(coin);
+      const result = await window.electronAPI.fastPricingUpdate({
+        coinId: coin.id,
+        numistaId: elig.numistaId,
+        issueId: elig.issueId
+      });
+
+      if (result.success) {
+        success = true;
+        AppState.fastPricingProgress.succeeded++;
+      } else {
+        throw new Error(result.error || 'Unknown error');
+      }
+    } catch (err) {
+      AppState.fastPricingProgress.failed++;
+      AppState.fastPricingProgress.errors.push({
+        coinId: coin.id, title: coin.title, error: err.message
+      });
+    }
+
+    AppState.fastPricingProgress.completed++;
+
+    updateCoinRowStatus(coin.id, success);
+
+    // Update inline progress bar after each coin
+    updateFpInlineProgress(true, i + 1, coins.length);
+    showStatus(`Updating: ${AppState.fastPricingProgress.succeeded} updated, ${AppState.fastPricingProgress.failed} failed`);
+
+    if (success) {
+      AppState.fastPricingSelected.delete(coin.id);
+    }
+
+    updateFastPricingCounts();
+
+    if (i < coins.length - 1 && !AppState.fastPricingProgress.cancelled) {
+      await new Promise(r => setTimeout(r, 1000));
+    }
+  }
+
+  AppState.fastPricingProgress.running = false;
+  lockUIForBatch(false);
+  updateFpInlineProgress(true, coins.length, coins.length);  // Show 100% briefly
+
+  showFpCompleteModal(AppState.fastPricingProgress.cancelled);
+  updateFpInlineProgress(false);  // Hide after modal
+
+  await loadCoins();
+  renderCoinList();
+}
+
 function renderCoinList() {
   const coinList = document.getElementById('coinList');
   coinList.innerHTML = '';
@@ -960,6 +2372,47 @@ function renderCoinList() {
     }
 
     coinItem.dataset.coinId = coin.id;
+
+    // Add checkbox cell when in fast pricing mode
+    if (AppState.fastPricingMode) {
+      const checkCell = document.createElement('div');
+      checkCell.className = 'fast-pricing-checkbox-cell';
+
+      // Check if coin was already processed this session
+      const wasUpdated = AppState.fastPricingUpdated.has(coin.id);
+      const wasFailed = AppState.fastPricingFailed.has(coin.id);
+
+      if (wasUpdated || wasFailed) {
+        // Show processed marker and apply highlighting
+        const marker = document.createElement('span');
+        marker.className = 'fp-processed-marker';
+        checkCell.appendChild(marker);
+        coinItem.classList.add(wasUpdated ? 'fp-updated' : 'fp-failed');
+      } else {
+        const elig = checkFastPricingEligibility(coin);
+        if (elig.eligible) {
+          const cb = document.createElement('input');
+          cb.type = 'checkbox';
+          cb.className = 'fast-pricing-checkbox';
+          cb.checked = AppState.fastPricingSelected.has(coin.id);
+          cb.addEventListener('change', (e) => {
+            e.target.checked ? AppState.fastPricingSelected.add(coin.id)
+                             : AppState.fastPricingSelected.delete(coin.id);
+            updateFastPricingCounts();
+          });
+          cb.addEventListener('click', (e) => e.stopPropagation());
+          checkCell.appendChild(cb);
+        } else {
+          const dash = document.createElement('span');
+          dash.className = 'fast-pricing-ineligible';
+          dash.textContent = '-';
+          dash.title = elig.reason;
+          checkCell.appendChild(dash);
+          coinItem.classList.add('fp-ineligible');
+        }
+      }
+      coinItem.insertBefore(checkCell, coinItem.firstChild);
+    }
 
     // Add image thumbnails
     const coinImages = document.createElement('div');
@@ -1218,7 +2671,13 @@ function calculatePricingFreshness(timestamp) {
 
 async function handleCoinClick(coin) {
   AppState.currentCoin = coin;
-  
+
+  // Save scroll position before leaving collection screen
+  const mainContent = document.querySelector('.app-main');
+  if (mainContent) {
+    AppState.collectionScrollPosition = mainContent.scrollTop;
+  }
+
   showStatus(`Searching for ${coin.title || 'coin'}...`);
   showScreen('match');
   
@@ -1294,40 +2753,154 @@ async function renderCurrentCoinInfo() {
 // Numista Search
 // =============================================================================
 
+/**
+ * Strip parenthetical content from a query string.
+ * E.g., "Germany (Nazi) 50 Reichspfennig" -> "Germany 50 Reichspfennig"
+ * @param {string} query - Original query string
+ * @returns {string} Query with parenthetical content removed
+ */
+function stripParenthetical(query) {
+  return query.replace(/\s*\([^)]*\)\s*/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Build a simplified core query from coin data (denomination + year).
+ * @param {Object} coin - Coin object
+ * @returns {string} Simplified query
+ */
+function buildCoreQuery(coin) {
+  const parts = [];
+
+  // Add denomination
+  if (coin.value) {
+    if (coin.unit) {
+      parts.push(`${coin.value} ${coin.unit}`);
+    } else {
+      parts.push(coin.value.toString());
+    }
+  }
+
+  // Add year
+  if (coin.year && !isNaN(coin.year)) {
+    parts.push(coin.year.toString());
+  }
+
+  return parts.join(' ');
+}
+
+/**
+ * Build a minimal query from coin data (country + denomination).
+ * @param {Object} coin - Coin object
+ * @returns {string} Minimal query
+ */
+function buildMinimalQuery(coin) {
+  const parts = [];
+
+  // Add country
+  if (coin.country) {
+    // Strip parenthetical from country too
+    parts.push(stripParenthetical(coin.country));
+  }
+
+  // Add denomination unit only (not number, to broaden search)
+  if (coin.unit) {
+    parts.push(coin.unit);
+  } else if (coin.value) {
+    parts.push(coin.value.toString());
+  }
+
+  return parts.join(' ');
+}
+
 async function searchForMatches() {
   try {
     showStatus('Searching Numista...');
     document.getElementById('searchStatus').textContent = 'Searching...';
 
-    // Build search parameters from current coin (async for issuer resolution)
-    const searchParams = await buildSearchParams(AppState.currentCoin);
+    const coin = AppState.currentCoin;
+    let searchAttempt = 1;
+    let result;
+    let usedFallback = false;
+
+    // Build initial search parameters
+    const baseParams = await buildSearchParams(coin);
     console.log('=== AUTOMATIC SEARCH ===');
-    console.log('Current coin:', AppState.currentCoin);
-    console.log('Search params:', searchParams);
+    console.log('Current coin:', coin);
+    console.log('Search params (attempt 1):', baseParams);
 
-    const result = await window.electronAPI.searchNumista(searchParams);
-
-    if (!result.success) {
-      throw new Error(result.error);
-    }
-
+    // Strategy 1: Full query as-is
+    result = await window.electronAPI.searchNumista(baseParams);
+    if (!result.success) throw new Error(result.error);
     AppState.currentMatches = result.results.types || [];
 
+    // Strategy 2: Remove parenthetical content if no results
+    if (AppState.currentMatches.length === 0 && baseParams.q) {
+      const strippedQuery = stripParenthetical(baseParams.q);
+      if (strippedQuery !== baseParams.q) {
+        searchAttempt++;
+        console.log(`Search attempt ${searchAttempt}: Stripped parenthetical -> "${strippedQuery}"`);
+        document.getElementById('searchStatus').textContent = 'Trying simplified search...';
+
+        const params2 = { ...baseParams, q: strippedQuery };
+        result = await window.electronAPI.searchNumista(params2);
+        if (result.success) {
+          AppState.currentMatches = result.results.types || [];
+          if (AppState.currentMatches.length > 0) usedFallback = true;
+        }
+      }
+    }
+
+    // Strategy 3: Core terms only (denomination + year)
+    if (AppState.currentMatches.length === 0) {
+      const coreQuery = buildCoreQuery(coin);
+      if (coreQuery && coreQuery !== baseParams.q) {
+        searchAttempt++;
+        console.log(`Search attempt ${searchAttempt}: Core query -> "${coreQuery}"`);
+        document.getElementById('searchStatus').textContent = 'Trying core terms...';
+
+        const params3 = { ...baseParams, q: coreQuery };
+        result = await window.electronAPI.searchNumista(params3);
+        if (result.success) {
+          AppState.currentMatches = result.results.types || [];
+          if (AppState.currentMatches.length > 0) usedFallback = true;
+        }
+      }
+    }
+
+    // Strategy 4: Minimal query (country + denomination unit)
+    if (AppState.currentMatches.length === 0) {
+      const minimalQuery = buildMinimalQuery(coin);
+      if (minimalQuery) {
+        searchAttempt++;
+        console.log(`Search attempt ${searchAttempt}: Minimal query -> "${minimalQuery}"`);
+        document.getElementById('searchStatus').textContent = 'Trying broader search...';
+
+        const params4 = { ...baseParams, q: minimalQuery };
+        result = await window.electronAPI.searchNumista(params4);
+        if (result.success) {
+          AppState.currentMatches = result.results.types || [];
+          if (AppState.currentMatches.length > 0) usedFallback = true;
+        }
+      }
+    }
+
+    // Update status based on results
     if (AppState.currentMatches.length === 0) {
       document.getElementById('searchStatus').textContent = 'No matches found';
       showStatus('No matches found');
 
       // Update progress to no_matches
       await window.electronAPI.updateCoinStatus({
-        coinId: AppState.currentCoin.id,
+        coinId: coin.id,
         status: 'no_matches',
         metadata: {}
       });
 
     } else {
+      const fallbackNote = usedFallback ? ' (via fallback)' : '';
       document.getElementById('searchStatus').textContent =
-        `Found ${AppState.currentMatches.length} potential matches`;
-      showStatus(`Found ${AppState.currentMatches.length} matches`);
+        `Found ${AppState.currentMatches.length} potential matches${fallbackNote}`;
+      showStatus(`Found ${AppState.currentMatches.length} matches${fallbackNote}`);
     }
 
     renderMatches();
@@ -1390,6 +2963,15 @@ async function buildSearchParams(coin) {
     // Check if year is already in the title
     if (!query.includes(year)) {
       query = query ? `${query} ${year}` : year;
+    }
+  }
+
+  // Add denomination (value + unit) to narrow search results
+  if (coin.value) {
+    const denomination = coin.unit ? `${coin.value} ${coin.unit}` : coin.value.toString();
+    // Only add if not already present in query
+    if (!query.toLowerCase().includes(denomination.toLowerCase())) {
+      query = query ? `${query} ${denomination}` : denomination;
     }
   }
 
@@ -1512,17 +3094,21 @@ function renderMatches() {
 function calculateConfidence(coin, match) {
   let score = 0;
 
-  // Title similarity (40 points max) - uses Dice coefficient for graduated scoring
+  // Title similarity (30 points max) - uses Dice coefficient for graduated scoring
   if (coin.title && match.title) {
     const similarity = window.stringSimilarity.diceCoefficient(coin.title, match.title);
-    score += Math.round(similarity * 40);
+    score += Math.round(similarity * 30);
   }
 
-  // Year match (30 points)
+  // Year match (25 points) or penalty (-15 points)
   if (coin.year && match.min_year) {
     const coinYear = parseInt(coin.year);
-    if (coinYear >= match.min_year && coinYear <= (match.max_year || match.min_year)) {
-      score += 30;
+    const maxYear = match.max_year || match.min_year;
+    if (coinYear >= match.min_year && coinYear <= maxYear) {
+      score += 25; // Year in range
+    } else {
+      // Year outside range - penalty (can't be this coin type)
+      score -= 15;
     }
   }
 
@@ -1534,14 +3120,61 @@ function calculateConfidence(coin, match) {
     }
   }
 
-  // Value match (10 points)
-  if (coin.value && match.value?.numeric_value) {
-    if (parseFloat(coin.value) === match.value.numeric_value) {
-      score += 10;
+  // Value/denomination match (25 points) - compare numeric values first, then units
+  // OpenNumismat stores value=1, unit="Cents" while Numista uses value.text="1 Cent"
+  const coinValue = coin.value ? parseFloat(coin.value) : null;
+  const coinUnit = coin.unit?.toLowerCase().trim();
+
+  // Try value.text first, fallback to extracting from title (e.g., "5 Cents Liberty Nickel")
+  let matchDenomination = match.value?.text?.toLowerCase().trim();
+  if (!matchDenomination && match.title) {
+    // Extract denomination from start of title: "5 Cents ...", "1 Cent ...", "50 Pfennig ..."
+    const titleMatch = match.title.match(/^([\d.]+\s*[a-zA-Z]+)/i);
+    if (titleMatch) {
+      matchDenomination = titleMatch[1].toLowerCase().trim();
     }
   }
 
-  return Math.min(100, score);
+  if (coinValue && matchDenomination) {
+    // Extract numeric value from denomination text (e.g., "5 Cents" -> 5)
+    const matchValueMatch = matchDenomination.match(/^([\d.]+)/);
+    const matchValue = matchValueMatch ? parseFloat(matchValueMatch[1]) : null;
+    // Extract unit from denomination text (e.g., "5 Cents" -> "cents")
+    const matchUnit = matchDenomination.replace(/^[\d.]+\s*/, '').trim();
+
+    if (matchValue !== null) {
+      // Check if units match (e.g., "cents" vs "cent" should match, "cent" vs "dime" should not)
+      const unitsMatch = coinUnit && matchUnit && (
+        matchUnit.includes(coinUnit) || coinUnit.includes(matchUnit) ||
+        window.stringSimilarity.diceCoefficient(coinUnit, matchUnit) > 0.7
+      );
+
+      if (coinValue === matchValue && unitsMatch) {
+        // Both numeric value AND unit match - full points
+        score += 25;
+      } else if (coinValue === matchValue && (!coinUnit || !matchUnit)) {
+        // Numeric matches but can't compare units - partial points
+        score += 15;
+      } else {
+        // Either numeric value differs OR units differ (e.g., "1 Cent" vs "1 Dime")
+        // This is a denomination mismatch - penalty
+        score -= 20;
+      }
+    }
+  }
+
+  // Category scoring (10 points max / -10 penalty)
+  // Standard circulation coins are most likely what users have
+  const category = match.object_type?.name?.toLowerCase() || match.category?.toLowerCase() || '';
+  if (category.includes('standard circulation') || category.includes('circulating')) {
+    score += 10; // Boost for standard circulation
+  } else if (category.includes('pattern') || category.includes('proof') ||
+             category.includes('non-circulating') || category.includes('specimen')) {
+    score -= 10; // Penalty for rare/collector categories
+  }
+  // Commemorative coins get no adjustment (neutral)
+
+  return Math.max(0, Math.min(100, score));
 }
 
 async function handleMatchSelection(matchIndex) {
@@ -2297,26 +3930,62 @@ async function showIssuePicker(issueOptions, coin, typeId) {
   // Store selected issue
   let selectedIssue = null;
 
-  // Render issue options
-  issueOptions.forEach((issue, index) => {
+  // Calculate match scores for sorting
+  // Higher score = better match
+  const scoredIssues = issueOptions.map((issue, originalIndex) => {
+    const matchesYear = issue.year == coin.year;
+
+    // Fixed mintmark matching: "no mintmark" should match "no mintmark"
+    const userHasMintmark = coin.mintmark && coin.mintmark.trim() !== '';
+    const issueHasMintmark = issue.mint_letter && issue.mint_letter.trim() !== '';
+    const matchesMintmark = userHasMintmark === issueHasMintmark &&
+                           (!userHasMintmark || issue.mint_letter.toLowerCase() === coin.mintmark.toLowerCase());
+
+    // Type/comment matching
+    const userHasType = coin.type && coin.type.trim() !== '';
+    const issueHasComment = issue.comment && issue.comment.trim() !== '';
+    const matchesType = userHasType === issueHasComment ?
+                       (!userHasType || issue.comment.toLowerCase().includes(coin.type.toLowerCase())) :
+                       false;
+
+    // Calculate score: year match is baseline, mintmark and type add points
+    let score = 0;
+    if (matchesYear) score += 10;
+    if (matchesMintmark) score += 5;
+    if (matchesType) score += 3;
+
+    return { issue, originalIndex, score, matchesYear, matchesMintmark, matchesType };
+  });
+
+  // Sort by score descending (best matches first)
+  scoredIssues.sort((a, b) => b.score - a.score);
+
+  // Determine if we have a mix of match qualities for section headers
+  const bestScore = scoredIssues[0]?.score || 0;
+  const hasMixedMatches = scoredIssues.some(s => s.score < bestScore && s.score > 0);
+  let addedOtherHeader = false;
+
+  // Render issue options (now sorted)
+  scoredIssues.forEach(({ issue, originalIndex, score, matchesMintmark, matchesType }, renderIndex) => {
+    // Add section header if transitioning from best matches to other options
+    if (hasMixedMatches && !addedOtherHeader && score < bestScore) {
+      const headerDiv = document.createElement('div');
+      headerDiv.className = 'issue-section-header';
+      headerDiv.innerHTML = '<span>Other options for this year</span>';
+      optionsList.appendChild(headerDiv);
+      addedOtherHeader = true;
+    }
+
     const optionDiv = document.createElement('div');
     optionDiv.className = 'issue-option';
-    optionDiv.dataset.issueIndex = index;
+    optionDiv.dataset.issueIndex = originalIndex;
 
-    // Determine if this issue matches user's coin data
-    const matchesYear = issue.year == coin.year;
-    const matchesMintmark = coin.mintmark && issue.mint_letter &&
-                           issue.mint_letter.toLowerCase() === coin.mintmark.toLowerCase();
-    const matchesType = !coin.type || coin.type === '' ?
-                       (!issue.comment || issue.comment === '') :
-                       (issue.comment && issue.comment.toLowerCase().includes(coin.type.toLowerCase()));
-
-    const isFullMatch = matchesYear && matchesMintmark;
-    const isPartialMatch = matchesYear && (matchesMintmark || matchesType);
+    const isFullMatch = matchesMintmark && matchesType;
+    const isPartialMatch = matchesMintmark || matchesType;
 
     optionDiv.innerHTML = `
       <div class="issue-option-header">
-        <input type="radio" name="issueSelection" class="issue-option-radio" value="${index}">
+        <input type="radio" name="issueSelection" class="issue-option-radio" value="${originalIndex}">
         <div class="issue-option-title">
           ${issue.year || '?'} ${issue.mint_letter ? `- ${issue.mint_letter}` : ''}
           ${issue.comment ? `(${issue.comment})` : ''}
@@ -2485,6 +4154,39 @@ document.getElementById('applyChangesBtn').addEventListener('click', async () =>
       : '<br>(Auto-backup is disabled)';
     await showModal('Success', `Coin updated successfully!${backupMsg}`);
 
+    // Track lifetime enrichment and check if license prompt should show
+    try {
+      const enrichResult = await window.electronAPI.incrementLifetimeEnrichments(1);
+      if (enrichResult.success && enrichResult.shouldPrompt) {
+        // Show license prompt after a short delay
+        setTimeout(() => showLicensePromptModal(enrichResult.totalCoinsEnriched), 1000);
+      }
+    } catch (e) {
+      console.error('Error tracking enrichment:', e);
+    }
+
+    // Task 3.12: Check for matching coins and offer batch propagation (if enabled)
+    // Skip if no fields were selected (nothing to propagate)
+    const hasSelectedFields = Object.values(AppState.selectedFields).some(v => v === true);
+    if (AppState.fetchSettings?.enableAutoPropagate !== false && hasSelectedFields) {
+      try {
+        const batchResult = await showBatchTypePropagationPrompt(
+          AppState.currentCoin,
+          AppState.selectedMatch,
+          AppState.issueData,
+          AppState.pricingData,
+          AppState.selectedFields
+        );
+
+        if (batchResult && batchResult.action === 'apply_all') {
+          await applyBatchTypePropagation(batchResult);
+        }
+      } catch (e) {
+        console.error('Error in batch type propagation:', e);
+        // Don't block the main flow if batch propagation fails
+      }
+    }
+
     // Refresh progress stats
     const statsResult = await window.electronAPI.getProgressStats();
     if (statsResult.success) {
@@ -2493,10 +4195,11 @@ document.getElementById('applyChangesBtn').addEventListener('click', async () =>
     }
 
     // Go back to collection
-    setTimeout(() => {
+    setTimeout(async () => {
       showProgress(false);
-      loadCoins();
       showScreen('collection');
+      await loadCoins();
+      restoreCollectionScrollPosition();
       // Leaving comparison screen after successful merge
       updateMenuState({ fieldComparisonActive: false });
     }, 500);
@@ -2518,13 +4221,70 @@ document.getElementById('closeCollectionBtn').addEventListener('click', () => {
   AppState.coins = [];
   showScreen('welcome');
   showStatus('');
+
+  // Hide header collection elements
+  document.getElementById('headerCollection').style.display = 'none';
+  document.getElementById('headerCollectionActions').style.display = 'none';
+  document.getElementById('dataSettingsBtn').style.display = 'none';
+
   // Update menu state
   updateMenuState({ collectionLoaded: false, fieldComparisonActive: false });
 });
 
+document.getElementById('fastPricingBtn').addEventListener('click', async () => {
+  // Check if premium feature is available
+  const canUse = await requirePremiumFeature('fast-pricing');
+  if (!canUse) return;
+
+  // Toggle fast pricing mode
+  if (AppState.fastPricingMode) {
+    exitFastPricingMode();
+  } else {
+    enterFastPricingMode();
+  }
+});
+
+// Fast Pricing toolbar button handlers
+document.getElementById('fpSelectAllEligible').addEventListener('click', () => {
+  AppState.allCoins.forEach(c => {
+    if (checkFastPricingEligibility(c).eligible) AppState.fastPricingSelected.add(c.id);
+  });
+  renderCoinList();
+  updateFastPricingCounts();
+});
+
+document.getElementById('fpSelectDisplayed').addEventListener('click', () => {
+  AppState.coins.forEach(c => {
+    if (checkFastPricingEligibility(c).eligible) AppState.fastPricingSelected.add(c.id);
+  });
+  renderCoinList();
+  updateFastPricingCounts();
+});
+
+document.getElementById('fpSelectNone').addEventListener('click', () => {
+  AppState.fastPricingSelected.clear();
+  renderCoinList();
+  updateFastPricingCounts();
+});
+
+document.getElementById('fpExitMode').addEventListener('click', exitFastPricingMode);
+
+document.getElementById('fpStartUpdate').addEventListener('click', startFastPricingUpdate);
+
+document.getElementById('fpCancelUpdate').addEventListener('click', () => {
+  AppState.fastPricingProgress.cancelled = true;
+  showStatus('Cancelling after current coin...', 'warning');
+});
+
+document.getElementById('fpCompleteOk').addEventListener('click', () => {
+  document.getElementById('fpCompleteModal').style.display = 'none';
+});
+
 document.getElementById('backToListBtn').addEventListener('click', () => {
   showScreen('collection');
-  // Leaving comparison screen
+  // Restore scroll position since we're not reloading coins
+  restoreCollectionScrollPosition();
+  // Leaving match screen
   updateMenuState({ fieldComparisonActive: false });
 });
 
@@ -2542,8 +4302,9 @@ document.getElementById('skipCoinBtn').addEventListener('click', async () => {
   });
 
   showScreen('collection');
-  loadCoins();
-  // Leaving comparison screen
+  await loadCoins();
+  restoreCollectionScrollPosition();
+  // Leaving match screen
   updateMenuState({ fieldComparisonActive: false });
 });
 
@@ -2691,6 +4452,76 @@ document.getElementById('resetFiltersBtn').addEventListener('click', () => {
 });
 
 // =============================================================================
+// View Mode Toggle
+// =============================================================================
+
+/**
+ * Toggle between list and grid view modes
+ * @param {string} mode - 'list' or 'grid'
+ * @param {boolean} [persist=true] - Whether to persist the preference
+ */
+function setViewMode(mode, persist = true) {
+  if (mode !== 'list' && mode !== 'grid') return;
+
+  AppState.viewMode = mode;
+
+  // Update toggle button states
+  document.getElementById('listViewBtn').classList.toggle('active', mode === 'list');
+  document.getElementById('gridViewBtn').classList.toggle('active', mode === 'grid');
+
+  // Update coin list CSS class
+  const coinList = document.getElementById('coinList');
+  coinList.classList.toggle('grid-view', mode === 'grid');
+
+  // Persist preference if collection is loaded
+  if (persist && AppState.collectionPath) {
+    window.api.saveUiPreference('defaultView', mode).catch(err => {
+      console.error('Error saving view mode preference:', err);
+    });
+  }
+
+  // Notify main process for menu state sync
+  window.api.updateMenuState({ viewMode: mode });
+}
+
+// View toggle button listeners
+document.getElementById('listViewBtn').addEventListener('click', () => setViewMode('list'));
+document.getElementById('gridViewBtn').addEventListener('click', () => setViewMode('grid'));
+
+// =============================================================================
+// Info Bar Pin Toggle
+// =============================================================================
+
+/**
+ * Toggle sticky/pinned state of the info bar card
+ * @param {boolean} enabled - Whether the info bar should be pinned (sticky)
+ * @param {boolean} [persist=true] - Whether to persist the preference
+ */
+function setStickyInfoBar(enabled, persist = true) {
+  const infoBarCard = document.getElementById('infoBarCard');
+  const pinBtn = document.getElementById('infoBarPinBtn');
+
+  if (!infoBarCard || !pinBtn) return;
+
+  infoBarCard.classList.toggle('pinned', enabled);
+  pinBtn.title = enabled ? 'Unpin info bar' : 'Pin info bar';
+
+  // Persist preference if collection is loaded
+  if (persist && AppState.collectionPath) {
+    window.api.saveUiPreference('stickyInfoBar', enabled).catch(err => {
+      console.error('Error saving sticky info bar preference:', err);
+    });
+  }
+}
+
+// Info bar pin button listener
+document.getElementById('infoBarPinBtn').addEventListener('click', () => {
+  const infoBarCard = document.getElementById('infoBarCard');
+  const isPinned = infoBarCard.classList.contains('pinned');
+  setStickyInfoBar(!isPinned);
+});
+
+// =============================================================================
 // Pagination
 // =============================================================================
 
@@ -2722,7 +4553,25 @@ document.getElementById('lastPageBtn').addEventListener('click', () => {
 // Settings
 // =============================================================================
 
+// Settings dropdown toggle
+document.getElementById('settingsDropdownBtn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  const menu = document.getElementById('settingsDropdownMenu');
+  menu.classList.toggle('open');
+});
+
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+  const dropdown = document.getElementById('settingsDropdown');
+  const menu = document.getElementById('settingsDropdownMenu');
+  if (!dropdown.contains(e.target)) {
+    menu.classList.remove('open');
+  }
+});
+
+// App Settings button (in dropdown)
 document.getElementById('settingsBtn').addEventListener('click', async () => {
+  document.getElementById('settingsDropdownMenu').classList.remove('open');
   const result = await window.electronAPI.getAppSettings();
   if (result.success) {
     AppState.settings = result.settings;
@@ -2747,6 +4596,9 @@ function loadSettingsScreen() {
 
   // Load default collection path
   loadDefaultCollectionDisplay();
+
+  // Load license management display
+  loadLicenseManagementDisplay();
 }
 
 /**
@@ -2786,6 +4638,66 @@ function updateDefaultCollectionUI(path) {
     useCurrentBtn.style.display = 'inline-block';
   } else {
     useCurrentBtn.style.display = 'none';
+  }
+}
+
+/**
+ * Load and display license management information in settings
+ */
+async function loadLicenseManagementDisplay() {
+  const groupEl = document.getElementById('licenseManagementGroup');
+  const infoEl = document.getElementById('licenseInfoDisplay');
+
+  if (!groupEl || !infoEl) return;
+
+  try {
+    const result = await window.electronAPI.getSupporterStatus();
+
+    if (!result.success) {
+      groupEl.style.display = 'none';
+      return;
+    }
+
+    const supporter = result.supporter;
+
+    if (!supporter?.isSupporter) {
+      groupEl.style.display = 'none';
+      return;
+    }
+
+    // Show the section for active supporters
+    groupEl.style.display = 'block';
+
+    const deviceLabel = supporter.deviceLabel || 'Unknown';
+    const activatedDate = supporter.validatedAt
+      ? new Date(supporter.validatedAt).toLocaleDateString()
+      : 'Unknown';
+    const activationId = supporter.activationId || 'Not available';
+
+    infoEl.innerHTML = `
+      <div style="background: var(--bg-secondary, #f5f5f5); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+        <div style="display: flex; align-items: center; margin-bottom: 10px;">
+          <span style="display: inline-block; padding: 4px 12px; background: linear-gradient(135deg, #FFD700, #FFA500); color: #333; border-radius: 4px; font-size: 0.85em; font-weight: bold;">Active Supporter</span>
+        </div>
+        <table style="width: 100%; font-size: 0.9em;">
+          <tr>
+            <td style="padding: 5px 0; color: var(--text-secondary, #666); width: 130px;">Device Label:</td>
+            <td style="padding: 5px 0;"><code>${deviceLabel}</code></td>
+          </tr>
+          <tr>
+            <td style="padding: 5px 0; color: var(--text-secondary, #666);">Activation Date:</td>
+            <td style="padding: 5px 0;">${activatedDate}</td>
+          </tr>
+          <tr>
+            <td style="padding: 5px 0; color: var(--text-secondary, #666);">Activation ID:</td>
+            <td style="padding: 5px 0;"><code style="font-size: 0.8em; word-break: break-all;">${activationId}</code></td>
+          </tr>
+        </table>
+      </div>
+    `;
+  } catch (error) {
+    console.error('Error loading license info:', error);
+    groupEl.style.display = 'none';
   }
 }
 
@@ -2903,6 +4815,228 @@ document.getElementById('clearDefaultCollectionBtn').addEventListener('click', a
 });
 
 // =============================================================================
+// License Management Settings
+// =============================================================================
+
+document.getElementById('revalidateLicenseBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('revalidateLicenseBtn');
+  btn.disabled = true;
+  btn.textContent = 'Validating...';
+
+  try {
+    const result = await window.electronAPI.validateLicense();
+
+    if (result.valid) {
+      showModal('License Valid', 'Your license has been validated successfully.');
+    } else {
+      showModal('License Invalid', `Your license is no longer valid: ${result.message}`);
+      // Refresh the display as license may have been cleared
+      loadLicenseManagementDisplay();
+    }
+  } catch (error) {
+    console.error('Error validating license:', error);
+    showModal('Error', 'Failed to validate license: ' + error.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Validate License';
+  }
+});
+
+document.getElementById('deactivateLicenseBtn').addEventListener('click', async () => {
+  const confirmed = await showModal(
+    'Deactivate License?',
+    `<p>Are you sure you want to deactivate your license on this device?</p>
+     <p>This will:</p>
+     <ul>
+       <li>Remove the license from this computer</li>
+       <li>Free up one of your 5 device activation slots</li>
+       <li>Allow you to activate on a different device</li>
+     </ul>
+     <p>You can re-activate on this device later using the same license key.</p>`,
+    true  // showCancel
+  );
+
+  if (!confirmed) return;
+
+  const btn = document.getElementById('deactivateLicenseBtn');
+  btn.disabled = true;
+  btn.textContent = 'Deactivating...';
+
+  try {
+    const result = await window.electronAPI.deactivateLicense();
+
+    if (result.success) {
+      showModal('License Deactivated', result.message);
+      // Refresh the settings display
+      const settingsResult = await window.electronAPI.getAppSettings();
+      if (settingsResult.success) {
+        AppState.settings = settingsResult.settings;
+        loadSettingsScreen();
+      }
+      // Update all license-related UI (badge, premium buttons, menu)
+      updateVersionBadge();
+    } else {
+      showModal('Error', result.message);
+    }
+  } catch (error) {
+    console.error('Error deactivating license:', error);
+    showModal('Error', 'Failed to deactivate license: ' + error.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Deactivate License';
+  }
+});
+
+// =============================================================================
+// Periodic License Validation
+// =============================================================================
+
+/**
+ * Validate the license periodically to ensure it's still active
+ * Runs on app startup and every 7 days while app is running
+ */
+async function performPeriodicLicenseValidation() {
+  try {
+    const statusResult = await window.electronAPI.getSupporterStatus();
+
+    if (!statusResult.success || !statusResult.supporter?.isSupporter) {
+      return; // No license to validate
+    }
+
+    const supporter = statusResult.supporter;
+    const lastValidated = supporter.validatedAt ? new Date(supporter.validatedAt) : null;
+    const now = new Date();
+
+    // Skip if validated within last 7 days
+    if (lastValidated) {
+      const daysSinceValidation = (now - lastValidated) / (1000 * 60 * 60 * 24);
+      if (daysSinceValidation < 7) {
+        console.log(`License validated ${daysSinceValidation.toFixed(1)} days ago, skipping`);
+        return;
+      }
+    }
+
+    console.log('Performing periodic license validation...');
+    const result = await window.electronAPI.validateLicense();
+
+    if (result.success === false) {
+      // Network error - handle offline gracefully
+      if (!supporter.offlineSkipUsed) {
+        // First offline attempt - allow grace period
+        console.log('License validation failed (offline), using grace period');
+        await window.electronAPI.updateSupporterStatus({ offlineSkipUsed: true });
+      } else {
+        // Already used offline skip - notify user
+        showModal(
+          'License Validation Required',
+          `<p>Unable to validate your license. Please connect to the internet to verify your license status.</p>
+           <p>If this problem persists, check your license at <a href="#" onclick="window.electronAPI.openExternal('https://sandbox.polar.sh'); return false;">sandbox.polar.sh</a></p>`
+        );
+      }
+      return;
+    }
+
+    if (!result.valid && result.status) {
+      // License was revoked/disabled - notify user
+      showModal(
+        'License Status Changed',
+        `<p>Your license status has changed: <strong>${result.status}</strong></p>
+         <p>${result.message}</p>
+         <p>Please check your license at <a href="#" onclick="window.electronAPI.openExternal('https://sandbox.polar.sh'); return false;">sandbox.polar.sh</a></p>`
+      );
+    } else if (result.valid) {
+      console.log('License validation successful');
+    }
+  } catch (error) {
+    console.error('Periodic license validation failed:', error);
+    // Silently fail - don't bother user if network is unavailable
+  }
+}
+
+// Validation interval ID for cleanup
+let licenseValidationInterval = null;
+
+/**
+ * Start periodic license validation (every 7 days)
+ */
+function startPeriodicLicenseValidation() {
+  // Validate on startup (with slight delay to not block UI)
+  setTimeout(performPeriodicLicenseValidation, 5000);
+
+  // Then every 7 days (check daily, but validation only runs if 7 days passed)
+  licenseValidationInterval = setInterval(
+    performPeriodicLicenseValidation,
+    24 * 60 * 60 * 1000  // Check daily
+  );
+}
+
+/**
+ * Update all license-related UI elements based on supporter status
+ * - Version badge in header
+ * - Premium feature buttons (locked/unlocked state)
+ * - Menu state (show/hide purchase option)
+ */
+async function updateVersionBadge() {
+  let isSupporter = false;
+  let checkoutUrl = '';
+
+  try {
+    const result = await window.electronAPI.getSupporterStatus();
+    isSupporter = result.success && result.supporter?.isSupporter;
+    checkoutUrl = result.polarConfig?.checkoutUrl || '';
+  } catch (e) {
+    console.error('Error getting supporter status:', e);
+  }
+
+  // Update version badge
+  const badge = document.getElementById('versionBadge');
+  if (badge) {
+    if (isSupporter) {
+      badge.textContent = 'Supporter Edition';
+      badge.classList.remove('version-badge-free');
+      badge.classList.add('version-badge-supporter');
+    } else {
+      badge.textContent = 'Free Version';
+      badge.classList.remove('version-badge-supporter');
+      badge.classList.add('version-badge-free');
+    }
+  }
+
+  // Update premium feature buttons
+  const fastPricingBtn = document.getElementById('fastPricingBtn');
+  if (fastPricingBtn) {
+    const iconSpan = fastPricingBtn.querySelector('.premium-icon');
+    if (isSupporter) {
+      fastPricingBtn.classList.remove('btn-premium-locked');
+      fastPricingBtn.classList.add('btn-premium-unlocked');
+      if (iconSpan) iconSpan.style.display = 'none';
+    } else {
+      fastPricingBtn.classList.remove('btn-premium-unlocked');
+      fastPricingBtn.classList.add('btn-premium-locked');
+      if (iconSpan) iconSpan.style.display = '';
+    }
+  }
+
+  // Update menu state to show/hide purchase option
+  updateMenuState({ isSupporter });
+}
+
+/**
+ * Open the purchase license URL
+ */
+async function openPurchaseLicenseUrl() {
+  try {
+    const result = await window.electronAPI.getSupporterStatus();
+    const checkoutUrl = result.polarConfig?.checkoutUrl || 'https://sandbox-api.polar.sh/v1/checkout-links/polar_cl_GU5TpVHT8Fj1XvA7NqBOpEtnoHPY9kSnlrloe240tb1/redirect';
+    window.electronAPI.openExternal(checkoutUrl);
+  } catch (e) {
+    console.error('Error opening purchase URL:', e);
+    // Fallback to sandbox URL
+    window.electronAPI.openExternal('https://sandbox-api.polar.sh/v1/checkout-links/polar_cl_GU5TpVHT8Fj1XvA7NqBOpEtnoHPY9kSnlrloe240tb1/redirect');
+  }
+}
+
+// =============================================================================
 // Initialization
 // =============================================================================
 
@@ -2994,7 +5128,11 @@ class DataSettingsUI {
     // Open data settings modal
     const dataSettingsBtn = document.getElementById('dataSettingsBtn');
     if (dataSettingsBtn) {
-      dataSettingsBtn.addEventListener('click', () => this.openModal());
+      dataSettingsBtn.addEventListener('click', () => {
+        // Close settings dropdown if open
+        document.getElementById('settingsDropdownMenu')?.classList.remove('open');
+        this.openModal();
+      });
     }
 
     // Close buttons
@@ -3141,6 +5279,21 @@ class DataSettingsUI {
     if (categorySelect) {
       categorySelect.value = fetchSettings.searchCategory || 'all';
     }
+
+    // Empty mintmark interpretation (Task 3.12.7)
+    const emptyMintmarkValue = fetchSettings.emptyMintmarkInterpretation || 'no_mint_mark';
+    const noMintMarkRadio = document.getElementById('emptyMintmarkNoMark');
+    const unknownRadio = document.getElementById('emptyMintmarkUnknown');
+    if (noMintMarkRadio && unknownRadio) {
+      noMintMarkRadio.checked = (emptyMintmarkValue === 'no_mint_mark');
+      unknownRadio.checked = (emptyMintmarkValue === 'unknown');
+    }
+
+    // Auto-Propagate toggle (Task 3.12.11)
+    const autoPropagateCheckbox = document.getElementById('enableAutoPropagate');
+    if (autoPropagateCheckbox) {
+      autoPropagateCheckbox.checked = fetchSettings.enableAutoPropagate !== false;
+    }
   }
 
   /**
@@ -3189,11 +5342,21 @@ class DataSettingsUI {
 
       const categorySelect = document.getElementById('searchCategory');
 
+      // Get empty mintmark interpretation (Task 3.12.7)
+      const unknownRadio = document.getElementById('emptyMintmarkUnknown');
+      const emptyMintmarkValue = (unknownRadio && unknownRadio.checked) ? 'unknown' : 'no_mint_mark';
+
+      // Get Auto-Propagate setting (Task 3.12.11)
+      const autoPropagateCheckbox = document.getElementById('enableAutoPropagate');
+      const enableAutoPropagate = autoPropagateCheckbox ? autoPropagateCheckbox.checked : true;
+
       const newSettings = {
         basicData: basicCheckbox ? basicCheckbox.checked : true,
         issueData: issueCheckbox ? issueCheckbox.checked : false,
         pricingData: pricingCheckbox ? pricingCheckbox.checked : false,
-        searchCategory: categorySelect ? categorySelect.value : 'all'
+        searchCategory: categorySelect ? categorySelect.value : 'all',
+        emptyMintmarkInterpretation: emptyMintmarkValue,
+        enableAutoPropagate: enableAutoPropagate
       };
       
       // Save fetch settings to main process
@@ -3852,6 +6015,12 @@ async function handleMenuAction(action, data) {
       }
       break;
 
+    case 'set-view-mode':
+      if (AppState.collectionPath && data) {
+        setViewMode(data);
+      }
+      break;
+
     case 'open-app-settings':
       // Open App Settings screen (API key, backup, default collection)
       {
@@ -3973,6 +6142,62 @@ async function handleMenuAction(action, data) {
       showEulaModal(false);
       break;
 
+    case 'purchase-license':
+      // Open checkout URL for license purchase
+      openPurchaseLicenseUrl();
+      break;
+
+    // Fast Pricing Mode menu actions
+    case 'enter-fast-pricing-mode':
+      if (AppState.collectionPath && !AppState.fastPricingMode) {
+        // Check premium status (same as button click)
+        const canUse = await requirePremiumFeature('fast-pricing');
+        if (canUse) {
+          enterFastPricingMode();
+        }
+      }
+      break;
+
+    case 'exit-fast-pricing-mode':
+      if (AppState.fastPricingMode) {
+        exitFastPricingMode();
+      }
+      break;
+
+    case 'fp-select-all':
+      if (AppState.fastPricingMode) {
+        AppState.allCoins.forEach(c => {
+          if (checkFastPricingEligibility(c).eligible) AppState.fastPricingSelected.add(c.id);
+        });
+        renderCoinList();
+        updateFastPricingCounts();
+      }
+      break;
+
+    case 'fp-select-displayed':
+      if (AppState.fastPricingMode) {
+        AppState.coins.forEach(c => {
+          if (checkFastPricingEligibility(c).eligible) AppState.fastPricingSelected.add(c.id);
+        });
+        renderCoinList();
+        updateFastPricingCounts();
+      }
+      break;
+
+    case 'fp-clear':
+      if (AppState.fastPricingMode) {
+        AppState.fastPricingSelected.clear();
+        renderCoinList();
+        updateFastPricingCounts();
+      }
+      break;
+
+    case 'fp-start-update':
+      if (AppState.fastPricingMode && AppState.fastPricingSelected.size > 0) {
+        startFastPricingUpdate();
+      }
+      break;
+
     default:
       console.warn('Unknown menu action:', action);
   }
@@ -4004,6 +6229,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   dataSettingsUI = new DataSettingsUI();
+
+  // Start periodic license validation (runs 5 seconds after startup, then every 7 days)
+  startPeriodicLicenseValidation();
+
+  // Update version badge based on supporter status
+  updateVersionBadge();
 
   // Setup menu event listeners
   if (window.menuEvents) {

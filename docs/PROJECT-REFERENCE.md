@@ -1,7 +1,7 @@
 # NumiSync Wizard for OpenNumismat - Project Reference
 
 **Purpose:** Architecture reference for implementation. Read when building features.
-**Last Updated:** February 3, 2026
+**Last Updated:** February 6, 2026 (Auto-Propagate Bug Fix)
 
 ---
 
@@ -77,6 +77,17 @@ numismat-enrichment/
 | `resolve-issuer` | Resolve country name to Numista issuer code |
 | `open-external` | Open URL in default browser (https/http only) |
 | `download-and-store-images` | Download images from Numista CDN |
+| `get-supporter-status` | Get license/supporter status and lifetime stats |
+| `validate-license-key` | Activate license key with Polar API (registers device) |
+| `validate-license` | Re-validate existing license without creating new activation |
+| `deactivate-license` | Deactivate license on this device (frees activation slot) |
+| `update-supporter-status` | Update supporter settings (e.g., neverAskAgain, offlineSkipUsed) |
+| `increment-lifetime-enrichments` | Track coins enriched, check prompt thresholds |
+| `get-lifetime-stats` | Get lifetime enrichment statistics |
+| `clear-license` | Remove stored license key (local only, doesn't call Polar) |
+| `create-backup-before-batch` | Create single backup before batch operations (avoids per-coin backups) |
+| `fast-pricing-update` | Update pricing for a single coin using existing numistaId/issueId (premium) |
+| `propagate-type-data` | Apply type data to a matching coin from batch operation (premium) |
 
 ---
 
@@ -145,6 +156,27 @@ numismat-enrichment/
 
 ---
 
+## Data Settings (fetchSettings)
+
+Stored in `{database}_settings.json` via `settings-manager.js`.
+
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| `basicData` | boolean | `true` | Fetch type-level data (title, material, weight, etc.) |
+| `issueData` | boolean | `false` | Fetch issue-level data (mintage, mintmark) |
+| `pricingData` | boolean | `false` | Fetch pricing data (requires issue match) |
+| `searchCategory` | string | `'all'` | Filter search: 'all', 'default', 'coin', 'banknote', 'exonumia' |
+| `emptyMintmarkInterpretation` | string | `'no_mint_mark'` | How empty mintmark is interpreted: 'no_mint_mark' or 'unknown' |
+| `enableAutoPropagate` | boolean | `true` | Show Auto-Propagate prompt after merge to apply type data to matching coins |
+
+**Auto-Propagate Feature (Task 3.12):**
+- After merging, detects other coins sharing the same Numista type
+- Offers to propagate type-level data to all matching coins
+- Detection is FREE; applying to multiple coins requires premium license
+- When disabled, merge completes silently without showing the prompt
+
+---
+
 ## Icon System (Coin List)
 
 Each coin displays THREE status icons: `[B] [I] [P]`
@@ -166,6 +198,156 @@ Each coin displays THREE status icons: `[B] [I] [P]`
 | 🟡 | 3-12 months |
 | 🟠 | 1-2 years |
 | 🔴 | > 2 years |
+
+---
+
+## License Status UI System
+
+The app tracks supporter/license status and updates multiple UI elements dynamically.
+
+**Menu State (index.js):**
+```javascript
+let menuState = {
+  collectionLoaded: false,
+  fieldComparisonActive: false,
+  recentCollections: [],
+  isSupporter: false  // Controls license-dependent menu items
+};
+```
+
+**UI Elements Affected by License Status:**
+
+| Element | Location | Unlicensed State | Licensed State |
+|---------|----------|------------------|----------------|
+| Version Badge | Header (below logo) | "FREE VERSION" gray gradient | "Supporter Edition" gold gradient |
+| Fast Pricing Button | Collection screen | 🔒 icon, 65% opacity, shows premium gate on click | Full opacity, no icon, feature enabled |
+| Purchase License Key | Help menu | Visible | Hidden |
+
+**Update Flow:**
+
+```
+License status changes (activation, deactivation, validation)
+    ↓
+updateVersionBadge() in app.js
+    ├── Updates header version badge text/styling
+    ├── Updates Fast Pricing button classes (locked/unlocked)
+    └── Calls updateMenuState({ isSupporter })
+            ↓
+        IPC to main process → rebuildMenu()
+            └── Menu rebuilt with/without "Purchase License Key" item
+```
+
+**When Updates Are Triggered:**
+- App initialization (DOMContentLoaded)
+- After successful license activation (About dialog)
+- After license removal (About dialog)
+- After license deactivation (App Settings)
+
+**Premium Feature Gating (app.js):**
+```javascript
+// Gate a premium feature - shows purchase prompt if unavailable
+async function requirePremiumFeature(featureId) {
+  const available = await isPremiumFeatureAvailable(featureId);
+  if (!available) {
+    // Shows modal with "Get a License" and "Enter License Key" buttons
+    return false;
+  }
+  return true;
+}
+
+// Usage in button handler:
+document.getElementById('fastPricingBtn').addEventListener('click', async () => {
+  const canUse = await requirePremiumFeature('fast-pricing');
+  if (!canUse) return;
+  // ... feature implementation
+});
+```
+
+**PREMIUM_FEATURES Registry (app.js):**
+
+| Feature ID | Display Name | Description |
+|------------|--------------|-------------|
+| `fast-pricing` | Fast Pricing Mode | Batch update pricing for matched coins |
+| `batch-type-propagation` | Auto-Propagate | Propagate type data to matching coins |
+
+---
+
+## Header Layout
+
+The app header adapts based on whether a collection is open:
+
+**Default State (No Collection):**
+```
+[Logo + Version Badge]                              [⚙️ Dropdown]
+```
+
+**Collection Open:**
+```
+[Logo + Version Badge]    [Collection Title]    [Fast Pricing] [Close] | [⚙️ Dropdown]
+```
+
+**Settings Dropdown (⚙️ icon):**
+- App Settings - Always visible
+- Data Settings - Only visible when collection is open
+
+---
+
+## Info Bar Card (Collection Screen)
+
+The stats and filters area is wrapped in a unified card with a pinnable header feature:
+
+**Structure:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│📌│ [521 COINS | Basic: 78/521 | Issue: 78/521 | Pricing: 78/521] │
+│  │ Status: Complete: 78 · Partial: 0 · Unprocessed: 443 · Skipped: 30  │
+│  │ Pricing: Current: 78 · Recent: 0 · Aging: 0 · Outdated: 0 · Never: 443  │
+│  ├─────────────────────────────────────────────────────────────────────────│
+│  │ Show: [All Coins ▼]  Pricing Freshness: [All Ages ▼]  Sort by: [Title ▼]  [Reset] [≡][⊞]  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Pin Toggle (📌 dog-ear corner):**
+- **Unpinned (default):** Thumbtack rotated -45° (slanted), card scrolls with content
+- **Pinned:** Thumbtack rotated 0° (vertical), card is sticky at top of scroll area
+
+**Setting:** `uiPreferences.stickyInfoBar` (boolean, default: false)
+
+---
+
+## EULA and Legal Compliance
+
+**EULA Version:** 2.0 (February 2026)
+
+The EULA is defined in `EULA_CONTENT` constant in `src/renderer/app.js` with version tracked in `EULA_VERSION`.
+
+**Key Sections:**
+| Section | Content |
+|---------|---------|
+| License Tiers (§3) | Free vs Supporter Edition terms, 5-device limit, non-transferable, covers current major version + updates, discounted upgrades to future major versions |
+| Data Collection (§6) | Local-only data, no PII collected, device fingerprint disclosure |
+| California Privacy (§7) | CCPA/CPRA compliance - right to know/delete/opt-out/non-discrimination |
+| Refunds (§11) | Subject to Polar.sh policies, case-by-case |
+| No Obligation to Support (§14) | No guaranteed updates/support/maintenance, may discontinue at any time |
+| Governing Law (§15) | California, USA |
+
+**EULA Acceptance Flow:**
+```
+App launch → checkEulaOnStartup()
+    ↓
+isEulaAccepted() checks app settings for eulaAccepted && eulaVersion match
+    ↓
+If not accepted → showEulaModal(true)
+    ├── User accepts → saveEulaAcceptance() stores version + timestamp
+    └── User declines → window.close()
+```
+
+**Privacy Compliance:**
+- No personal information collected or transmitted to Developer
+- Collection data stored locally in OpenNumismat database only
+- API requests to Numista contain coin identifiers (not PII)
+- Device fingerprint sent to Polar.sh for license activation only
+- California residents have explicit rights under CCPA/CPRA (documented in §7)
 
 ---
 

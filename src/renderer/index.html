@@ -10,11 +10,49 @@
   <div id="app">
     <!-- Header -->
     <header class="app-header">
-      <img src="images/logo_with_text.svg" alt="NumiSync Wizard for OpenNumismat" class="app-logo">
+      <div class="header-brand">
+        <img src="images/logo_with_text.svg" alt="NumiSync Wizard for OpenNumismat" class="app-logo">
+        <div id="versionBadge" class="version-badge version-badge-free">Free Version</div>
+      </div>
+
+      <!-- Collection info (shown when collection is open) -->
+      <div class="header-collection" id="headerCollection" style="display: none;">
+        <h2 id="headerCollectionTitle" class="collection-title">Collection</h2>
+      </div>
+
       <div class="header-actions">
-        <button id="settingsBtn" class="btn btn-secondary">
-          ⚙️ Settings
-        </button>
+        <!-- Collection-specific actions (shown when collection is open) -->
+        <div class="collection-actions" id="headerCollectionActions" style="display: none;">
+          <button id="fastPricingBtn" class="btn btn-secondary btn-premium btn-premium-locked">
+            <span class="premium-icon">🔒</span> Fast Pricing Mode
+          </button>
+          <button id="closeCollectionBtn" class="btn btn-secondary">
+            ← Close Collection
+          </button>
+        </div>
+
+        <!-- Settings dropdown -->
+        <div class="settings-dropdown" id="settingsDropdown">
+          <button id="settingsDropdownBtn" class="btn btn-icon" title="Settings">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+            </svg>
+          </button>
+          <div class="settings-dropdown-menu" id="settingsDropdownMenu">
+            <button id="settingsBtn" class="dropdown-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+              </svg>
+              App Settings
+            </button>
+            <button id="dataSettingsBtn" class="dropdown-item" style="display: none;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/>
+              </svg>
+              Data Settings
+            </button>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -56,23 +94,17 @@
 
       <!-- Screen 2: Collection Overview -->
       <div id="collectionScreen" class="screen">
-        <div class="collection-header">
-          <h2 id="collectionTitle">Collection</h2>
-          <div class="collection-actions">
-            <button id="dataSettingsBtn" class="btn btn-secondary">
-              ⚙️ Data Settings
-            </button>
-            <button id="fastPricingBtn" class="btn btn-secondary">
-              💰 Fast Pricing Update
-            </button>
-            <button id="closeCollectionBtn" class="btn btn-secondary">
-              ← Close Collection
-            </button>
-          </div>
-        </div>
+        <!-- Info Bar Card (stats + filters) -->
+        <div class="info-bar-card" id="infoBarCard">
+          <!-- Dog-ear pin toggle -->
+          <button class="info-bar-pin" id="infoBarPinBtn" title="Pin info bar">
+            <svg class="pin-icon" viewBox="0 0 24 24" width="14" height="14">
+              <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z"/>
+            </svg>
+          </button>
 
-        <!-- Compact Stats Bar with Summary -->
-        <div class="compact-stats-wrapper">
+          <!-- Compact Stats Bar with Summary -->
+          <div class="compact-stats-wrapper">
           <div class="compact-stats">
             <div class="compact-stat-item compact-stat-total">
               <span class="compact-stat-value" id="statTotal">0</span>
@@ -174,6 +206,52 @@
           <button id="resetFiltersBtn" class="btn btn-small" title="Reset all filters to default">
             Reset Filters
           </button>
+          <div class="view-toggle" id="viewToggle">
+            <button id="listViewBtn" class="view-toggle-btn active" title="List View">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <rect x="0" y="1" width="16" height="3"/>
+                <rect x="0" y="6" width="16" height="3"/>
+                <rect x="0" y="11" width="16" height="3"/>
+              </svg>
+            </button>
+            <button id="gridViewBtn" class="view-toggle-btn" title="Grid View">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <rect x="0" y="0" width="7" height="7"/>
+                <rect x="9" y="0" width="7" height="7"/>
+                <rect x="0" y="9" width="7" height="7"/>
+                <rect x="9" y="9" width="7" height="7"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        </div><!-- /info-bar-card -->
+
+        <!-- Fast Pricing Mode Toolbar (hidden by default) -->
+        <div id="fastPricingToolbar" class="fast-pricing-toolbar" style="display: none;">
+          <div class="fast-pricing-info">
+            <span class="fast-pricing-mode-indicator">Fast Pricing Mode</span>
+            <span><span id="fpSelectedCount">0</span> selected</span>
+            <span class="text-muted">(<span id="fpEligibleCount">0</span> eligible)</span>
+          </div>
+          <!-- Inline progress bar (visible during batch) -->
+          <div id="fpInlineProgress" class="fp-inline-progress" style="display: none;">
+            <div class="fp-progress-bar">
+              <div id="fpProgressFill" class="fp-progress-fill"></div>
+            </div>
+            <span id="fpProgressText" class="fp-progress-text">0/0</span>
+          </div>
+          <div class="fast-pricing-actions">
+            <button id="fpSelectAllEligible" class="btn btn-small">Select All Eligible</button>
+            <button id="fpSelectDisplayed" class="btn btn-small">Select Displayed</button>
+            <button id="fpSelectNone" class="btn btn-small">Clear</button>
+            <button id="fpStartUpdate" class="btn btn-primary btn-small" disabled>
+              Update (<span id="fpUpdateCount">0</span>)
+            </button>
+            <button id="fpCancelUpdate" class="btn btn-danger btn-small" style="display: none;">
+              Cancel
+            </button>
+            <button id="fpExitMode" class="btn btn-secondary btn-small">Exit</button>
+          </div>
         </div>
 
         <!-- Coin List -->
@@ -398,6 +476,25 @@
             </div>
           </div>
 
+          <div class="setting-group" id="licenseManagementGroup" style="display: none;">
+            <h3>License Management</h3>
+            <div id="licenseInfoDisplay">
+              <!-- License info will be populated by JavaScript -->
+            </div>
+            <div id="licenseActions" style="margin-top: 15px;">
+              <button id="revalidateLicenseBtn" class="btn btn-secondary" style="margin-right: 10px;">
+                Validate License
+              </button>
+              <button id="deactivateLicenseBtn" class="btn btn-secondary" style="background-color: #dc3545; color: white;">
+                Deactivate License
+              </button>
+            </div>
+            <p class="setting-help">
+              <strong>Device Label:</strong> Identifies this installation on Polar's website.<br>
+              <strong>Deactivate:</strong> Frees up one of your 3 device slots so you can activate on another device.
+            </p>
+          </div>
+
           <div class="setting-group">
             <h3>Legal</h3>
             <p><a href="#" id="viewEulaLink">View End User License Agreement</a></p>
@@ -605,6 +702,60 @@
             </div>
           </div>
 
+          <!-- Empty Mintmark Interpretation (Task 3.12.7) -->
+          <div class="data-setting-card">
+            <div class="data-setting-header">
+              <strong>Empty Mintmark Interpretation</strong>
+            </div>
+            <div class="data-setting-details">
+              <p class="data-description">
+                How should an empty/blank mintmark field be interpreted when matching issues?
+              </p>
+              <div class="radio-group">
+                <label class="radio-label">
+                  <input type="radio" name="emptyMintmark" id="emptyMintmarkNoMark" value="no_mint_mark" checked>
+                  <span class="radio-text">
+                    <strong>No mint mark</strong>
+                    <span class="radio-description">Empty means no mint mark (e.g., Philadelphia before 1980). Matches issues with empty mint_letter.</span>
+                  </span>
+                </label>
+                <label class="radio-label">
+                  <input type="radio" name="emptyMintmark" id="emptyMintmarkUnknown" value="unknown">
+                  <span class="radio-text">
+                    <strong>Unknown</strong>
+                    <span class="radio-description">Empty means unknown. Let me choose the issue manually instead of auto-matching.</span>
+                  </span>
+                </label>
+              </div>
+              <p class="data-note">
+                This affects both single coin enrichment and batch type propagation.
+              </p>
+            </div>
+          </div>
+
+          <!-- Auto-Propagate Toggle (Task 3.12.11) -->
+          <div class="data-setting-card">
+            <div class="data-setting-header">
+              <label class="checkbox-label">
+                <input type="checkbox" id="enableAutoPropagate" checked>
+                <strong>Auto-Propagate</strong>
+              </label>
+            </div>
+            <div class="data-setting-details">
+              <p class="data-description">
+                After enriching a coin, automatically detect other coins that share the same Numista type and offer to propagate data.
+              </p>
+              <ul class="data-fields-list">
+                <li>Detects matching coins after merge completes</li>
+                <li>Offers to apply type data to all matches at once</li>
+                <li>Saves API calls by reusing fetched data</li>
+              </ul>
+              <p class="data-note">
+                Applying data to multiple coins requires a premium license.
+              </p>
+            </div>
+          </div>
+
         </div>
 
         <div class="data-settings-summary">
@@ -768,6 +919,19 @@
           <button id="eulaAcceptBtn" class="btn btn-primary" disabled>I Accept</button>
           <button id="eulaDeclineBtn" class="btn btn-secondary">Decline and Exit</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fast Pricing Completion Modal -->
+  <div id="fpCompleteModal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header"><h3>Update Complete</h3></div>
+      <div class="modal-body">
+        <!-- Content populated dynamically by showFpCompleteModal() -->
+      </div>
+      <div class="modal-footer">
+        <button id="fpCompleteOk" class="btn btn-primary">OK</button>
       </div>
     </div>
   </div>

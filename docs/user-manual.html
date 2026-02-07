@@ -363,7 +363,7 @@
       <ul>
         <li><a href="#open-db">Opening a Database File</a></li>
         <li><a href="#collection-overview">Collection Overview</a></li>
-        <li><a href="#progress-summary">Progress Summary</a></li>
+        <li><a href="#progress-summary">Progress Summary &amp; Info Bar</a></li>
       </ul>
     </li>
     <!-- Closing a Collection is in Section 16 -->
@@ -371,6 +371,7 @@
       <ul>
         <li><a href="#data-types">Data Types Explained</a></li>
         <li><a href="#currency-selection">Currency Selection</a></li>
+        <li><a href="#search-category">Search Category Filter</a></li>
         <li><a href="#api-cost">API Call Costs</a></li>
       </ul>
     </li>
@@ -402,7 +403,8 @@
       <ul>
         <li><a href="#pricing-grades">Pricing Grades</a></li>
         <li><a href="#freshness-tracking">Freshness Tracking</a></li>
-        <li><a href="#fast-pricing">Fast Pricing Update</a></li>
+        <li><a href="#fast-pricing">Fast Pricing Mode</a></li>
+        <li><a href="#auto-propagate">Auto-Propagate</a></li>
       </ul>
     </li>
     <li><a href="#filtering-sorting">9. Filtering &amp; Sorting</a>
@@ -424,20 +426,32 @@
     <li><a href="#images">11. Image Handling</a>
       <ul>
         <li><a href="#image-display">Image Display</a></li>
+        <li><a href="#image-lightbox">Image Lightbox</a></li>
         <li><a href="#image-modes">Storage Modes</a></li>
       </ul>
     </li>
     <li><a href="#settings-reference">12. Settings Reference</a>
       <ul>
+        <li><a href="#default-collection">Default Collection</a></li>
         <li><a href="#api-key-setting">API Key</a></li>
         <li><a href="#search-settings">Search Settings</a></li>
         <li><a href="#image-settings">Image Handling</a></li>
         <li><a href="#safety-settings">Safety &amp; Backups</a></li>
+        <li><a href="#license-settings">License Management</a></li>
       </ul>
     </li>
     <li><a href="#backups">13. Backups &amp; Safety</a></li>
     <li><a href="#status-bar">14. Status Bar</a></li>
-    <li><a href="#keyboard-shortcuts">15. Keyboard Shortcuts</a></li>
+    <li><a href="#keyboard-shortcuts">15. Menu Bar &amp; Shortcuts</a>
+      <ul>
+        <li><a href="#menu-file">File Menu</a></li>
+        <li><a href="#menu-edit">Edit Menu</a></li>
+        <li><a href="#menu-view">View Menu</a></li>
+        <li><a href="#menu-settings">Settings Menu</a></li>
+        <li><a href="#menu-help">Help Menu</a></li>
+        <li><a href="#other-shortcuts">Other Shortcuts</a></li>
+      </ul>
+    </li>
     <li><a href="#closing-collection">16. Closing a Collection</a></li>
     <li><a href="#troubleshooting">17. Troubleshooting</a></li>
     <li><a href="#faq">18. FAQ</a></li>
@@ -453,9 +467,9 @@
 
 <!-- ──────────────────────────────────────────────────────────────────────── -->
 <div style="text-align: center; margin-bottom: 10px;">
-  <img src="../src/renderer/images/logo_with_text.svg" alt="NumiSync Wizard for OpenNumismat" style="height: 90px; width: auto;">
+  <img src="../src/renderer/images/logo_with_text.svg" alt="NumiSync Wizard for OpenNumismat" style="height: 110px; width: auto;">
 </div>
-<p class="subtitle">Complete User Manual &mdash; v1.0</p>
+<p class="subtitle">Complete User Manual &mdash; v1.1</p>
 
 <!-- ──────────────────────────────────────────────────────────────────────── -->
 <h2 id="introduction">1. Introduction</h2>
@@ -518,12 +532,18 @@
 
 <h3 id="first-launch">First Launch &amp; Setup</h3>
 <ol class="steps">
-  <li>Launch the application. You will see the <strong>Welcome screen</strong>.</li>
-  <li>Click the <strong>Settings</strong> button (gear icon in the top-right corner).</li>
+  <li>Launch the application. On first launch, the <strong>End User License Agreement (EULA)</strong> will appear. Read the terms and click <strong>I Accept</strong> to continue. You must accept the EULA to use the application.</li>
+  <li>You will see the <strong>Welcome screen</strong> with the application logo and version information.</li>
+  <li>Open <strong>Settings</strong> &rarr; <strong>App Settings</strong> from the menu bar (or press <kbd>Ctrl</kbd>+<kbd>,</kbd>).</li>
   <li>Paste your Numista API key into the <strong>API Key</strong> field.</li>
   <li>Review the default settings (they work well for most users) and click <strong>Save Settings</strong>.</li>
   <li>Click <strong>Close</strong> to return to the Welcome screen. You are now ready to load a collection.</li>
 </ol>
+
+<div class="callout callout-info">
+  <strong>EULA:</strong>
+  You can review the End User License Agreement at any time by selecting <strong>Help</strong> &rarr; <strong>View EULA</strong> from the menu bar.
+</div>
 
 <a href="#introduction" class="back-to-top">Back to top &uarr;</a>
 
@@ -549,9 +569,15 @@
 
 <h3 id="collection-overview">Collection Overview</h3>
 <p>
-  After loading, the <strong>Collection Overview</strong> screen displays all coins in a scrollable list.
-  Each coin entry shows:
+  After loading, the <strong>Collection Overview</strong> screen displays all coins in a scrollable list or grid.
+  The <strong>application header</strong> updates to show:
 </p>
+<ul>
+  <li><strong>Collection Title</strong> &mdash; The database filename, displayed in the center of the header</li>
+  <li><strong>Fast Pricing Mode</strong> &mdash; Button to enter batch pricing update mode (Supporter Edition feature)</li>
+  <li><strong>Close Collection</strong> &mdash; Button to return to the welcome screen</li>
+</ul>
+<p>Each coin entry in the list shows:</p>
 <ul>
   <li><strong>Thumbnail images</strong> &mdash; Obverse and reverse (if available in your database)</li>
   <li><strong>Title</strong> &mdash; The coin's name</li>
@@ -559,8 +585,31 @@
   <li><strong>Status icons</strong> &mdash; Three icons showing the state of Basic [B], Issue [I], and Pricing [P] data</li>
 </ul>
 
-<h3 id="progress-summary">Progress Summary</h3>
-<p>At the top of the Collection Overview, a set of cards summarize your enrichment progress per data type:</p>
+<h3 id="progress-summary">Progress Summary &amp; Info Bar</h3>
+<p>
+  Below the header, an <strong>Info Bar Card</strong> displays your collection statistics and filter controls
+  in a unified panel. This card contains:
+</p>
+<ul>
+  <li><strong>Progress stats</strong> &mdash; Total coin count and progress bars for Basic, Issue, and Pricing data</li>
+  <li><strong>Status summary</strong> &mdash; Counts for Complete, Partial, Unprocessed, and Skipped coins</li>
+  <li><strong>Pricing summary</strong> &mdash; Counts grouped by pricing freshness (Current, Recent, Aging, Outdated, Never)</li>
+  <li><strong>Filter controls</strong> &mdash; Dropdowns for filtering and sorting, plus view mode toggle (list/grid)</li>
+</ul>
+
+<h4>Pinning the Info Bar</h4>
+<p>
+  A small <strong>thumbtack icon</strong> appears in the top-left corner of the Info Bar Card (the "dog-ear" corner).
+  Click this icon to <strong>pin</strong> or <strong>unpin</strong> the info bar:
+</p>
+<ul>
+  <li><strong>Unpinned (default):</strong> The info bar scrolls with the coin list. The thumbtack appears slanted.</li>
+  <li><strong>Pinned:</strong> The info bar stays fixed at the top while you scroll through coins. The thumbtack rotates to vertical, indicating it's "pushed in."</li>
+</ul>
+<p>This preference is saved per-collection, so each collection remembers your choice.</p>
+
+<h4>Progress Statistics</h4>
+<p>The stats section summarizes your enrichment progress per data type:</p>
 <table>
   <tr><th>Card</th><th>Meaning</th></tr>
   <tr><td><strong>Total Coins</strong></td><td>Number of coins in your collection</td></tr>
@@ -577,8 +626,9 @@
 <h2 id="data-settings">4. Data Settings</h2>
 
 <p>
-  Click the <strong>Data Settings</strong> button on the Collection Overview to configure what
-  data the tool fetches for each coin. This opens a modal dialog with toggle options.
+  With a collection open, click the <strong>gear icon (&#9881;)</strong> in the header and select
+  <strong>Data Settings</strong> to configure what data the tool fetches for each coin.
+  This opens a modal dialog with toggle options.
 </p>
 
 <h3 id="data-types">Data Types Explained</h3>
@@ -631,6 +681,22 @@
   <tr><td>JPY</td><td>Japanese Yen</td></tr>
   <tr><td>CHF</td><td>Swiss Franc</td></tr>
 </table>
+
+<h3 id="search-category">Search Category Filter</h3>
+<p>
+  The Data Settings modal includes a <strong>Search Category</strong> dropdown that filters what type of
+  items to search for on Numista:
+</p>
+<table>
+  <tr><th>Category</th><th>Description</th></tr>
+  <tr><td><strong>Coins</strong> (default)</td><td>Standard circulating and commemorative coins</td></tr>
+  <tr><td><strong>Banknotes</strong></td><td>Paper currency and polymer notes</td></tr>
+  <tr><td><strong>Exonumia</strong></td><td>Tokens, medals, and other coin-like objects</td></tr>
+</table>
+<p>
+  If your collection contains non-coin items (such as tokens or medals), selecting the appropriate
+  category improves search accuracy by filtering out irrelevant results.
+</p>
 
 <h3 id="api-cost">API Call Costs</h3>
 <p>The Data Settings modal shows how many API calls will be made per coin based on your selections:</p>
@@ -810,15 +876,32 @@
   When the automatic matching cannot determine a single issue, a modal dialog appears showing:
 </p>
 <ul>
-  <li><strong>Your coin's details</strong> &mdash; Year, mintmark, and type for reference.</li>
-  <li><strong>All candidate issues</strong> &mdash; Listed with year, mintmark, mintage, and any type/comment information.</li>
+  <li><strong>Your coin's details</strong> &mdash; Year, mintmark, type, and thumbnail images (obverse and reverse) for visual reference.</li>
+  <li><strong>All candidate issues</strong> &mdash; Listed with year, mintmark, mintage, and any type/comment information. Issues are sorted by match quality, with the best matches shown first.</li>
   <li><strong>Match indicators</strong> &mdash; Visual badges showing "Exact Match" or "Partial Match" for each field.</li>
+  <li><strong>Section headers</strong> &mdash; When there are both exact and partial matches, section headers help distinguish "Best matches" from "Other options".</li>
+  <li><strong>Issue images</strong> &mdash; Where available, issue-specific images are shown. Hover over images to enlarge them 4&times;.</li>
 </ul>
+
+<div class="callout callout-info">
+  <strong>Viewing on Numista:</strong>
+  A "View on Numista" link appears in the Issue Picker header, allowing you to open the coin type page
+  on Numista for additional research before making your selection.
+</div>
+
 <p>Select the correct issue using the radio buttons, then click <strong>Apply Selection</strong>.</p>
 <p>
   If you're unsure or don't want issue data for this coin, click <strong>Skip Issue Data</strong>.
   The basic data will still be imported; only the issue-specific fields will be skipped.
 </p>
+
+<h4>Mintmark Matching</h4>
+<p>The issue picker handles mintmark matching intelligently:</p>
+<ul>
+  <li>If your coin has no mintmark, issues with no mintmark are prioritized and shown as "Exact Match".</li>
+  <li>Mintmark variations (e.g., "D" vs "Denver") are normalized for accurate matching.</li>
+  <li>Issues from other mints are still shown as "Other options" in case you need to select one.</li>
+</ul>
 
 <a href="#introduction" class="back-to-top">Back to top &uarr;</a>
 
@@ -851,19 +934,133 @@
 </table>
 <p>Freshness is displayed as a colored icon on the [P] status indicator in the coin list.</p>
 
-<h3 id="fast-pricing">Fast Pricing Update</h3>
+<h3 id="fast-pricing">Fast Pricing Mode <span class="badge" style="background: linear-gradient(135deg, #d4af37, #f4e4ba); color: #333;">PREMIUM</span></h3>
 <p>
-  The <strong>Fast Pricing Update</strong> button is visible on the Collection Overview toolbar.
-  When fully implemented, this feature will allow you to refresh pricing data for coins that have
-  already been matched to a Numista type &mdash; without needing to re-search or re-match. This will
-  be useful for batch-updating outdated prices across your collection.
+  <strong>Fast Pricing Mode</strong> is a premium feature that allows you to refresh pricing data for
+  multiple coins at once &mdash; without needing to re-search or re-match each coin. This is ideal for
+  batch-updating outdated prices across your collection.
 </p>
 
-<div class="callout callout-warning">
-  <strong>Planned Feature:</strong>
-  Fast Pricing Update is currently a planned feature and is not yet active. To update pricing for a
-  specific coin today, click on it, re-select the match, and apply changes with Pricing Data enabled.
+<div class="callout callout-info">
+  <strong>Premium Feature:</strong>
+  Fast Pricing Mode requires a Supporter Edition license. Free users can still update pricing by
+  clicking individual coins and re-applying changes with Pricing Data enabled.
 </div>
+
+<h4>Eligibility</h4>
+<p>A coin is eligible for fast pricing update if it has:</p>
+<ul>
+  <li>A <strong>Numista Type ID</strong> stored in its metadata (from previous enrichment)</li>
+  <li>A <strong>Numista Issue ID</strong> stored in its metadata (from previous issue matching)</li>
+</ul>
+<p>Coins without both IDs cannot be fast-updated because issue-specific pricing requires the exact issue to be known.</p>
+
+<h4>Using Fast Pricing Mode</h4>
+<ol class="steps">
+  <li>Click the <strong>Fast Pricing Mode</strong> button in the Collection Overview toolbar. The button shows a lock icon if you don't have a Supporter license.</li>
+  <li>The interface enters Fast Pricing Mode: checkboxes appear next to eligible coins, and a selection toolbar appears.</li>
+  <li>Select coins to update:
+    <ul>
+      <li><strong>Select All Eligible</strong> &mdash; Selects all eligible coins in the entire collection</li>
+      <li><strong>Select Displayed</strong> &mdash; Selects only eligible coins on the current page</li>
+      <li><strong>Clear</strong> &mdash; Deselects all coins</li>
+      <li>Click individual checkboxes to toggle selection</li>
+    </ul>
+  </li>
+  <li>Click <strong>Update Pricing</strong>. A confirmation dialog shows the number of coins and estimated time.</li>
+  <li>Click <strong>Start Update</strong>. A progress indicator appears in the status bar.</li>
+  <li>As each coin is processed, its row shows visual feedback:
+    <ul>
+      <li><span style="color: var(--green);">Green highlight</span> &mdash; Pricing updated successfully</li>
+      <li><span style="color: var(--red);">Red highlight</span> &mdash; Update failed (e.g., API error)</li>
+    </ul>
+  </li>
+  <li>When complete, a summary modal shows results. Successfully updated coins are deselected; failed coins remain selected for easy retry.</li>
+  <li>Click <strong>Exit Mode</strong> to return to normal view.</li>
+</ol>
+
+<h4>Rate Limiting &amp; Backups</h4>
+<ul>
+  <li>Fast pricing respects Numista's API rate limit (1 call per second).</li>
+  <li>A single backup is created before the batch starts (not per-coin) to minimize disk usage.</li>
+  <li>You can click <strong>Cancel</strong> during processing to stop after the current coin completes.</li>
+</ul>
+
+<h4>Tips for Fast Pricing</h4>
+<ul>
+  <li>Use the <strong>Pricing Freshness</strong> filter set to "Outdated" or "Aging" to find coins that need price updates.</li>
+  <li>The toolbar shows counts: "Selected: 15 / Eligible: 42" to help track your selection.</li>
+  <li>Row highlights persist after the batch completes, making it easy to see results while scrolling through pages.</li>
+</ul>
+
+<h3 id="auto-propagate">Auto-Propagate <span class="badge" style="background: linear-gradient(135deg, #d4af37, #f4e4ba); color: #333;">PREMIUM</span></h3>
+<p>
+  <strong>Auto-Propagate</strong> is a premium feature that automatically detects other coins in your
+  collection that share the same Numista type as the coin you just enriched. It offers to apply the
+  same type-level data to all matching coins at once &mdash; saving you time and API calls.
+</p>
+
+<div class="callout callout-info">
+  <strong>Premium Feature:</strong>
+  Detecting matching coins is FREE for all users. Applying data to multiple coins requires a Supporter Edition license.
+  Free users can still enrich each coin individually using the normal workflow.
+</div>
+
+<h4>How It Works</h4>
+<ol class="steps">
+  <li>Enrich a coin as normal &mdash; search, select match, choose fields, and click <strong>Apply Selected Fields</strong>.</li>
+  <li>After the merge completes, the system automatically searches your collection for coins with matching catalog numbers or Numista IDs.</li>
+  <li>If matches are found, a prompt appears showing two categories:
+    <ul>
+      <li><strong>True Duplicates</strong> &mdash; Coins with the same type, year, AND mintmark. These can receive ALL data (type + issue + pricing).</li>
+      <li><strong>Same Type, Different Issue</strong> &mdash; Coins of the same type but different year or mintmark. These receive type-level data only (title, material, weight, catalog numbers, etc.).</li>
+    </ul>
+  </li>
+  <li>Choose an action:
+    <ul>
+      <li><strong>Apply to This Coin Only</strong> &mdash; Skip propagation (free)</li>
+      <li><strong>Apply to All</strong> &mdash; Propagate data to all matching coins (premium)</li>
+    </ul>
+  </li>
+  <li>If you choose "Apply to All," a progress bar shows the batch operation status.</li>
+  <li>When complete, a results summary shows how many coins were updated and any that were skipped.</li>
+</ol>
+
+<h4>What Data Gets Propagated</h4>
+<table>
+  <tr><th>Coin Category</th><th>Data Applied</th></tr>
+  <tr><td><strong>True Duplicates</strong></td><td>All selected fields: type data, issue data (mintage), and pricing data</td></tr>
+  <tr><td><strong>Same Type, Different Issue</strong></td><td>Type-level data only: title, material, weight, diameter, catalog numbers, images, etc.</td></tr>
+</table>
+<p>Issue-specific data (mintage, pricing) is NOT applied to coins with different years or mintmarks because those values would be incorrect.</p>
+
+<h4>Matching Criteria</h4>
+<p>Coins are considered "matching" if they have:</p>
+<ul>
+  <li><strong>Same Numista ID</strong> in their metadata (from previous enrichment) &mdash; this is the most definitive match</li>
+  <li><strong>Matching catalog numbers</strong> &mdash; ALL populated catalog slots (KM#, Sch&ouml;n#, etc.) must match</li>
+</ul>
+<p>If any catalog number conflicts, the coin is NOT considered a match (strict matching for safety).</p>
+
+<h4>Skipped Coins</h4>
+<p>Some coins may be skipped for issue/pricing data if:</p>
+<ul>
+  <li>They have a different year than the enriched coin</li>
+  <li>They have a different mintmark</li>
+  <li>The issue has distinguishing features (privy marks, signatures) that OpenNumismat cannot track</li>
+</ul>
+<p>These coins still receive type-level data. The results summary shows skip reasons so you can enrich them individually if needed.</p>
+
+<h4>Disabling Auto-Propagate</h4>
+<p>
+  If you prefer not to see the propagation prompt after each enrichment:
+</p>
+<ol>
+  <li>Open <strong>Settings</strong> &rarr; <strong>Data Settings</strong>.</li>
+  <li>Uncheck <strong>Enable Auto-Propagate</strong>.</li>
+  <li>Click <strong>Save Settings</strong>.</li>
+</ol>
+<p>With this setting disabled, enrichments complete silently without showing the matching coins prompt.</p>
 
 <a href="#introduction" class="back-to-top">Back to top &uarr;</a>
 
@@ -995,14 +1192,23 @@
 <h2 id="images">11. Image Handling</h2>
 
 <h3 id="image-display">Image Display</h3>
-<p>Images appear throughout the application at various sizes:</p>
+<p>Images appear throughout the application at various sizes with interactive zoom features:</p>
 <table>
   <tr><th>Context</th><th>Size</th><th>Interaction</th></tr>
   <tr><td>Coin list (Collection Overview)</td><td>40 &times; 40 px</td><td>Lazy-loaded thumbnails</td></tr>
-  <tr><td>Match Selection (your coin)</td><td>60 &times; 60 px</td><td>Hover to zoom 3&times;</td></tr>
-  <tr><td>Field Comparison (Numista images)</td><td>80 &times; 80 px</td><td>Hover to zoom 2.5&times;</td></tr>
+  <tr><td>Match Selection (your coin)</td><td>60 &times; 60 px</td><td>Hover to zoom 3&times;, click for lightbox</td></tr>
+  <tr><td>Field Comparison (Numista images)</td><td>80 &times; 80 px</td><td>Hover to zoom 2.5&times;, click for lightbox</td></tr>
+  <tr><td>Issue Picker</td><td>50 &times; 50 px</td><td>Hover to zoom 4&times;</td></tr>
 </table>
 <p>Both obverse and reverse images are shown where available. Coins without images display a placeholder.</p>
+
+<h4 id="image-lightbox">Image Lightbox</h4>
+<p>
+  Click on any coin image in the Match Selection or Field Comparison screens to open it in a
+  <strong>lightbox</strong> view. The lightbox displays the image at full size (up to the screen dimensions)
+  in a darkened overlay. Click anywhere or press <kbd>Escape</kbd> to close the lightbox.
+</p>
+<p>This is useful for examining fine details like mintmarks, date variations, or design elements.</p>
 
 <h3 id="image-modes">Storage Modes</h3>
 <p>Configure image handling in Settings. Two modes are available:</p>
@@ -1030,7 +1236,18 @@
 <h2 id="settings-reference">12. Settings Reference</h2>
 
 <p>
-  Access Settings by clicking the <strong>gear icon</strong> in the top-right corner of the application header.
+  NumiSync Wizard has two categories of settings, accessible from the <strong>gear icon (&#9881;)</strong> dropdown in the top-right corner of the application header:
+</p>
+<ul>
+  <li><strong>App Settings</strong> (<kbd>Ctrl</kbd>+<kbd>,</kbd>) &mdash; API key, backup preferences, default collection, and license management. Always available.</li>
+  <li><strong>Data Settings</strong> &mdash; Which data types to fetch and currency selection (see <a href="#data-settings">Section 4</a>). Only visible when a collection is open.</li>
+</ul>
+<p>
+  Click the gear icon to reveal the dropdown menu, then select the settings category you want to configure.
+  You can also access settings from the application menu bar under <strong>Settings</strong> (Windows) or
+  <strong>Preferences</strong> (macOS).
+</p>
+<p>
   Settings are saved per-collection in a <code>&lt;database&gt;_settings.json</code> file stored in the same
   directory as your database.
 </p>
@@ -1043,6 +1260,19 @@
   If the settings file is missing or deleted, the application uses default values and you
   will need to re-enter your API key.
 </div>
+
+<h3 id="default-collection">Default Collection</h3>
+<p>
+  You can designate one collection to automatically load when the application starts:
+</p>
+<ul>
+  <li><strong>Set as Default:</strong> With a collection open, select <strong>File</strong> &rarr; <strong>Set as Default Collection</strong></li>
+  <li><strong>Clear Default:</strong> Select <strong>File</strong> &rarr; <strong>Clear Default Collection</strong></li>
+</ul>
+<p>
+  The default collection setting is also shown in App Settings where you can browse for a different database
+  or clear the setting.
+</p>
 
 <h3 id="api-key-setting">API Key</h3>
 <table>
@@ -1073,7 +1303,62 @@
 <table>
   <tr><th>Setting</th><th>Default</th><th>Description</th></tr>
   <tr><td><strong>Auto-backup before changes</strong></td><td>Enabled</td><td>Creates a timestamped backup of your entire database before any data is modified.</td></tr>
+  <tr><td><strong>Maximum Backups</strong></td><td>10</td><td>Number of backup files to keep. Oldest backups are automatically deleted when this limit is exceeded.</td></tr>
 </table>
+
+<h3 id="license-settings">License Management</h3>
+<p>
+  NumiSync Wizard offers two tiers: <strong>Free Version</strong> and <strong>Supporter Edition</strong>.
+  The Free Version provides full functionality for enriching coins. The Supporter Edition unlocks
+  premium features like Fast Pricing Mode and Auto-Propagate, and removes periodic license prompts.
+</p>
+
+<h4>License Tiers</h4>
+<table>
+  <tr><th>Feature</th><th>Free Version</th><th>Supporter Edition</th></tr>
+  <tr><td>Coin enrichment (search, match, merge)</td><td>&#x2705; Full access</td><td>&#x2705; Full access</td></tr>
+  <tr><td>All data types (Basic, Issue, Pricing)</td><td>&#x2705; Full access</td><td>&#x2705; Full access</td></tr>
+  <tr><td>Filtering and sorting</td><td>&#x2705; Full access</td><td>&#x2705; Full access</td></tr>
+  <tr><td>Fast Pricing Mode (batch updates)</td><td>&#x1F512; Locked</td><td>&#x2705; Unlocked</td></tr>
+  <tr><td>Auto-Propagate (batch type data)</td><td>&#x1F512; Locked (detection free)</td><td>&#x2705; Unlocked</td></tr>
+  <tr><td>License prompts</td><td>Every 20 enrichments</td><td>None</td></tr>
+  <tr><td>Device limit</td><td>&mdash;</td><td>5 devices per license</td></tr>
+</table>
+
+<h4>Entering a License Key</h4>
+<ol>
+  <li>Open <strong>Settings</strong> &rarr; <strong>App Settings</strong> from the menu bar.</li>
+  <li>Scroll to the <strong>License Management</strong> section.</li>
+  <li>Enter your license key in the <strong>License Key</strong> field.</li>
+  <li>Click <strong>Activate License</strong>.</li>
+  <li>The application validates the key with the license server. On success, you'll see your activation details including device label and activation date.</li>
+</ol>
+
+<div class="callout callout-info">
+  <strong>Device Limit:</strong>
+  Each license can be activated on up to 5 devices. If you reach this limit, you'll need to deactivate
+  the license on another device before activating on a new one.
+</div>
+
+<h4>License Validation</h4>
+<p>
+  The application periodically validates your license (every 7 days when online). If you're offline,
+  the license remains valid during a grace period. The version badge in the header shows your license status:
+</p>
+<ul>
+  <li><span class="badge badge-gray">FREE VERSION</span> &mdash; No license activated</li>
+  <li><span style="background: linear-gradient(135deg, #d4af37, #f4e4ba); color: #333; padding: 2px 8px; border-radius: 3px; font-size: 12px; font-weight: 600;">Supporter Edition</span> &mdash; Valid license activated</li>
+</ul>
+
+<h4>Deactivating a License</h4>
+<p>
+  To transfer your license to a different device:
+</p>
+<ol>
+  <li>Open <strong>Settings</strong> &rarr; <strong>App Settings</strong>.</li>
+  <li>In the License Management section, click <strong>Deactivate</strong>.</li>
+  <li>Confirm the deactivation. This frees up one device slot on your license.</li>
+</ol>
 
 <p>
   Click <strong>Save Settings</strong> to persist your changes, or <strong>Reset to Defaults</strong> to
@@ -1128,18 +1413,78 @@
 <a href="#introduction" class="back-to-top">Back to top &uarr;</a>
 
 <!-- ──────────────────────────────────────────────────────────────────────── -->
-<h2 id="keyboard-shortcuts">15. Keyboard Shortcuts</h2>
+<h2 id="keyboard-shortcuts">15. Menu Bar &amp; Keyboard Shortcuts</h2>
 
-<p>The following keyboard shortcuts are available within the application:</p>
+<p>
+  NumiSync Wizard provides a full application menu bar with keyboard shortcuts for common actions.
+  The menu adapts to your operating system (Windows or macOS) following platform conventions.
+</p>
+
+<h3 id="menu-file">File Menu</h3>
+<table>
+  <tr><th>Menu Item</th><th>Shortcut</th><th>Description</th></tr>
+  <tr><td>Load Collection...</td><td><kbd>Ctrl</kbd>+<kbd>O</kbd></td><td>Open a file dialog to select an OpenNumismat database</td></tr>
+  <tr><td>Recent Collections</td><td>&mdash;</td><td>Submenu listing recently opened collections for quick access</td></tr>
+  <tr><td>Close Collection</td><td><kbd>Ctrl</kbd>+<kbd>W</kbd></td><td>Close the current collection and return to Welcome screen</td></tr>
+  <tr><td>Set as Default Collection</td><td>&mdash;</td><td>Set current collection to auto-load on startup</td></tr>
+  <tr><td>Clear Default Collection</td><td>&mdash;</td><td>Remove the default collection setting</td></tr>
+  <tr><td>Exit</td><td><kbd>Alt</kbd>+<kbd>F4</kbd></td><td>Quit the application</td></tr>
+</table>
+
+<h3 id="menu-edit">Edit Menu</h3>
+<p>These commands are available on the Field Comparison screen when selecting fields to import:</p>
+<table>
+  <tr><th>Menu Item</th><th>Shortcut</th><th>Description</th></tr>
+  <tr><td>Select All Fields</td><td><kbd>Ctrl</kbd>+<kbd>A</kbd></td><td>Check all field checkboxes</td></tr>
+  <tr><td>Select None</td><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd></td><td>Uncheck all field checkboxes</td></tr>
+  <tr><td>Select Empty Only</td><td>&mdash;</td><td>Check only fields where your database has no value</td></tr>
+  <tr><td>Select Different Only</td><td>&mdash;</td><td>Check only fields where the Numista value differs from yours</td></tr>
+</table>
+
+<h3 id="menu-view">View Menu</h3>
+<table>
+  <tr><th>Menu Item</th><th>Shortcut</th><th>Description</th></tr>
+  <tr><td>Filter by Status</td><td>&mdash;</td><td>Submenu to filter coins by enrichment status</td></tr>
+  <tr><td>Filter by Freshness</td><td>&mdash;</td><td>Submenu to filter coins by pricing data age</td></tr>
+  <tr><td>Sort By</td><td>&mdash;</td><td>Submenu to change coin list sort order</td></tr>
+  <tr><td>Reset Filters</td><td>&mdash;</td><td>Clear all filters and sorting to defaults</td></tr>
+  <tr><td>Refresh List</td><td><kbd>F5</kbd> or <kbd>Ctrl</kbd>+<kbd>R</kbd></td><td>Reload the coin list from the database</td></tr>
+</table>
+
+<h3 id="menu-settings">Settings Menu</h3>
+<table>
+  <tr><th>Menu Item</th><th>Shortcut</th><th>Description</th></tr>
+  <tr><td>App Settings...</td><td><kbd>Ctrl</kbd>+<kbd>,</kbd></td><td>Open application settings (API key, backups, license)</td></tr>
+  <tr><td>Data Settings...</td><td>&mdash;</td><td>Configure which data types to fetch (Basic, Issue, Pricing)</td></tr>
+  <tr><td>Field Mappings...</td><td>&mdash;</td><td>Configure how Numista fields map to OpenNumismat fields</td></tr>
+  <tr><td>Export Field Mappings</td><td>&mdash;</td><td>Save your field mapping configuration to a file</td></tr>
+  <tr><td>Import Field Mappings</td><td>&mdash;</td><td>Load field mappings from a previously exported file</td></tr>
+  <tr><td>Reset Field Mappings</td><td>&mdash;</td><td>Restore field mappings to default values</td></tr>
+  <tr><td>Reset All Settings</td><td>&mdash;</td><td>Reset all settings to factory defaults</td></tr>
+</table>
+
+<h3 id="menu-help">Help Menu</h3>
+<table>
+  <tr><th>Menu Item</th><th>Shortcut</th><th>Description</th></tr>
+  <tr><td>User Manual</td><td><kbd>F1</kbd></td><td>Open this User Manual in a new window</td></tr>
+  <tr><td>Numista Website</td><td>&mdash;</td><td>Open the Numista website in your default browser</td></tr>
+  <tr><td>Get Numista API Key</td><td>&mdash;</td><td>Open the Numista API page to obtain or manage your key</td></tr>
+  <tr><td>View EULA</td><td>&mdash;</td><td>Display the End User License Agreement</td></tr>
+  <tr><td>Purchase License Key</td><td>&mdash;</td><td>Open the purchase page (hidden for Supporter Edition users)</td></tr>
+  <tr><td>About NumiSync Wizard</td><td>&mdash;</td><td>Show version, credits, and supporter status</td></tr>
+</table>
+
+<h3 id="other-shortcuts">Other Keyboard Shortcuts</h3>
 <table>
   <tr><th>Key</th><th>Context</th><th>Action</th></tr>
-  <tr><td><kbd>Enter</kbd></td><td>Manual Search input field</td><td>Executes the search (same as clicking the Search button)</td></tr>
+  <tr><td><kbd>Enter</kbd></td><td>Manual Search input</td><td>Execute the search</td></tr>
+  <tr><td><kbd>Escape</kbd></td><td>Modal dialogs</td><td>Close the dialog</td></tr>
 </table>
 
 <div class="callout callout-info">
-  <strong>Tip:</strong>
-  When using the Manual Search, type your search terms and press <kbd>Enter</kbd> to quickly
-  run the search without needing to click the button.
+  <strong>macOS Note:</strong>
+  On macOS, use <kbd>Cmd</kbd> instead of <kbd>Ctrl</kbd> for all shortcuts. The menu structure
+  also follows macOS conventions with an App menu containing Preferences and Quit.
 </div>
 
 <a href="#introduction" class="back-to-top">Back to top &uarr;</a>
@@ -1220,6 +1565,20 @@
   <li>Loading very large collections (5,000+ coins) may take a moment. The progress bar shows loading status.</li>
 </ul>
 
+<h4>License activation fails with "device limit reached"</h4>
+<ul>
+  <li>Each license can be activated on up to 5 devices.</li>
+  <li>To activate on a new device, deactivate the license from one of your existing devices first.</li>
+  <li>Open App Settings on an existing device, find the License Management section, and click <strong>Deactivate</strong>.</li>
+</ul>
+
+<h4>Fast Pricing Mode button shows a lock icon</h4>
+<ul>
+  <li>Fast Pricing Mode is a premium feature that requires a Supporter Edition license.</li>
+  <li>The lock icon indicates the feature is gated. Click it to see the license prompt.</li>
+  <li>You can still update pricing for individual coins by clicking on them and re-applying changes with Pricing Data enabled.</li>
+</ul>
+
 <a href="#introduction" class="back-to-top">Back to top &uarr;</a>
 
 <!-- ──────────────────────────────────────────────────────────────────────── -->
@@ -1260,6 +1619,24 @@
 
 <h4>Can I change the number of coins shown per page?</h4>
 <p>The page size is fixed at 100 coins per page and is not currently configurable.</p>
+
+<h4>Do I need to purchase a license to use this tool?</h4>
+<p>No. The Free Version provides full functionality for enriching coins. The Supporter Edition is optional and unlocks premium features like Fast Pricing Mode while removing periodic license prompts. See <a href="#license-settings">License Management</a> for details.</p>
+
+<h4>What features require a license?</h4>
+<p>Premium features include <strong>Fast Pricing Mode</strong> (batch pricing updates) and <strong>Auto-Propagate</strong> (batch type data propagation). All core enrichment functionality &mdash; searching, matching, comparing, and merging data &mdash; is available in the Free Version. Note: Auto-Propagate detection is free; only applying to multiple coins requires a license.</p>
+
+<h4>How many devices can I use with one license?</h4>
+<p>Each license can be activated on up to 5 devices. You can deactivate a device to free up a slot for a new one. See <a href="#license-settings">License Management</a> for instructions.</p>
+
+<h4>What happens if I reach the device limit?</h4>
+<p>You'll see an error when trying to activate. To activate on a new device, first deactivate the license from one of your existing devices via App Settings.</p>
+
+<h4>Does the license expire?</h4>
+<p>The license covers the current major version and all updates within that version. Future major versions may require a discounted upgrade. The license remains valid offline for a grace period after the last successful validation.</p>
+
+<h4>What if I lose my license key?</h4>
+<p>Contact support with your purchase information. Your license key is associated with your email address from the original purchase.</p>
 
 <a href="#introduction" class="back-to-top">Back to top &uarr;</a>
 
@@ -1344,7 +1721,7 @@
 <hr>
 
 <p style="text-align: center; color: var(--text-light); font-size: 13px; margin-top: 40px;">
-  NumiSync Wizard for OpenNumismat &mdash; User Manual v1.0<br>
+  NumiSync Wizard for OpenNumismat &mdash; User Manual v1.1<br>
   For issues and feedback, please visit the project repository.
 </p>
 

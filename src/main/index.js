@@ -12,6 +12,8 @@
 const { app, BrowserWindow, ipcMain, dialog, shell, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
+const crypto = require('crypto');
 const { execSync } = require('child_process');
 
 // Import our modules
@@ -34,11 +36,24 @@ let progressTracker = null;
 let settingsManager = null;
 const imageHandler = new ImageHandler();
 
+/**
+ * Cache for Numista type data - enables silent reuse of type data across coins
+ * Key: typeId (number), Value: { data: numistaTypeResponse, cachedAt: timestamp }
+ * Cleared when loading a new collection to ensure fresh data
+ * @type {Map<number, {data: Object, cachedAt: number}>}
+ */
+const typeDataCache = new Map();
+
 // Menu state - tracks whether items should be enabled/disabled
 let menuState = {
   collectionLoaded: false,
   fieldComparisonActive: false,
-  recentCollections: []
+  recentCollections: [],
+  isSupporter: false,
+  fastPricingMode: false,
+  fastPricingSelectedCount: 0,
+  fastPricingEligibleCount: 0,
+  viewMode: 'list' // 'list' or 'grid'
 };
 
 /**
@@ -244,6 +259,32 @@ function buildMenuTemplate() {
           id: 'select-different',
           enabled: menuState.fieldComparisonActive,
           click: () => sendMenuAction('menu:select-different')
+        },
+        { type: 'separator' },
+        {
+          label: 'Select All Eligible for Pricing',
+          id: 'fp-select-all',
+          enabled: menuState.fastPricingMode,
+          click: () => sendMenuAction('menu:fp-select-all')
+        },
+        {
+          label: 'Select Displayed for Pricing',
+          id: 'fp-select-displayed',
+          enabled: menuState.fastPricingMode,
+          click: () => sendMenuAction('menu:fp-select-displayed')
+        },
+        {
+          label: 'Clear Pricing Selection',
+          id: 'fp-clear',
+          enabled: menuState.fastPricingMode,
+          click: () => sendMenuAction('menu:fp-clear')
+        },
+        { type: 'separator' },
+        {
+          label: `Start Pricing Update (${menuState.fastPricingSelectedCount})...`,
+          id: 'fp-start-update',
+          enabled: menuState.fastPricingMode && menuState.fastPricingSelectedCount > 0,
+          click: () => sendMenuAction('menu:fp-start-update')
         }
       ]
     },
@@ -252,6 +293,16 @@ function buildMenuTemplate() {
     {
       label: 'View',
       submenu: [
+        {
+          label: 'View Mode',
+          id: 'view-mode',
+          enabled: menuState.collectionLoaded,
+          submenu: [
+            { label: 'List View', type: 'radio', checked: menuState.viewMode === 'list', click: () => sendMenuAction('menu:set-view-mode', 'list') },
+            { label: 'Grid View', type: 'radio', checked: menuState.viewMode === 'grid', click: () => sendMenuAction('menu:set-view-mode', 'grid') }
+          ]
+        },
+        { type: 'separator' },
         {
           label: 'Filter by Status',
           id: 'filter-status',
@@ -304,6 +355,21 @@ function buildMenuTemplate() {
           id: 'refresh-list',
           enabled: menuState.collectionLoaded,
           click: () => sendMenuAction('menu:refresh-list')
+        },
+        { type: 'separator' },
+        {
+          label: 'Enter Fast Pricing Mode',
+          id: 'enter-fast-pricing',
+          enabled: menuState.collectionLoaded && !menuState.fastPricingMode,
+          visible: !menuState.fastPricingMode,
+          click: () => sendMenuAction('menu:enter-fast-pricing-mode')
+        },
+        {
+          label: 'Exit Fast Pricing Mode',
+          id: 'exit-fast-pricing',
+          enabled: menuState.collectionLoaded && menuState.fastPricingMode,
+          visible: menuState.fastPricingMode,
+          click: () => sendMenuAction('menu:exit-fast-pricing-mode')
         }
       ]
     },
@@ -374,6 +440,13 @@ function buildMenuTemplate() {
           click: () => shell.openExternal('https://en.numista.com/api/')
         },
         { type: 'separator' },
+        ...(!menuState.isSupporter ? [
+          {
+            label: 'Purchase License Key',
+            click: () => sendMenuAction('menu:purchase-license')
+          },
+          { type: 'separator' }
+        ] : []),
         {
           label: 'View License Agreement',
           click: () => sendMenuAction('menu:view-eula')
@@ -580,6 +653,10 @@ ipcMain.handle('load-collection', async (event, filePath) => {
       db.close();
     }
 
+    // Clear type data cache when loading a new collection (Task 3.12.4)
+    typeDataCache.clear();
+    console.log('[Silent Reuse] Type data cache cleared for new collection');
+
     // Open the collection database (async now)
     db = await OpenNumismatDB.open(filePath);
     
@@ -651,7 +728,13 @@ ipcMain.handle('get-coins', async (event, options = {}) => {
     }
 
     const coins = db.getCoins(options);
-    
+
+    // Parse metadata from note field for each coin (needed for auto-propagate matching)
+    for (const coin of coins) {
+      const { metadata } = metadataManager.readEnrichmentMetadata(coin.note);
+      coin.metadata = metadata;
+    }
+
     // Add status from progress tracker to each coin
     if (progressTracker) {
       coins.forEach(coin => {
@@ -832,8 +915,36 @@ ipcMain.handle('fetch-coin-data', async (event, { typeId, coin }) => {
     const currency = settingsManager ? settingsManager.getCurrency() : 'USD';
     console.log('Currency:', currency);
 
-    // Fetch all requested data
-    const result = await api.fetchCoinData(typeId, coin, fetchSettings, currency);
+    // Task 3.12.4: Silent Type Data Reuse - check cache before API call
+    let cachedBasicData = null;
+    let usedCache = false;
+    if (fetchSettings.basicData && typeDataCache.has(typeId)) {
+      const cached = typeDataCache.get(typeId);
+      cachedBasicData = cached.data;
+      usedCache = true;
+      console.log(`[Silent Reuse] Type data for ${typeId} found in cache (cached at ${new Date(cached.cachedAt).toISOString()}), skipping API call`);
+    }
+
+    // If we have cached basicData, modify settings to skip fetching it
+    const effectiveFetchSettings = usedCache
+      ? { ...fetchSettings, basicData: false }
+      : fetchSettings;
+
+    // Fetch requested data (may skip basicData if cached)
+    const result = await api.fetchCoinData(typeId, coin, effectiveFetchSettings, currency);
+
+    // Merge cached basicData if used
+    if (usedCache) {
+      result.basicData = cachedBasicData;
+    } else if (fetchSettings.basicData && result.basicData) {
+      // Cache the freshly fetched type data for future reuse
+      typeDataCache.set(typeId, {
+        data: result.basicData,
+        cachedAt: Date.now()
+      });
+      console.log(`[Silent Reuse] Type data for ${typeId} cached for future reuse`);
+    }
+
     console.log('Fetch result - basicData:', !!result.basicData, 'issueData:', !!result.issueData, 'pricingData:', !!result.pricingData);
     console.log('Issue match result:', result.issueMatchResult?.type);
 
@@ -842,8 +953,8 @@ ipcMain.handle('fetch-coin-data', async (event, { typeId, coin }) => {
       let callCount = 0;
 
       // Count API calls based on what was fetched:
-      // - getType() was called if basicData exists
-      if (result.basicData) {
+      // - getType() was called if basicData was requested AND not cached
+      if (fetchSettings.basicData && !usedCache) {
         callCount += 1;
       }
 
@@ -860,6 +971,8 @@ ipcMain.handle('fetch-coin-data', async (event, { typeId, coin }) => {
       if (callCount > 0) {
         progressTracker.incrementSessionCalls(callCount);
         console.log(`Session counter incremented by ${callCount} (total now: ${progressTracker.getSessionCallCount()})`);
+      } else if (usedCache) {
+        console.log('[Silent Reuse] No API calls made - all data from cache');
       }
     }
 
@@ -917,7 +1030,12 @@ ipcMain.handle('fetch-issue-data', async (event, { typeId, coin }) => {
     }
 
     // Try to auto-match (local logic, no API call)
-    const matchResult = api.matchIssue(coin, issuesResponse);
+    // Get emptyMintmarkInterpretation from settings (Task 3.12.7/3.12.8)
+    const fetchSettings = settingsManager ? settingsManager.getFetchSettings() : {};
+    const matchOptions = {
+      emptyMintmarkInterpretation: fetchSettings.emptyMintmarkInterpretation || 'no_mint_mark'
+    };
+    const matchResult = api.matchIssue(coin, issuesResponse, matchOptions);
     console.log('Issue match result type:', matchResult.type);
 
     if (matchResult.type === 'AUTO_MATCHED') {
@@ -1173,7 +1291,18 @@ ipcMain.handle('get-app-settings', async () => {
           imageHandling: 'url',
           autoBackup: true,
           maxBackups: 5,
-          defaultCollectionPath: '' // Path to auto-load on startup (empty = prompt user)
+          defaultCollectionPath: '', // Path to auto-load on startup (empty = prompt user)
+          // Supporter/licensing status
+          supporter: {
+            isSupporter: false,
+            licenseKey: null,
+            validatedAt: null,
+            customerId: null
+          },
+          // Lifetime statistics for license prompts
+          lifetimeStats: {
+            totalCoinsEnriched: 0
+          }
         }
       };
     }
@@ -1380,11 +1509,25 @@ ipcMain.handle('get-currency', async () => {
     if (!settingsManager) {
       return 'USD';
     }
-    
+
     return settingsManager.getCurrency();
   } catch (error) {
     console.error('Error getting currency:', error);
     return 'USD';
+  }
+});
+
+ipcMain.handle('save-ui-preference', async (event, key, value) => {
+  try {
+    if (!settingsManager) {
+      throw new Error('No collection loaded');
+    }
+
+    settingsManager.setUiPreferences({ [key]: value });
+    return true;
+  } catch (error) {
+    console.error('Error saving UI preference:', error);
+    throw error;
   }
 });
 
@@ -1745,6 +1888,732 @@ ipcMain.handle('clear-recent-collections', async () => {
     return { success: true };
   } catch (error) {
     console.error('Error clearing recent collections:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// ============================================================================
+// IPC HANDLERS - Licensing & Supporter Status
+// ============================================================================
+
+// Polar configuration - SANDBOX MODE
+// To switch to production, see docs/POLAR-PRODUCTION-CONFIG.md
+const POLAR_CONFIG = {
+  organizationId: '5e78bbbd-3677-4b3f-91d4-00c44c370d31',
+  productId: '4f7d17ca-274c-41f2-b57c-cb7393776131',
+  checkoutUrl: 'https://sandbox-api.polar.sh/v1/checkout-links/polar_cl_GU5TpVHT8Fj1XvA7NqBOpEtnoHPY9kSnlrloe240tb1/redirect',
+  server: 'sandbox'  // 'sandbox' or 'production'
+};
+
+/**
+ * Generate a consistent device fingerprint for license activation.
+ * Uses hostname, platform, arch, and MAC address to create a unique but stable identifier.
+ * This ensures the same machine always gets the same device ID, preventing duplicate activations.
+ * @returns {string} Device label in format "NumiSync-{platform}-{hash}"
+ */
+function getDeviceFingerprint() {
+  try {
+    // Gather stable machine identifiers
+    const hostname = os.hostname();
+    const platform = os.platform();
+    const arch = os.arch();
+
+    // Get first non-internal MAC address for additional uniqueness
+    let macAddress = '';
+    const networkInterfaces = os.networkInterfaces();
+    for (const [name, interfaces] of Object.entries(networkInterfaces)) {
+      for (const iface of interfaces) {
+        if (!iface.internal && iface.mac && iface.mac !== '00:00:00:00:00:00') {
+          macAddress = iface.mac;
+          break;
+        }
+      }
+      if (macAddress) break;
+    }
+
+    // Create a hash of the combined identifiers
+    const fingerprint = `${hostname}-${platform}-${arch}-${macAddress}`;
+    const hash = crypto.createHash('sha256').update(fingerprint).digest('hex').substring(0, 12);
+
+    // Return a readable label with the hash
+    return `NumiSync-${platform}-${hash}`;
+  } catch (error) {
+    console.error('Error generating device fingerprint:', error);
+    // Fallback to hostname-based label if fingerprinting fails
+    return `NumiSync-${os.platform()}-${os.hostname().substring(0, 12)}`;
+  }
+}
+
+/**
+ * Get supporter status from app settings
+ * @returns {Promise<{success: boolean, supporter: Object, lifetimeStats: Object}>}
+ */
+ipcMain.handle('get-supporter-status', async () => {
+  try {
+    const settingsPath = path.join(app.getPath('userData'), 'settings.json');
+    let settings = {};
+
+    if (fs.existsSync(settingsPath)) {
+      settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+    }
+
+    return {
+      success: true,
+      supporter: settings.supporter || {
+        isSupporter: false,
+        licenseKey: null,
+        validatedAt: null,
+        customerId: null
+      },
+      lifetimeStats: settings.lifetimeStats || {
+        totalCoinsEnriched: 0
+      },
+      polarConfig: {
+        checkoutUrl: POLAR_CONFIG.checkoutUrl
+      }
+    };
+  } catch (error) {
+    console.error('Error getting supporter status:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+/**
+ * Validate a license key with Polar API
+ * @param {string} licenseKey - The license key to validate
+ * @returns {Promise<{success: boolean, valid: boolean, message: string}>}
+ */
+ipcMain.handle('validate-license-key', async (event, licenseKey) => {
+  try {
+    if (!licenseKey || typeof licenseKey !== 'string' || licenseKey.trim() === '') {
+      return { success: false, valid: false, message: 'Please enter a license key' };
+    }
+
+    // DEBUG: Log configuration
+    console.log('[LICENSE DEBUG] POLAR_CONFIG:', JSON.stringify(POLAR_CONFIG, null, 2));
+    console.log('[LICENSE DEBUG] License key (first 8 chars):', licenseKey.trim().substring(0, 8) + '...');
+
+    const { Polar } = require('@polar-sh/sdk');
+    const polar = new Polar({ server: POLAR_CONFIG.server });
+
+    // Generate consistent device label for identification on Polar's website
+    // Uses machine fingerprint to ensure same device always gets same label
+    const deviceLabel = getDeviceFingerprint();
+
+    console.log('[LICENSE DEBUG] Calling activate with:', {
+      key: licenseKey.trim().substring(0, 8) + '...',
+      organizationId: POLAR_CONFIG.organizationId,
+      label: deviceLabel
+    });
+
+    // Use activate instead of validate to register this device against the activation limit
+    const result = await polar.customerPortal.licenseKeys.activate({
+      key: licenseKey.trim(),
+      organizationId: POLAR_CONFIG.organizationId,
+      label: deviceLabel
+    });
+
+    // DEBUG: Log the full result
+    console.log('[LICENSE DEBUG] API Response:', JSON.stringify(result, null, 2));
+
+    // The activate endpoint returns an activation object with licenseKey nested inside
+    // Status is at result.licenseKey.status, not result.status
+    const licenseStatus = result?.licenseKey?.status;
+    console.log('[LICENSE DEBUG] License status:', licenseStatus);
+
+    // Check if the license is valid and active
+    if (result && licenseStatus === 'granted') {
+      // Save the validated license to settings
+      const settingsPath = path.join(app.getPath('userData'), 'settings.json');
+      let settings = {};
+
+      if (fs.existsSync(settingsPath)) {
+        settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+      }
+
+      settings.supporter = {
+        isSupporter: true,
+        licenseKey: licenseKey.trim(),
+        activationId: result.id || null,  // Activation ID is at result.id
+        licenseKeyId: result.licenseKeyId || null,
+        deviceLabel: deviceLabel,
+        validatedAt: new Date().toISOString(),
+        customerId: result.licenseKey?.customerId || null,
+        offlineSkipUsed: false
+      };
+
+      fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
+
+      return {
+        success: true,
+        valid: true,
+        message: 'License activated successfully! Thank you for your support.',
+        supporter: settings.supporter
+      };
+    } else if (result && licenseStatus === 'revoked') {
+      console.log('[LICENSE DEBUG] License revoked');
+      return { success: true, valid: false, message: 'This license has been revoked' };
+    } else if (result && licenseStatus === 'disabled') {
+      console.log('[LICENSE DEBUG] License disabled');
+      return { success: true, valid: false, message: 'This license has been disabled' };
+    } else {
+      console.log('[LICENSE DEBUG] Unexpected license status:', licenseStatus, 'Full result:', result);
+      return { success: true, valid: false, message: 'Invalid license key' };
+    }
+  } catch (error) {
+    console.error('[LICENSE DEBUG] Error validating license key:', error);
+    console.error('[LICENSE DEBUG] Error details:', {
+      message: error.message,
+      statusCode: error.statusCode,
+      body: error.body,
+      rawResponse: error.rawResponse
+    });
+
+    // Handle specific Polar API errors
+    if (error.statusCode === 404) {
+      return { success: true, valid: false, message: 'License key not found' };
+    }
+    if (error.statusCode === 422) {
+      return { success: true, valid: false, message: 'Invalid license key format' };
+    }
+    // Handle activation limit exceeded (403 Forbidden)
+    if (error.statusCode === 403 || (error.message && error.message.includes('activation'))) {
+      return {
+        success: true,
+        valid: false,
+        message: 'Activation limit reached (5 devices). Please deactivate an existing device at polar.sh to continue.'
+      };
+    }
+
+    return {
+      success: false,
+      valid: false,
+      message: 'Unable to validate license. Please check your internet connection.'
+    };
+  }
+});
+
+/**
+ * Update supporter status settings (e.g., offlineSkipUsed)
+ * @param {Object} updates - Fields to update in supporter status
+ * @returns {Promise<{success: boolean}>}
+ */
+ipcMain.handle('update-supporter-status', async (event, updates) => {
+  try {
+    const settingsPath = path.join(app.getPath('userData'), 'settings.json');
+    let settings = {};
+
+    if (fs.existsSync(settingsPath)) {
+      settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+    }
+
+    settings.supporter = {
+      ...(settings.supporter || {}),
+      ...updates
+    };
+
+    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
+
+    return { success: true, supporter: settings.supporter };
+  } catch (error) {
+    console.error('Error updating supporter status:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+/**
+ * Increment lifetime enrichment count and check if prompt should show
+ * @param {number} count - Number of coins enriched to add
+ * @returns {Promise<{success: boolean, totalCoinsEnriched: number, shouldPrompt: boolean}>}
+ */
+ipcMain.handle('increment-lifetime-enrichments', async (event, count = 1) => {
+  try {
+    const settingsPath = path.join(app.getPath('userData'), 'settings.json');
+    let settings = {};
+
+    if (fs.existsSync(settingsPath)) {
+      settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+    }
+
+    // Initialize if needed
+    if (!settings.lifetimeStats) {
+      settings.lifetimeStats = { totalCoinsEnriched: 0 };
+    }
+    if (!settings.supporter) {
+      settings.supporter = { isSupporter: false };
+    }
+
+    const oldTotal = settings.lifetimeStats.totalCoinsEnriched || 0;
+    const newTotal = oldTotal + count;
+    settings.lifetimeStats.totalCoinsEnriched = newTotal;
+
+    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
+
+    // Determine if we should show a prompt
+    // Initial prompt at 20 coins, then every 20 coins (40, 60, 80, ...)
+    let shouldPrompt = false;
+
+    if (!settings.supporter.isSupporter) {
+      // Check if we crossed a threshold
+      const INITIAL_THRESHOLD = 20;
+      const RECURRING_INTERVAL = 20;
+
+      // Crossed initial threshold?
+      if (oldTotal < INITIAL_THRESHOLD && newTotal >= INITIAL_THRESHOLD) {
+        shouldPrompt = true;
+      }
+      // Crossed a recurring threshold?
+      else if (newTotal >= INITIAL_THRESHOLD) {
+        const oldRecurring = Math.floor((oldTotal - INITIAL_THRESHOLD) / RECURRING_INTERVAL);
+        const newRecurring = Math.floor((newTotal - INITIAL_THRESHOLD) / RECURRING_INTERVAL);
+        if (newRecurring > oldRecurring) {
+          shouldPrompt = true;
+        }
+      }
+    }
+
+    return {
+      success: true,
+      totalCoinsEnriched: newTotal,
+      shouldPrompt,
+      isSupporter: settings.supporter.isSupporter
+    };
+  } catch (error) {
+    console.error('Error incrementing lifetime enrichments:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+/**
+ * Get lifetime statistics
+ * @returns {Promise<{success: boolean, lifetimeStats: Object}>}
+ */
+ipcMain.handle('get-lifetime-stats', async () => {
+  try {
+    const settingsPath = path.join(app.getPath('userData'), 'settings.json');
+    let settings = {};
+
+    if (fs.existsSync(settingsPath)) {
+      settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+    }
+
+    return {
+      success: true,
+      lifetimeStats: settings.lifetimeStats || { totalCoinsEnriched: 0 }
+    };
+  } catch (error) {
+    console.error('Error getting lifetime stats:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+/**
+ * Clear license (for testing or if user wants to remove license)
+ * @returns {Promise<{success: boolean}>}
+ */
+ipcMain.handle('clear-license', async () => {
+  try {
+    const settingsPath = path.join(app.getPath('userData'), 'settings.json');
+    let settings = {};
+
+    if (fs.existsSync(settingsPath)) {
+      settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+    }
+
+    settings.supporter = {
+      isSupporter: false,
+      licenseKey: null,
+      validatedAt: null,
+      customerId: null
+    };
+
+    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error clearing license:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+/**
+ * Validate an existing license key without creating a new activation
+ * Used for periodic re-validation to check if license is still active
+ * @returns {Promise<{success: boolean, valid: boolean, status: string, message: string}>}
+ */
+ipcMain.handle('validate-license', async () => {
+  try {
+    const settingsPath = path.join(app.getPath('userData'), 'settings.json');
+    let settings = {};
+
+    if (fs.existsSync(settingsPath)) {
+      settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+    }
+
+    const supporter = settings.supporter;
+    if (!supporter?.licenseKey || !supporter?.isSupporter) {
+      return { success: true, valid: false, message: 'No active license' };
+    }
+
+    const { Polar } = require('@polar-sh/sdk');
+    const polar = new Polar({ server: POLAR_CONFIG.server });
+
+    const result = await polar.customerPortal.licenseKeys.validate({
+      key: supporter.licenseKey,
+      organizationId: POLAR_CONFIG.organizationId,
+      activationId: supporter.activationId || undefined
+    });
+
+    // DEBUG: Log the validate response
+    console.log('[LICENSE DEBUG] Validate response:', JSON.stringify(result, null, 2));
+
+    // Status may be at result.status or result.licenseKey.status depending on endpoint
+    const licenseStatus = result?.status || result?.licenseKey?.status;
+    console.log('[LICENSE DEBUG] Validate license status:', licenseStatus);
+
+    if (result && licenseStatus === 'granted') {
+      // Update last validation timestamp and reset offline skip
+      settings.supporter.validatedAt = new Date().toISOString();
+      settings.supporter.offlineSkipUsed = false;
+      fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
+
+      return {
+        success: true,
+        valid: true,
+        status: licenseStatus,
+        message: 'License is valid'
+      };
+    } else {
+      // License was revoked or disabled - clear local license data
+      settings.supporter = {
+        isSupporter: false,
+        licenseKey: null,
+        activationId: null,
+        licenseKeyId: null,
+        deviceLabel: null,
+        validatedAt: null,
+        customerId: null,
+        offlineSkipUsed: false
+      };
+      fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
+
+      return {
+        success: true,
+        valid: false,
+        status: licenseStatus || 'unknown',
+        message: `License has been ${licenseStatus || 'invalidated'}`
+      };
+    }
+  } catch (error) {
+    console.error('Error validating license:', error);
+    return {
+      success: false,
+      valid: false,
+      message: 'Unable to validate license. Please check your internet connection.'
+    };
+  }
+});
+
+/**
+ * Deactivate the current license activation (frees up a device slot)
+ * @returns {Promise<{success: boolean, message: string}>}
+ */
+ipcMain.handle('deactivate-license', async () => {
+  try {
+    const settingsPath = path.join(app.getPath('userData'), 'settings.json');
+    let settings = {};
+
+    if (fs.existsSync(settingsPath)) {
+      settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+    }
+
+    const supporter = settings.supporter;
+    if (!supporter?.licenseKey || !supporter?.activationId) {
+      return { success: false, message: 'No active license or activation ID to deactivate' };
+    }
+
+    const { Polar } = require('@polar-sh/sdk');
+    const polar = new Polar({ server: POLAR_CONFIG.server });
+
+    await polar.customerPortal.licenseKeys.deactivate({
+      key: supporter.licenseKey,
+      organizationId: POLAR_CONFIG.organizationId,
+      activationId: supporter.activationId
+    });
+
+    // Clear local license data
+    settings.supporter = {
+      isSupporter: false,
+      licenseKey: null,
+      activationId: null,
+      deviceLabel: null,
+      validatedAt: null,
+      customerId: null,
+      offlineSkipUsed: false
+    };
+    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
+
+    return {
+      success: true,
+      message: 'License deactivated successfully. This device slot is now free.'
+    };
+  } catch (error) {
+    console.error('Error deactivating license:', error);
+
+    if (error.statusCode === 404) {
+      // Activation not found - clear local data anyway
+      const settingsPath = path.join(app.getPath('userData'), 'settings.json');
+      let settings = {};
+      if (fs.existsSync(settingsPath)) {
+        settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+      }
+      settings.supporter = {
+        isSupporter: false,
+        licenseKey: null,
+        activationId: null,
+        deviceLabel: null,
+        validatedAt: null,
+        customerId: null,
+        offlineSkipUsed: false
+      };
+      fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
+      return { success: true, message: 'License cleared (activation not found on server)' };
+    }
+
+    return {
+      success: false,
+      message: 'Failed to deactivate license: ' + error.message
+    };
+  }
+});
+
+// =============================================================================
+// Fast Pricing Update Handlers
+// =============================================================================
+
+/**
+ * Create a single backup before batch operations
+ * This avoids creating multiple backups during batch processing
+ * @returns {Promise<{success: boolean, skipped?: boolean, backupPath?: string, error?: string}>}
+ */
+ipcMain.handle('create-backup-before-batch', async () => {
+  try {
+    if (!db) throw new Error('No collection loaded');
+
+    const autoBackup = settingsManager ? settingsManager.getAutoBackup() : true;
+    if (!autoBackup) {
+      return { success: true, skipped: true, message: 'Auto-backup disabled' };
+    }
+
+    const backupPath = db.createBackup();
+    console.log('Pre-batch backup created:', backupPath);
+
+    const maxBackups = settingsManager ? settingsManager.getMaxBackups() : 5;
+    db.pruneOldBackups(maxBackups);
+
+    return { success: true, backupPath };
+  } catch (error) {
+    console.error('Pre-batch backup error:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+/**
+ * Fast pricing update for a single coin (no backup - uses pre-batch backup)
+ * @param {Object} params - { coinId, numistaId, issueId }
+ * @returns {Promise<{success: boolean, pricesUpdated?: number, noPricing?: boolean, error?: string}>}
+ */
+ipcMain.handle('fast-pricing-update', async (event, { coinId, numistaId, issueId }) => {
+  try {
+    if (!db) throw new Error('No collection loaded');
+
+    const apiKey = getApiKey();
+    if (!apiKey) throw new Error('API key not configured');
+
+    const api = new NumistaAPI(apiKey);
+    const currency = settingsManager?.getCurrency() || 'USD';
+
+    // Fetch pricing
+    const pricingData = await api.getIssuePricing(numistaId, issueId, currency);
+
+    if (progressTracker) progressTracker.incrementSessionCalls(1);
+
+    if (!pricingData?.prices?.length) {
+      return { success: true, noPricing: true };
+    }
+
+    // Map to price fields
+    const grades = {};
+    pricingData.prices.forEach(p => grades[p.grade.toLowerCase()] = p.price);
+
+    const priceFields = {};
+    if (grades.f !== undefined) priceFields.price1 = grades.f;
+    if (grades.vf !== undefined) priceFields.price2 = grades.vf;
+    if (grades.xf !== undefined) priceFields.price3 = grades.xf;
+    if (grades.unc !== undefined) priceFields.price4 = grades.unc;
+
+    // Update metadata
+    const coin = db.getCoinById(coinId);
+    const { userNotes, metadata } = metadataManager.readEnrichmentMetadata(coin?.note || '');
+
+    metadata.pricingData = {
+      status: 'MERGED',
+      timestamp: new Date().toISOString(),
+      issueId,
+      currency,
+      fieldsMerged: Object.keys(priceFields),
+      lastPrices: grades
+    };
+
+    const updatedNote = metadataManager.writeEnrichmentMetadata(userNotes, metadata);
+
+    db.updateCoin(coinId, { ...priceFields, note: updatedNote });
+
+    if (progressTracker && settingsManager) {
+      progressTracker.updateCoinInCache(coinId, metadata, settingsManager.getFetchSettings());
+    }
+
+    return { success: true, pricesUpdated: Object.keys(priceFields).length };
+  } catch (error) {
+    console.error('fast-pricing-update error:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+/**
+ * IPC Handler: Propagate type data to a coin from batch operation (Task 3.12)
+ * Applies type-level data to matching coins, and issue/pricing to true duplicates
+ * @param {Object} params - { coinId, numistaData, issueData, pricingData, isDuplicate, sourceNumistaId, issueSkipReason, selectedFields }
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+ipcMain.handle('propagate-type-data', async (event, { coinId, numistaData, issueData, pricingData, isDuplicate, sourceNumistaId, issueSkipReason, selectedFields }) => {
+  try {
+    if (!db) throw new Error('No collection loaded');
+
+    console.log(`[Batch Type] Propagating to coin ${coinId}, isDuplicate: ${isDuplicate}`);
+
+    // Get current coin
+    const currentCoin = db.getCoinById(coinId);
+    if (!currentCoin) {
+      throw new Error(`Coin ${coinId} not found`);
+    }
+
+    // Build the type data to apply using the field mapper
+    const customMapping = settingsManager ? settingsManager.buildFieldMapperConfig() : null;
+    const mapper = new FieldMapper(customMapping);
+
+    // Use the selectedFields from the original merge - only propagate fields the user chose
+    // Fall back to empty object if not provided (shouldn't happen with correct flow)
+    const userSelection = selectedFields || {};
+
+    // Type-level fields that can be propagated - only include if user selected them
+    const typeLevelFields = [
+      'title', 'category', 'country', 'ruler', 'period', 'value', 'unit',
+      'material', 'weight', 'diameter', 'thickness', 'shape', 'edge', 'edgelabel',
+      'obversedesign', 'reversedesign', 'catalognum1', 'catalognum2', 'catalognum3', 'catalognum4'
+    ];
+
+    const typeFields = {};
+    for (const field of typeLevelFields) {
+      if (userSelection[field] === true) {
+        typeFields[field] = true;
+      }
+    }
+
+    // For true duplicates, also include issue/pricing fields if user selected them AND data is available
+    if (isDuplicate) {
+      if (issueData && userSelection.mintage === true) {
+        typeFields.mintage = true;
+        // Don't overwrite mintmark - it's used for matching, user's data is correct
+      }
+      if (pricingData) {
+        if (userSelection.price1 === true) typeFields.price1 = true;
+        if (userSelection.price2 === true) typeFields.price2 = true;
+        if (userSelection.price3 === true) typeFields.price3 = true;
+        if (userSelection.price4 === true) typeFields.price4 = true;
+      }
+    }
+
+    // Skip if no fields to propagate (user didn't select any applicable fields)
+    if (Object.keys(typeFields).length === 0) {
+      console.log(`[Batch Type] Skipping coin ${coinId} - no selected fields to propagate`);
+      return { success: true, skipped: true };
+    }
+
+    // Merge fields using the existing mapper
+    const updatedData = mapper.mergeFields(typeFields, numistaData, issueData, pricingData);
+
+    // Read existing metadata and update it
+    const currentNote = currentCoin.note || '';
+    const { userNotes, metadata: existingMetadata } = metadataManager.readEnrichmentMetadata(currentNote);
+
+    const timestamp = new Date().toISOString();
+    const fieldsMerged = Object.keys(typeFields).filter(k => typeFields[k] === true);
+
+    // Build new metadata
+    const newMetadata = {
+      ...existingMetadata,
+      basicData: {
+        status: 'MERGED',
+        timestamp,
+        numistaId: numistaData?.id,
+        typePropagatedFrom: sourceNumistaId,
+        propagatedAt: timestamp,
+        fieldsMerged: fieldsMerged.filter(f => !f.match(/^(mintage|mintmark|price[1-4])$/))
+      }
+    };
+
+    // Update issue data metadata if true duplicate with issue data
+    if (isDuplicate && issueData) {
+      newMetadata.issueData = {
+        status: 'MERGED',
+        timestamp,
+        issueId: issueData?.id,
+        typePropagatedFrom: sourceNumistaId,
+        fieldsMerged: fieldsMerged.filter(f => f.match(/^(mintage|mintmark)$/))
+      };
+    }
+
+    // Update pricing data metadata if true duplicate with pricing data
+    if (isDuplicate && pricingData) {
+      newMetadata.pricingData = {
+        status: 'MERGED',
+        timestamp,
+        issueId: issueData?.id,
+        currency: settingsManager ? settingsManager.getCurrency() : 'USD',
+        typePropagatedFrom: sourceNumistaId,
+        fieldsMerged: fieldsMerged.filter(f => f.match(/^price[1-4]$/))
+      };
+    }
+
+    // Add batch processed tracking (Task 3.12.9: include skip reasons)
+    newMetadata.batchProcessed = {
+      typeDataApplied: true,
+      issueDataApplied: isDuplicate && !!issueData,
+      pricingDataApplied: isDuplicate && !!pricingData,
+      issueDataSkipped: !isDuplicate || !issueData,
+      pricingDataSkipped: !isDuplicate || !pricingData,
+      skipReason: issueSkipReason || null,
+      processedAt: timestamp
+    };
+
+    // Write metadata to note field
+    const updatedNote = metadataManager.writeEnrichmentMetadata(userNotes, newMetadata);
+    updatedData.note = updatedNote;
+
+    // Update database
+    db.updateCoin(coinId, updatedData);
+
+    // Update progress cache
+    if (progressTracker && settingsManager) {
+      const fetchSettings = settingsManager.getFetchSettings();
+      progressTracker.updateCoinInCache(coinId, newMetadata, fetchSettings);
+    }
+
+    console.log(`[Batch Type] Successfully propagated to coin ${coinId}`);
+    return { success: true };
+  } catch (error) {
+    console.error('[Batch Type] propagate-type-data error:', error);
     return { success: false, error: error.message };
   }
 });

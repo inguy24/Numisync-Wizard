@@ -259,11 +259,15 @@ class NumistaAPI {
    *
    * @param {Object} coin - User's coin data from OpenNumismat
    * @param {Object} issuesResponse - Response from getTypeIssues
-   * @returns {Object} - { type: 'AUTO_MATCHED'|'USER_PICK'|'NO_MATCH'|'NO_ISSUES', issue?, options? }
+   * @param {Object} [options] - Optional matching options
+   * @param {string} [options.emptyMintmarkInterpretation='no_mint_mark'] - How to interpret empty mintmark: 'no_mint_mark' or 'unknown'
+   * @returns {Object} - { type: 'AUTO_MATCHED'|'USER_PICK'|'NO_MATCH'|'NO_ISSUES', issue?, options?, privyMarksDetected? }
    */
-  matchIssue(coin, issuesResponse) {
+  matchIssue(coin, issuesResponse, options = {}) {
     console.log('\n=== SMART ISSUE MATCHING ===');
     console.log('User coin data:', { year: coin.year, mintmark: coin.mintmark, type: coin.type });
+
+    const emptyMintmarkInterpretation = options.emptyMintmarkInterpretation || 'no_mint_mark';
 
     // API returns array directly, not wrapped in object
     const issues = Array.isArray(issuesResponse) ? issuesResponse : (issuesResponse?.issues || []);
@@ -283,7 +287,8 @@ class NumistaAPI {
       return { type: 'USER_PICK', options: issues };
     }
 
-    let candidates = issues.filter(i => i.year == userYear);
+    const yearMatchedIssues = issues.filter(i => i.year == userYear);
+    let candidates = [...yearMatchedIssues];
     console.log(`After year filter (${userYear}): ${candidates.length} matches`);
 
     if (candidates.length === 0) {
@@ -310,7 +315,16 @@ class NumistaAPI {
     const hasCommentVariation = candidates.some(c => c.comment) && candidates.some(c => !c.comment);
     console.log(`Comment variation: ${hasCommentVariation} (values: ${Array.from(comments).join(', ') || 'none'})`);
 
+    // Task 3.12.8: Check if privy marks or signatures vary (OpenNumismat can't store these)
+    const hasPrivyMarks = candidates.some(c => c.marks && c.marks.length > 0);
+    const hasSignatures = candidates.some(c => c.signatures && c.signatures.length > 0);
+    const hasUnmappableVariation = hasPrivyMarks || hasSignatures;
+    if (hasUnmappableVariation) {
+      console.log(`Unmappable variation detected: privy marks=${hasPrivyMarks}, signatures=${hasSignatures}`);
+    }
+
     // STEP 3: Apply filters based on user's data and field variations
+    // These filters are ONLY for AUTO_MATCHING - USER_PICK always shows all year-matched issues
 
     // Filter by mintmark if it varies
     if (hasMintVariation) {
@@ -320,20 +334,31 @@ class NumistaAPI {
         // User has a mintmark - match issues using normalized comparison
         candidates = candidates.filter(i => i.mint_letter && mintmarksMatch(userMintmark, i.mint_letter));
       } else {
-        // User has no mintmark - match issues with no mint letter (regular/Philadelphia)
+        // User has no mintmark - behavior depends on emptyMintmarkInterpretation setting
+        if (emptyMintmarkInterpretation === 'unknown') {
+          // Task 3.12.7: Treat empty as unknown - let user pick instead of auto-matching
+          console.log('Empty mintmark interpreted as "unknown" - prompting user to pick');
+          return {
+            type: 'USER_PICK',
+            options: yearMatchedIssues,
+            privyMarksDetected: hasPrivyMarks,
+            signaturesDetected: hasSignatures
+          };
+        }
+        // Default: no_mint_mark - match issues with no mint letter (regular/Philadelphia)
         candidates = candidates.filter(i => !i.mint_letter || i.mint_letter.trim() === '');
       }
       console.log(`Applied mintmark filter (${userMintmark || 'none/blank'}): ${beforeCount} -> ${candidates.length}`);
 
       if (candidates.length === 1) {
         console.log('Result: AUTO_MATCHED (after mintmark filter)');
-        return { type: 'AUTO_MATCHED', issue: candidates[0] };
+        return { type: 'AUTO_MATCHED', issue: candidates[0], privyMarksDetected: hasPrivyMarks, signaturesDetected: hasSignatures };
       }
 
       if (candidates.length === 0) {
-        // User's mintmark didn't match - reset to year matches and let user pick
-        candidates = issues.filter(i => i.year == userYear);
-        console.log('Mintmark filter yielded no matches - reset to year matches');
+        // User's mintmark didn't match any issues - show all year matches for user to pick
+        console.log('Mintmark filter yielded no matches - showing all year-matched issues');
+        return { type: 'USER_PICK', options: yearMatchedIssues, privyMarksDetected: hasPrivyMarks, signaturesDetected: hasSignatures };
       }
     }
 
@@ -358,25 +383,26 @@ class NumistaAPI {
 
       if (candidates.length === 1) {
         console.log('Result: AUTO_MATCHED (after type/comment filter)');
-        return { type: 'AUTO_MATCHED', issue: candidates[0] };
+        return { type: 'AUTO_MATCHED', issue: candidates[0], privyMarksDetected: hasPrivyMarks, signaturesDetected: hasSignatures };
       }
 
       if (candidates.length === 0) {
-        // User's type didn't match - reset to year matches and let user pick
-        candidates = issues.filter(i => i.year == userYear);
-        console.log('Type filter yielded no matches - reset to year matches');
+        // User's type didn't match any issues - show all year matches for user to pick
+        console.log('Type filter yielded no matches - showing all year-matched issues');
+        return { type: 'USER_PICK', options: yearMatchedIssues, privyMarksDetected: hasPrivyMarks, signaturesDetected: hasSignatures };
       }
     }
 
-    // STEP 4: Final result
+    // STEP 4: Final result - could not narrow down to 1, show ALL year-matched issues
+    // This ensures user sees full options even if filters partially matched
     if (candidates.length === 1) {
       console.log('Result: AUTO_MATCHED (after all filters)');
-      return { type: 'AUTO_MATCHED', issue: candidates[0] };
+      return { type: 'AUTO_MATCHED', issue: candidates[0], privyMarksDetected: hasPrivyMarks, signaturesDetected: hasSignatures };
     }
 
-    console.log(`Result: USER_PICK (${candidates.length} candidates remain after filtering)`);
+    console.log(`Result: USER_PICK (showing all ${yearMatchedIssues.length} year-matched issues for user selection)`);
     console.log('=== END MATCHING ===\n');
-    return { type: 'USER_PICK', options: candidates };
+    return { type: 'USER_PICK', options: yearMatchedIssues, privyMarksDetected: hasPrivyMarks, signaturesDetected: hasSignatures };
   }
 
   /**
@@ -408,8 +434,11 @@ class NumistaAPI {
       console.log('Fetching issues for type:', typeId);
       const issuesResponse = await this.getTypeIssues(typeId);
 
-      // Try to auto-match issue
-      const matchResult = this.matchIssue(coin, issuesResponse);
+      // Try to auto-match issue (pass settings for empty mintmark interpretation)
+      const matchOptions = {
+        emptyMintmarkInterpretation: fetchSettings.emptyMintmarkInterpretation || 'no_mint_mark'
+      };
+      const matchResult = this.matchIssue(coin, issuesResponse, matchOptions);
       result.issueMatchResult = matchResult;
       console.log('Issue match result:', matchResult.type);
 
@@ -491,11 +520,17 @@ class NumistaAPI {
       score += Math.round(similarity * 30);
     }
 
-    // Year match (25 points)
-    if (coin.year && numistaType.min_year && numistaType.max_year) {
+    // Year match (25 points) or penalty (-15 points)
+    if (coin.year && numistaType.min_year) {
       const coinYear = parseInt(coin.year);
-      if (!isNaN(coinYear) && coinYear >= numistaType.min_year && coinYear <= numistaType.max_year) {
-        score += 25;
+      const maxYear = numistaType.max_year || numistaType.min_year;
+      if (!isNaN(coinYear)) {
+        if (coinYear >= numistaType.min_year && coinYear <= maxYear) {
+          score += 25; // Year in range
+        } else {
+          // Year outside range - penalty (can't be this coin type)
+          score -= 15;
+        }
       }
     }
 
@@ -503,31 +538,66 @@ class NumistaAPI {
     if (coin.country && numistaType.issuer && numistaType.issuer.name) {
       const coinCountry = coin.country.toLowerCase().trim();
       const numistaCountry = numistaType.issuer.name.toLowerCase().trim();
-      
+
       if (coinCountry === numistaCountry || numistaCountry.includes(coinCountry)) {
         score += 20;
       }
     }
 
-    // Value match (15 points)
-    if (coin.value && numistaType.value && numistaType.value.numeric_value) {
-      const coinValue = parseFloat(coin.value);
-      if (!isNaN(coinValue) && coinValue === numistaType.value.numeric_value) {
-        score += 15;
+    // Value/denomination match (25 points) - compare numeric values first, then units
+    // OpenNumismat stores value=1, unit="Cents" while Numista uses value.text="1 Cent"
+    const coinValue = coin.value ? parseFloat(coin.value) : null;
+    const coinUnit = coin.unit?.toLowerCase().trim();
+
+    // Try value.text first, fallback to extracting from title
+    let matchDenomination = numistaType.value?.text?.toLowerCase().trim();
+    if (!matchDenomination && numistaType.title) {
+      const titleMatch = numistaType.title.match(/^([\d.]+\s*[a-zA-Z]+)/i);
+      if (titleMatch) {
+        matchDenomination = titleMatch[1].toLowerCase().trim();
       }
     }
 
-    // Catalog number match (10 points)
-    if (coin.catalognum1 && numistaType.references) {
-      const hasCatalogMatch = numistaType.references.some(ref => 
-        ref.number && coin.catalognum1.includes(ref.number)
-      );
-      if (hasCatalogMatch) {
-        score += 10;
+    if (coinValue && matchDenomination) {
+      // Extract numeric value from denomination text (e.g., "5 Cents" -> 5)
+      const matchValueMatch = matchDenomination.match(/^([\d.]+)/);
+      const matchValue = matchValueMatch ? parseFloat(matchValueMatch[1]) : null;
+      // Extract unit from denomination text (e.g., "5 Cents" -> "cents")
+      const matchUnit = matchDenomination.replace(/^[\d.]+\s*/, '').trim();
+
+      if (matchValue !== null) {
+        // Check if units match (e.g., "cents" vs "cent" should match, "cent" vs "dime" should not)
+        const unitsMatch = coinUnit && matchUnit && (
+          matchUnit.includes(coinUnit) || coinUnit.includes(matchUnit) ||
+          diceCoefficient(coinUnit, matchUnit) > 0.7
+        );
+
+        if (coinValue === matchValue && unitsMatch) {
+          // Both numeric value AND unit match - full points
+          score += 25;
+        } else if (coinValue === matchValue && (!coinUnit || !matchUnit)) {
+          // Numeric matches but can't compare units - partial points
+          score += 15;
+        } else {
+          // Either numeric value differs OR units differ (e.g., "1 Cent" vs "1 Dime")
+          // This is a denomination mismatch - penalty
+          score -= 20;
+        }
       }
     }
 
-    return Math.min(score, 100);
+    // Category scoring (10 points max / -10 penalty)
+    // Standard circulation coins are most likely what users have
+    const category = numistaType.object_type?.name?.toLowerCase() || numistaType.category?.toLowerCase() || '';
+    if (category.includes('standard circulation') || category.includes('circulating')) {
+      score += 10; // Boost for standard circulation
+    } else if (category.includes('pattern') || category.includes('proof') ||
+               category.includes('non-circulating') || category.includes('specimen')) {
+      score -= 10; // Penalty for rare/collector categories
+    }
+    // Commemorative coins get no adjustment (neutral)
+
+    return Math.max(0, Math.min(score, 100));
   }
 
   /**

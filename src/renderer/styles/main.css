@@ -67,6 +67,127 @@ body {
   width: auto;
 }
 
+.header-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+
+.header-brand .version-badge {
+  margin-left: 0.5rem;
+}
+
+/* Header Collection Info (shown when collection is open) */
+.header-collection {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.header-collection .collection-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-color);
+  margin: 0;
+  max-width: 400px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Header Actions */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.header-actions .collection-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-right: 0.5rem;
+  padding-right: 0.75rem;
+  border-right: 1px solid var(--border);
+}
+
+/* Settings Dropdown */
+.settings-dropdown {
+  position: relative;
+}
+
+.btn-icon {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+}
+
+.btn-icon:hover {
+  background: var(--background);
+  color: var(--text-color);
+  border-color: var(--primary-color);
+}
+
+.btn-icon svg {
+  flex-shrink: 0;
+}
+
+.settings-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 180px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 1000;
+  display: none;
+  overflow: hidden;
+}
+
+.settings-dropdown-menu.open {
+  display: block;
+}
+
+.dropdown-item {
+  width: 100%;
+  padding: 0.625rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--text-color);
+  transition: background-color 0.15s;
+}
+
+.dropdown-item:hover {
+  background: var(--background);
+}
+
+.dropdown-item svg {
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.dropdown-item:not(:last-child) {
+  border-bottom: 1px solid var(--border);
+}
+
 .app-main {
   flex: 1;
   overflow-y: auto;
@@ -230,6 +351,33 @@ body {
   font-size: 0.75rem;
 }
 
+/* Premium feature buttons */
+.btn-premium {
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.btn-premium .premium-icon {
+  margin-right: 0.25rem;
+}
+
+.btn-premium-locked {
+  opacity: 0.65;
+  background: var(--secondary-color);
+}
+
+.btn-premium-locked:hover {
+  opacity: 0.8;
+}
+
+.btn-premium-unlocked {
+  opacity: 1;
+}
+
+.btn-premium-unlocked .premium-icon {
+  display: none;
+}
+
 /* ==================================================================
    Welcome Screen
    ================================================================== */
@@ -249,6 +397,32 @@ body {
   height: 120px;
   width: auto;
   margin-bottom: 1rem;
+}
+
+/* Version Badge - indicator in header below logo */
+.version-badge {
+  display: inline-block;
+  padding: 4px 14px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  transition: all 0.3s ease;
+}
+
+.version-badge-free {
+  background: linear-gradient(135deg, #6c757d, #5a6268);
+  color: #fff;
+  border: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.version-badge-supporter {
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  color: #333;
+  border: none;
+  box-shadow: 0 2px 4px rgba(255, 165, 0, 0.4);
 }
 
 .welcome-container p {
@@ -461,6 +635,128 @@ body {
   white-space: nowrap;
 }
 
+/* View Toggle Buttons */
+.view-toggle {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  overflow: hidden;
+}
+
+.view-toggle-btn {
+  background: var(--surface);
+  border: none;
+  padding: 0.375rem 0.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+}
+
+.view-toggle-btn:not(:last-child) {
+  border-right: 1px solid var(--border);
+}
+
+.view-toggle-btn:hover {
+  background: var(--background);
+  color: var(--text-color);
+}
+
+.view-toggle-btn.active {
+  background: var(--primary-color);
+  color: white;
+}
+
+/* =============================================================================
+   Info Bar Card (Pinnable Stats + Filters Container)
+   ============================================================================= */
+
+.info-bar-card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  padding-left: 1.25rem; /* Extra padding for dog-ear */
+  margin-bottom: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+/* Remove individual margins/borders when inside card */
+.info-bar-card .compact-stats-wrapper {
+  margin-bottom: 0.5rem;
+}
+
+.info-bar-card .compact-stats {
+  border: none;
+  background: transparent;
+}
+
+.info-bar-card .stats-summary {
+  border: none;
+  background: transparent;
+}
+
+.info-bar-card .filters {
+  border: none;
+  background: transparent;
+  margin-bottom: 0;
+  padding: 0.5rem 0 0 0;
+  border-top: 1px solid var(--border);
+}
+
+/* Dog-ear pin button */
+.info-bar-pin {
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  width: 26px;
+  height: 26px;
+  background: var(--border);
+  border: none;
+  border-radius: 0.5rem 0 0.5rem 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+  z-index: 1;
+}
+
+.info-bar-pin:hover {
+  background: var(--primary-color);
+}
+
+.info-bar-pin:hover .pin-icon {
+  fill: white;
+}
+
+.pin-icon {
+  fill: var(--text-secondary);
+  transition: transform 0.3s ease, fill 0.2s;
+  transform: rotate(-45deg);
+}
+
+/* Pinned state */
+.info-bar-card.pinned .info-bar-pin {
+  background: var(--primary-color);
+}
+
+.info-bar-card.pinned .pin-icon {
+  fill: white;
+  transform: rotate(0deg);
+}
+
+/* Sticky behavior when pinned */
+.info-bar-card.pinned {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
 /* Filter Summary */
 .filter-summary {
   background: var(--background);
@@ -657,6 +953,129 @@ body {
 .coin-item.coin-error {
   background-color: #fef2f2;
   border-left: 4px solid #ef4444;
+}
+
+/* ==================================================================
+   Grid View Mode
+   ================================================================== */
+
+.coin-list.grid-view {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.coin-list.grid-view .coin-item {
+  flex-direction: column;
+  padding: 0.75rem;
+  text-align: center;
+  min-height: 260px;
+  position: relative;
+}
+
+.coin-list.grid-view .coin-images {
+  flex-direction: row;
+  justify-content: center;
+  margin-right: 0;
+  margin-bottom: 0.75rem;
+}
+
+.coin-list.grid-view .coin-thumbnail {
+  width: 85px;
+  height: 85px;
+}
+
+.coin-list.grid-view .coin-info {
+  flex: 0;
+}
+
+.coin-list.grid-view .coin-title {
+  font-size: 0.85rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.coin-list.grid-view .coin-details {
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.coin-list.grid-view .coin-data-icons {
+  margin-top: auto;
+  padding-top: 0.5rem;
+}
+
+.coin-list.grid-view .fast-pricing-checkbox-cell {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 0.25rem;
+  padding: 2px;
+}
+
+/* Grid View Status Borders */
+.coin-list.grid-view .coin-item.coin-merged {
+  border-left: 4px solid #10b981;
+}
+
+.coin-list.grid-view .coin-item.coin-skipped {
+  border-left: 4px solid #f59e0b;
+}
+
+.coin-list.grid-view .coin-item.coin-error {
+  border-left: 4px solid #ef4444;
+}
+
+/* Grid View Fast Pricing Mode Compatibility */
+.coin-list.grid-view .coin-item.fp-updated {
+  background: rgba(34, 197, 94, 0.15);
+  border-left: 4px solid var(--success-color);
+}
+
+.coin-list.grid-view .coin-item.fp-failed {
+  background: rgba(239, 68, 68, 0.15);
+  border-left: 4px solid var(--danger-color);
+}
+
+.coin-list.grid-view .coin-item.fp-ineligible {
+  opacity: 0.5;
+  background: #f9f9f9;
+}
+
+/* Responsive Grid Breakpoints */
+@media (max-width: 768px) {
+  .coin-list.grid-view {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
+
+  .coin-list.grid-view .coin-item {
+    min-height: 220px;
+  }
+
+  .coin-list.grid-view .coin-thumbnail {
+    width: 65px;
+    height: 65px;
+  }
+}
+
+@media (min-width: 1400px) {
+  .coin-list.grid-view {
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  }
+
+  .coin-list.grid-view .coin-item {
+    min-height: 300px;
+  }
+
+  .coin-list.grid-view .coin-thumbnail {
+    width: 100px;
+    height: 100px;
+  }
 }
 
 /* ==================================================================
@@ -1141,6 +1560,25 @@ body {
 .status-message {
   font-size: 0.875rem;
   color: var(--text-secondary);
+}
+
+.status-message.status-error {
+  color: #dc2626;
+  font-weight: 600;
+  background: #fef2f2;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  border: 1px solid #fecaca;
+}
+
+.status-message.status-success {
+  color: #16a34a;
+  font-weight: 500;
+}
+
+.status-message.status-warning {
+  color: #d97706;
+  font-weight: 500;
 }
 
 .progress-bar {
@@ -1656,6 +2094,58 @@ body {
   cursor: not-allowed;
 }
 
+/* Radio Group for Data Settings (Task 3.12.7) */
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 10px 0;
+}
+
+.radio-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  padding: 10px 12px;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.radio-label:hover {
+  border-color: #007bff;
+  background-color: #f8f9fa;
+}
+
+.radio-label input[type="radio"] {
+  margin-top: 3px;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.radio-label input[type="radio"]:checked + .radio-text strong {
+  color: #007bff;
+}
+
+.radio-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.radio-text strong {
+  font-size: 14px;
+  color: #333;
+}
+
+.radio-description {
+  font-size: 12px;
+  color: #6c757d;
+  line-height: 1.4;
+}
+
 .required-badge {
   display: inline-block;
   background: #e74c3c;
@@ -1763,18 +2253,6 @@ body {
 
 .fetch-settings-display .separator {
   color: #ccc;
-}
-
-/* Make the data settings button prominent */
-#dataSettingsBtn {
-  background: #3498db;
-  color: white;
-  border: none;
-  font-weight: 500;
-}
-
-#dataSettingsBtn:hover {
-  background: #2980b9;
 }
 
 /* ==================================================================
@@ -1922,6 +2400,19 @@ body {
 #issuePickerModal .issue-options-list {
   max-height: 50vh;
   overflow-y: auto;
+}
+
+/* Section header for "Other options" in issue picker */
+.issue-section-header {
+  padding: 8px 12px;
+  margin: 10px 0 5px 0;
+  background: #f1f3f4;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #5f6368;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .no-images-text {
@@ -2459,4 +2950,303 @@ body {
 .attribution-box a {
   color: var(--primary-color);
   font-weight: 500;
+}
+
+/* =============================================================================
+   Fast Pricing Mode
+   ============================================================================= */
+
+.fast-pricing-toolbar {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.fast-pricing-mode-indicator {
+  font-weight: 600;
+  color: var(--primary-color);
+  background: rgba(37, 99, 235, 0.1);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+}
+
+.fast-pricing-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.fast-pricing-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.fast-pricing-checkbox-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  flex-shrink: 0;
+}
+
+.fast-pricing-checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.fast-pricing-ineligible {
+  color: var(--text-secondary);
+  cursor: help;
+}
+
+.coin-item.fp-ineligible {
+  opacity: 0.5;
+  background: #f9f9f9;
+}
+
+/* Real-time status indicators during batch */
+.coin-item.fp-updated {
+  background: rgba(34, 197, 94, 0.15);
+  border-left: 4px solid var(--success-color);
+}
+
+.coin-item.fp-updated .fp-processed-marker {
+  background: var(--success-color);
+}
+
+.coin-item.fp-failed {
+  background: rgba(239, 68, 68, 0.15);
+  border-left: 4px solid var(--danger-color);
+}
+
+.coin-item.fp-failed .fp-processed-marker {
+  background: var(--danger-color);
+}
+
+/* Processed marker - subtle indicator where checkbox was */
+.fp-processed-marker {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--border);
+}
+
+/* Inline progress bar in toolbar */
+.fp-inline-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 1rem;
+  background: rgba(37, 99, 235, 0.08);
+  border-radius: 0.5rem;
+  border: 1px solid rgba(37, 99, 235, 0.2);
+}
+
+.fp-progress-bar {
+  width: 200px;
+  height: 12px;
+  background: var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.fp-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary-color), #60a5fa);
+  border-radius: 6px;
+  transition: width 0.3s ease;
+  width: 0%;
+}
+
+.fp-progress-text {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--primary-color);
+  min-width: 80px;
+}
+
+/* UI locking during batch */
+.coin-list.fp-batch-running .coin-item {
+  pointer-events: none;
+  cursor: default;
+}
+
+.coin-list.fp-batch-running .coin-item .fast-pricing-checkbox {
+  pointer-events: auto;
+}
+
+/* Active state for Fast Pricing button */
+.btn-active {
+  background: var(--primary-color) !important;
+  color: white !important;
+  border-color: var(--primary-color) !important;
+}
+
+/* =============================================================================
+   Batch Type Data Propagation (Task 3.12)
+   ============================================================================= */
+
+.batch-type-prompt {
+  text-align: left;
+}
+
+.batch-type-intro {
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+
+.batch-type-type-info {
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.batch-type-section {
+  margin-bottom: 1rem;
+}
+
+.batch-type-section-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 0.5rem;
+}
+
+.batch-type-coin-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+}
+
+.batch-type-coin-list li {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-color);
+  border-bottom: 1px solid var(--border);
+}
+
+.batch-type-coin-list li:last-child {
+  border-bottom: none;
+}
+
+.batch-type-coin-list.batch-type-scrollable {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.batch-type-more {
+  font-style: italic;
+  color: var(--text-secondary);
+}
+
+.batch-type-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.batch-type-actions .btn-premium {
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  color: #333;
+  border: none;
+}
+
+.batch-type-actions .btn-premium:hover {
+  background: linear-gradient(135deg, #FFC800, #FF9500);
+}
+
+.batch-type-actions .premium-badge {
+  margin-left: 0.25rem;
+}
+
+/* Task 3.12.9: Batch results skip info and error styling */
+.skip-info {
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  margin: 1rem 0;
+}
+
+.skip-info h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.9rem;
+  color: #856404;
+}
+
+.skip-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.5rem 0;
+}
+
+.skip-list li {
+  font-size: 0.85rem;
+  color: #856404;
+  padding: 0.25rem 0;
+}
+
+.skip-more {
+  font-style: italic;
+  color: #8a6d00;
+}
+
+.skip-note {
+  font-size: 0.8rem;
+  color: #856404;
+  margin: 0;
+  font-style: italic;
+}
+
+.error-list {
+  background: #f8d7da;
+  border: 1px solid #f5c6cb;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  margin: 1rem 0;
+}
+
+.error-list h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.9rem;
+  color: #721c24;
+}
+
+.error-list ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.error-list li {
+  font-size: 0.85rem;
+  color: #721c24;
+  padding: 0.25rem 0;
+}
+
+.text-success {
+  color: #28a745;
+}
+
+.text-warning {
+  color: #856404;
 }

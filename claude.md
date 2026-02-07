@@ -52,6 +52,10 @@
 
 12. **Windows file locks need PowerShell** - Node.js `fs.openSync` uses shared access. Use `[System.IO.File]::Open()` with `FileShare.None` for exclusive lock test.
 
+13. **Parse stored data before use** - Data stored in fields (e.g., JSON in note field) must be explicitly parsed and attached to objects. `get-coins` must parse metadata so `coin.metadata` is available for matching. Fallback defaults must match actual defaults defined elsewhere.
+
+14. **Propagate user choices through multi-step flows** - When a user makes selections (e.g., checkboxes), those choices must be passed through the entire chain of function calls. Don't hardcode defaults in downstream handlers - accept the selection state from upstream.
+
 ## 6. JSDOC DOCUMENTATION STANDARDS
 
 **When to Add JSDoc:**

@@ -78,7 +78,8 @@ const apiMethods = {
   saveFetchSettings: (settings) => ipcRenderer.invoke('save-fetch-settings', settings),
   saveCurrency: (currency) => ipcRenderer.invoke('save-currency', currency),
   getCurrency: () => ipcRenderer.invoke('get-currency'),
-  
+  saveUiPreference: (key, value) => ipcRenderer.invoke('save-ui-preference', key, value),
+
   // Phase 2 - Settings reset
   resetSettings: () => ipcRenderer.invoke('reset-settings'),
 
@@ -116,7 +117,24 @@ const apiMethods = {
   clearRecentCollections: () => ipcRenderer.invoke('clear-recent-collections'),
 
   // Menu State
-  updateMenuState: (state) => ipcRenderer.invoke('menu:update-state', state)
+  updateMenuState: (state) => ipcRenderer.invoke('menu:update-state', state),
+
+  // Licensing & Supporter Status
+  getSupporterStatus: () => ipcRenderer.invoke('get-supporter-status'),
+  validateLicenseKey: (key) => ipcRenderer.invoke('validate-license-key', key),
+  validateLicense: () => ipcRenderer.invoke('validate-license'),
+  deactivateLicense: () => ipcRenderer.invoke('deactivate-license'),
+  updateSupporterStatus: (updates) => ipcRenderer.invoke('update-supporter-status', updates),
+  incrementLifetimeEnrichments: (count) => ipcRenderer.invoke('increment-lifetime-enrichments', count),
+  getLifetimeStats: () => ipcRenderer.invoke('get-lifetime-stats'),
+  clearLicense: () => ipcRenderer.invoke('clear-license'),
+
+  // Fast Pricing Update (Premium Feature)
+  createBackupBeforeBatch: () => ipcRenderer.invoke('create-backup-before-batch'),
+  fastPricingUpdate: (data) => ipcRenderer.invoke('fast-pricing-update', data),
+
+  // Batch Type Data Propagation (Premium Feature - Task 3.12)
+  propagateTypeData: (data) => ipcRenderer.invoke('propagate-type-data', data)
 };
 
 // Expose as both 'electronAPI' (for backward compatibility) and 'api' (for new code)
@@ -160,5 +178,14 @@ contextBridge.exposeInMainWorld('menuEvents', {
     ipcRenderer.on('menu:clear-recent', () => callback('clear-recent'));
     ipcRenderer.on('menu:about', () => callback('about'));
     ipcRenderer.on('menu:view-eula', () => callback('view-eula'));
+    ipcRenderer.on('menu:purchase-license', () => callback('purchase-license'));
+    // Fast Pricing Mode menu actions
+    ipcRenderer.on('menu:enter-fast-pricing-mode', () => callback('enter-fast-pricing-mode'));
+    ipcRenderer.on('menu:exit-fast-pricing-mode', () => callback('exit-fast-pricing-mode'));
+    ipcRenderer.on('menu:fp-select-all', () => callback('fp-select-all'));
+    ipcRenderer.on('menu:fp-select-displayed', () => callback('fp-select-displayed'));
+    ipcRenderer.on('menu:fp-clear', () => callback('fp-clear'));
+    ipcRenderer.on('menu:fp-start-update', () => callback('fp-start-update'));
+    ipcRenderer.on('menu:set-view-mode', (_, mode) => callback('set-view-mode', mode));
   }
 });

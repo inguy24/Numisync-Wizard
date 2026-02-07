@@ -3,7 +3,7 @@
 **Project:** NumiSync Wizard for OpenNumismat
 **Phase:** Phase 3 - Numista Collection Management
 **Created:** February 1, 2026
-**Last Updated:** February 3, 2026
+**Last Updated:** February 4, 2026
 
 ---
 
@@ -19,6 +19,7 @@ Phase 3 adds one-way sync from OpenNumismat → Numista, enabling users to push 
 |----|------|--------|----------|--------------|
 | **COMPLETED** |
 | 3.0 | Application Menu Bar | ✅ Complete | HIGH | None |
+| 3.8 | About Page & Licensing System | ✅ Complete | MEDIUM | None |
 | **CORE IMPLEMENTATION** |
 | 3.1 | OAuth 2.0 Integration | ⏳ Pending | CRITICAL | None |
 | 3.2 | Data Mapper (Reverse Direction) | ⏳ Pending | HIGH | 3.1 |
@@ -28,8 +29,8 @@ Phase 3 adds one-way sync from OpenNumismat → Numista, enabling users to push 
 | **ENHANCEMENTS (Optional)** |
 | 3.6 | Batch Add Feature | ⏳ Pending | LOW | 3.4 |
 | 3.7 | Update Existing Coin | ⏳ Pending | LOW | 3.4 |
-| 3.8 | About Page & Licensing System | ⏳ Pending | MEDIUM | None |
-| 3.9 | Fast Pricing Update 💎 PREMIUM | ⏳ Pending | MEDIUM | 3.8 |
+| 3.9 | Fast Pricing Update 💎 PREMIUM | ✅ Complete | MEDIUM | 3.8 |
+| 3.12 | Batch Type Data Propagation (Auto-Propagate) 💎 PREMIUM | ✅ Complete | MEDIUM | 3.8 |
 | **DEFERRED TO FUTURE PHASE** |
 | 3.10 | Multi-Source Data Fetching | 🔮 Future | — | Phase 4+ |
 | 3.11 | OpenNumismat Plugin Integration | 🔮 Future | — | After packaging |
@@ -55,9 +56,10 @@ Phase 3 adds one-way sync from OpenNumismat → Numista, enabling users to push 
   └──→ 3.3 Collection Selection ⏳
          └──→ 3.4 Add Coin UI ⏳
 
-3.8 About Page & Licensing ⏳
-      (independent - can start anytime)
-  └──→ 3.9 Fast Pricing Update 💎 PREMIUM ⏳
+3.8 About Page & Licensing ✅
+      (independent - complete)
+  ├──→ 3.9 Fast Pricing Update 💎 PREMIUM ✅
+  └──→ 3.12 Batch Type Data Propagation 💎 PREMIUM ✅
 ```
 
 ---
@@ -471,11 +473,12 @@ Allow users to update coins that have already been synced to Numista.
 
 ---
 
-## 3.8 - About Page & Licensing System ⏳
+## 3.8 - About Page & Licensing System ✅ COMPLETE
 
 **Priority:** MEDIUM
 **Dependencies:** None (can be done independently)
 **Blocks:** 3.9 (Fast Pricing Update)
+**Completed:** February 4, 2026
 
 ### Objective
 Implement About window with version info, update checking, and licensing system using Polar as merchant of record.
@@ -487,140 +490,174 @@ Implement About window with version info, update checking, and licensing system 
 - [X] Display app name, version (from package.json), author
 - [X] Add GitHub repository link
 - [X] Add "View EULA" link
-- [ ] Add "Check for Updates" button
+- [ ] Add "Check for Updates" button (DEFERRED)
   - [ ] Call GitHub Releases API
   - [ ] Show current vs latest version
   - [ ] Show download link if update available
 
 #### 3.8.2 - Licensing Infrastructure
-- [ ] Add supporter status to settings schema
-  ```json
-  {
-    "supporter": {
-      "isSupporter": false,
-      "licenseKey": null,
-      "supportedAt": null,
-      "neverAskAgain": false
-    },
-    "lifetimeStats": {
-      "totalCoinsEnriched": 0
-    }
-  }
-  ```
-- [ ] Implement license key validation (Polar API)
-- [ ] Add IPC handlers for supporter status
-  - [ ] `get-supporter-status`
-  - [ ] `set-supporter-status`
-  - [ ] `validate-license-key`
-  - [ ] `get-lifetime-stats`
-  - [ ] `increment-lifetime-enrichments`
+- [X] Add supporter status to settings schema
+- [X] Implement license key validation (Polar API - Customer Portal endpoint)
+- [X] Add IPC handlers for supporter status
+  - [X] `get-supporter-status`
+  - [X] `update-supporter-status`
+  - [X] `validate-license-key`
+  - [X] `get-lifetime-stats`
+  - [X] `increment-lifetime-enrichments`
+  - [X] `clear-license`
 
 #### 3.8.3 - License Prompt System
-- [ ] Create license prompt modal in main window
-- [ ] Show prompt at thresholds:
-  - [ ] Initial: 20 coins enriched
-  - [ ] Recurring: Every 50 coins (70, 120, 170...)
-- [ ] Display time saved calculation (2 min/coin)
-- [ ] Options: "Get License", "Enter Key", "Maybe Later", "Don't Ask Again"
+- [X] Create license prompt modal in main window
+- [X] Show prompt at thresholds:
+  - [X] Initial: 20 coins enriched
+  - [X] Recurring: Every 20 coins (40, 60, 80...)
+- [X] Display time saved calculation (2 min/coin)
+- [X] Options: "Get License", "Enter Key", "Maybe Later"
 
 #### 3.8.4 - Premium Feature Gating
-- [ ] Create PREMIUM_FEATURES configuration
-  ```javascript
-  const PREMIUM_FEATURES = {
-    'fast-pricing': {
-      name: 'Fast Pricing Update',
-      description: 'Quickly refresh pricing for matched coins with 1 API call'
-    }
-  };
-  ```
-- [ ] Implement `requireLicense(featureId)` gate function
-- [ ] Add premium badge styling (gold gradient)
-- [ ] Show premium badge on gated features when unlicensed
+- [X] Create PREMIUM_FEATURES configuration
+- [X] Implement `requirePremiumFeature(featureId)` gate function
+- [X] Add premium badge styling (gold gradient)
+- [X] Show premium prompt on gated features when unlicensed
 
-### Files to Create
-- `src/renderer/about.html` - About window HTML
-- `src/renderer/about.js` - About window JavaScript
-- `src/renderer/styles/about.css` - About window styles
-
-### Files to Modify
-- `src/main/index.js` - About window creation, IPC handlers
+### Files Modified
+- `src/main/index.js` - IPC handlers, Polar config
 - `src/main/preload.js` - Expose API methods
-- `src/renderer/index.html` - License prompt modal
-- `src/renderer/app.js` - License logic, premium config
-- `src/renderer/styles/main.css` - Premium badge styles
-- `src/modules/settings-manager.js` - Supporter status schema
+- `src/renderer/app.js` - License logic, About dialog, prompt modal, premium gating
+- `package.json` - Added @polar-sh/sdk dependency
 
 ### Configuration
 
 | Setting | Value |
 |---------|-------|
 | Payment Platform | Polar |
+| Organization ID | 52798f3d-8060-45c9-b5e7-067bfa63c350 |
+| Product ID | 50fd6539-84c3-4ca7-9a1e-9f73033077dd |
 | Initial Prompt | 20 coins enriched |
-| Recurring Prompt | Every 50 coins |
+| Recurring Prompt | Every 20 coins |
 | Time Saved Estimate | 2 minutes per coin |
 
 ### Verification Checklist
-- [ ] About window opens from Help menu and Settings
-- [ ] Version displays correctly from package.json
-- [ ] Update check calls GitHub API and shows result
-- [ ] License prompt appears at 20 coins
-- [ ] "Don't Ask Again" prevents future prompts
-- [ ] Premium badge shows on gated features when unlicensed
-- [ ] License validation works with Polar API
+- [X] About dialog opens from Help menu
+- [X] Version displays correctly from package.json
+- [ ] Update check calls GitHub API (DEFERRED)
+- [X] License prompt appears at thresholds
+- [X] Premium feature gating infrastructure ready
+- [X] License validation works with Polar API
 
 ---
 
-## 3.9 - Fast Pricing Update 💎 PREMIUM ⏳
+## 3.9 - Fast Pricing Update 💎 PREMIUM ✅ COMPLETE
 
 **Priority:** MEDIUM
 **Dependencies:** 3.8 (Licensing System)
 **License Required:** YES - This is a premium feature
+**Completed:** February 5, 2026
 
 ### Objective
 Enable users to refresh pricing data for coins that have already been matched to a Numista type - without re-searching or re-matching. Uses only 1 API call per coin (vs 2-4 for full enrichment). This feature is gated behind the licensing system.
 
+### Implementation Summary
+
+Implemented "Fast Pricing Mode" - a batch update system with checkbox selection:
+- **Mode Entry:** Click "Fast Pricing Update" button (premium-gated) to enter mode
+- **Eligibility:** Only coins with both numistaId AND issueId can be selected
+- **Selection Options:** Select All Eligible, Select Displayed, Clear, individual checkboxes
+- **Progress Display:** Footer status bar (non-modal) so users can scroll during batch
+- **Real-time Feedback:** Coin rows show checkmark/X as they're processed
+- **Resume Support:** Successful coins deselected, failed coins remain selected for retry
+- **UI Locking:** Prevents other actions during batch to avoid API conflicts
+- **Rate Limiting:** 1 API call per second (Numista API limit)
+- **Backup Strategy:** Single pre-batch backup (not per-coin)
+
 ### Sub-Tasks
 
 #### 3.9.1 - Fast Pricing Button
-- [ ] Add "Fast Pricing Update" button to Collection Overview toolbar
-- [ ] Show with PREMIUM badge when user is unlicensed
-- [ ] Gate behind `requireLicense('fast-pricing')` check
-- [ ] Disable button if no coins have Numista Type ID in metadata
+- [X] Add "Fast Pricing Update" button to Collection Overview toolbar (existed from 3.8)
+- [X] Show with PREMIUM badge when user is unlicensed
+- [X] Gate behind `requirePremiumFeature('fast-pricing')` check
+- [X] Button toggles fast pricing mode on/off
 
-#### 3.9.2 - Single Coin Fast Pricing
-- [ ] Implement direct pricing fetch
-  - [ ] Read Numista Type ID from metadata
-  - [ ] Read Issue ID from metadata (if available)
-  - [ ] Call pricing API endpoint directly (`/types/{id}/issues/{issue_id}/prices`)
-  - [ ] Update pricing fields in database
-  - [ ] Update pricing metadata timestamp
-- [ ] Show confirmation: "Price updated: $X.XX (was $Y.YY)"
+#### 3.9.2 - Fast Pricing Mode UI
+- [X] Toolbar with selection controls (Select All, Select Displayed, Clear, Update, Cancel, Exit)
+- [X] Checkbox cells appear next to eligible coins
+- [X] Ineligible coins show dash with tooltip explaining why
+- [X] Selected/eligible counts displayed in toolbar
 
 #### 3.9.3 - Batch Fast Pricing Update
-- [ ] Add "Update All Outdated Prices" option
-- [ ] Find coins with pricing > threshold (configurable: 3/6/12 months)
-- [ ] Process with rate limiting (1 call/second)
-- [ ] Show progress bar with cancel option
-- [ ] Report summary: "Updated 45 coins, 3 failed"
+- [X] Confirmation dialog with coin count and estimated time
+- [X] Single backup before batch starts
+- [X] Process with rate limiting (1 call/second)
+- [X] Progress in footer status bar (non-modal)
+- [X] Real-time visual feedback on coin rows
+- [X] Cancel button stops after current coin
+- [X] Completion modal with results summary
 
 #### 3.9.4 - Outdated Prices Filter
-- [ ] Add "Outdated Prices" filter preset to View menu
-- [ ] Find coins with pricing older than 6 months
-- [ ] Show count in filter dropdown
+- [X] Already exists via Pricing Freshness filter (current/recent/aging/outdated/never)
 
-### Files to Modify
-- `src/renderer/index.html` - Add Fast Pricing button, progress UI
-- `src/renderer/app.js` - Add fast pricing handlers, license check
-- `src/main/index.js` - Add fast-pricing IPC handler
-- `src/modules/numista-api.js` - Add `getDirectPricing(typeId, issueId)` method
+### Files Modified
+- `src/renderer/index.html` - Fast pricing toolbar, completion modal
+- `src/renderer/app.js` - Fast pricing mode state, functions, event handlers
+- `src/renderer/styles/main.css` - Toolbar, checkbox, status indicator styles
+- `src/main/index.js` - `create-backup-before-batch`, `fast-pricing-update` IPC handlers
+- `src/main/preload.js` - Bridge methods for fast pricing APIs
 
 ### Verification Checklist
-- [ ] Button shows PREMIUM badge when unlicensed
-- [ ] Clicking gated feature shows license prompt
-- [ ] Single coin pricing update works for licensed users
-- [ ] Batch pricing respects rate limits (1 call/sec)
-- [ ] Metadata timestamps updated correctly
-- [ ] Outdated prices filter shows correct coins
+- [X] Button shows lock icon when unlicensed
+- [X] Clicking gated feature shows license prompt
+- [X] Batch pricing respects rate limits (1 call/sec)
+- [X] Metadata timestamps updated correctly
+- [X] Outdated prices filter available (Pricing Freshness dropdown)
+
+---
+
+## 3.12 - Auto-Propagate (Batch Type Data Propagation) 💎 PREMIUM ✅ COMPLETE
+
+**Priority:** MEDIUM
+**Dependencies:** 3.8 (Licensing System)
+**License Required:** YES for applying to other coins (detection is free)
+**Completed:** February 6, 2026
+
+### Objective
+After enriching a coin, automatically detect other coins in the collection that share the same Numista type. Offer to propagate type-level data to all matching coins at once, saving API calls and user time.
+
+### Implementation Summary
+
+Implemented "Auto-Propagate" feature - automatic detection with batch propagation:
+- **Trigger:** After merging, system detects coins with matching numistaId or catalog numbers
+- **Categorization:** Coins grouped into True Duplicates (same type+year+mintmark) and Same Type/Different Issue
+- **Detection:** FREE for all users (demonstrates value)
+- **Propagation:** Requires Supporter Edition license
+- **Progress Bar:** Visual progress during batch operation with "X/Y (Z%)" format
+- **Skip Tracking:** Detailed reasons shown for coins that couldn't receive issue/pricing data
+- **Toggle Setting:** Can be disabled in Data Settings via "Enable Auto-Propagate" checkbox
+
+### Key Features
+- **Catalog Matching:** Strict matching - ALL populated catalog slots must match
+- **Numista ID Match:** Gold standard - 100% definitive match
+- **Type Data Cache:** Silent reuse of previously fetched type data (saves API calls)
+- **Empty Mintmark Setting:** User preference for how empty mintmarks are interpreted
+- **Previously Enriched:** Optional checkbox to include/overwrite previously enriched coins
+
+### Files Modified
+- `src/renderer/app.js` - `findMatchingCoins()`, `categorizeMatchingCoins()`, `applyBatchTypePropagation()`, progress modal
+- `src/main/index.js` - `propagate-type-data` IPC handler, `typeDataCache`
+- `src/main/preload.js` - Bridge method `propagateTypeData()`
+- `src/modules/settings-manager.js` - `emptyMintmarkInterpretation`, `enableAutoPropagate` settings
+- `src/renderer/index.html` - Data Settings UI (radio buttons, checkbox)
+- `docs/user-manual.html` - Feature documentation
+
+### Verification Checklist
+- [X] Detection searches ALL coins in collection
+- [X] Numista ID match is gold standard
+- [X] Catalog matching is strict (all slots must match)
+- [X] True duplicates vs same-type correctly categorized
+- [X] Premium gating works correctly
+- [X] Progress bar shows during batch operation
+- [X] Results modal shows detailed summary
+- [X] Toggle setting disables feature when unchecked
+- [X] User manual updated with feature documentation
 
 ---
 
