@@ -1,6 +1,8 @@
+const log = require('../main/logger').scope('Freshness');
+
 /**
  * Freshness Calculator
- * 
+ *
  * Calculates how fresh/current pricing data is based on timestamps.
  * Used to show visual indicators throughout the UI.
  * 
@@ -84,7 +86,7 @@ function getPricingFreshness(timestamp) {
     };
     
   } catch (error) {
-    console.error('Error calculating pricing freshness:', error);
+    log.error('Error calculating pricing freshness:', error);
     return {
       status: 'NEVER_UPDATED',
       icon: '⚪',

@@ -159,11 +159,11 @@ function getSerializableSources() {
 }
 
 const DEFAULT_FIELD_MAPPING = {
-  
+
   // ============================================================================
   // IDENTIFICATION FIELDS (HIGH PRIORITY)
   // ============================================================================
-  
+
   title: {
     numistaPath: 'title',
     transform: null,
@@ -171,7 +171,9 @@ const DEFAULT_FIELD_MAPPING = {
     enabled: true,
     requiresIssueData: false,
     description: 'Coin title/name',
-    defaultSourceKey: 'title'
+    defaultSourceKey: 'title',
+    category: 'main',
+    displayOrder: 1
   },
 
   category: {
@@ -181,7 +183,9 @@ const DEFAULT_FIELD_MAPPING = {
     enabled: true,
     requiresIssueData: false,
     description: 'Category (coin, banknote, exonumia)',
-    defaultSourceKey: 'category'
+    defaultSourceKey: 'category',
+    category: 'main',
+    displayOrder: 2
   },
 
   series: {
@@ -191,13 +195,15 @@ const DEFAULT_FIELD_MAPPING = {
     enabled: true,
     requiresIssueData: false,
     description: 'Series name',
-    defaultSourceKey: 'series'
+    defaultSourceKey: 'series',
+    category: 'main',
+    displayOrder: 3
   },
   
   // ============================================================================
   // GEOGRAPHIC/POLITICAL FIELDS (HIGH PRIORITY)
   // ============================================================================
-  
+
   country: {
     numistaPath: 'issuer.name',
     transform: null,
@@ -205,7 +211,9 @@ const DEFAULT_FIELD_MAPPING = {
     enabled: true,
     requiresIssueData: false,
     description: 'Issuing country/entity name',
-    defaultSourceKey: 'issuer_name'
+    defaultSourceKey: 'issuer_name',
+    category: 'main',
+    displayOrder: 4
   },
 
   period: {
@@ -215,7 +223,9 @@ const DEFAULT_FIELD_MAPPING = {
     enabled: true,
     requiresIssueData: false,
     description: 'Historical period (e.g., "Vichy (1940-1944)")',
-    defaultSourceKey: 'ruler_period'
+    defaultSourceKey: 'ruler_period',
+    category: 'main',
+    displayOrder: 5
   },
 
   type: {
@@ -225,7 +235,9 @@ const DEFAULT_FIELD_MAPPING = {
     enabled: true,
     requiresIssueData: false,
     description: 'Coin type (e.g., "Standard circulation coin", "Commemorative")',
-    defaultSourceKey: 'type'
+    defaultSourceKey: 'type',
+    category: 'main',
+    displayOrder: 6
   },
 
   ruler: {
@@ -235,7 +247,9 @@ const DEFAULT_FIELD_MAPPING = {
     enabled: true,
     requiresIssueData: false,
     description: 'Monarch/leader name (from array)',
-    defaultSourceKey: 'ruler_names'
+    defaultSourceKey: 'ruler_names',
+    category: 'main',
+    displayOrder: 7
   },
 
   mint: {
@@ -245,13 +259,15 @@ const DEFAULT_FIELD_MAPPING = {
     enabled: true,
     requiresIssueData: false,
     description: 'Mint name (from array)',
-    defaultSourceKey: 'mint_name'
+    defaultSourceKey: 'mint_name',
+    category: 'main',
+    displayOrder: 8
   },
   
   // ============================================================================
   // VALUE/DENOMINATION FIELDS (HIGH PRIORITY)
   // ============================================================================
-  
+
   value: {
     numistaPath: 'value.text',
     transform: transformValueNumber,
@@ -259,7 +275,9 @@ const DEFAULT_FIELD_MAPPING = {
     enabled: true,
     requiresIssueData: false,
     description: 'Face value (numeric part only, e.g., "1" from "1 Penny")',
-    defaultSourceKey: 'value_number'
+    defaultSourceKey: 'value_number',
+    category: 'main',
+    displayOrder: 9
   },
 
   unit: {
@@ -269,13 +287,15 @@ const DEFAULT_FIELD_MAPPING = {
     enabled: true,
     requiresIssueData: false,
     description: 'Currency unit (extracted from value text)',
-    defaultSourceKey: 'value_unit'
+    defaultSourceKey: 'value_unit',
+    category: 'main',
+    displayOrder: 10
   },
   
   // ============================================================================
   // PHYSICAL SPECIFICATIONS (HIGH PRIORITY)
   // ============================================================================
-  
+
   material: {
     numistaPath: 'composition.text',
     transform: null,
@@ -283,7 +303,9 @@ const DEFAULT_FIELD_MAPPING = {
     enabled: true,
     requiresIssueData: false,
     description: 'Material/composition (full text)',
-    defaultSourceKey: 'composition_text'
+    defaultSourceKey: 'composition_text',
+    category: 'main',
+    displayOrder: 11
   },
 
   weight: {
@@ -293,7 +315,9 @@ const DEFAULT_FIELD_MAPPING = {
     enabled: true,
     requiresIssueData: false,
     description: 'Weight in grams',
-    defaultSourceKey: 'weight'
+    defaultSourceKey: 'weight',
+    category: 'main',
+    displayOrder: 12
   },
 
   diameter: {
@@ -303,7 +327,9 @@ const DEFAULT_FIELD_MAPPING = {
     enabled: true,
     requiresIssueData: false,
     description: 'Diameter in millimeters',
-    defaultSourceKey: 'size'
+    defaultSourceKey: 'size',
+    category: 'main',
+    displayOrder: 13
   },
 
   thickness: {
@@ -313,7 +339,9 @@ const DEFAULT_FIELD_MAPPING = {
     enabled: true,
     requiresIssueData: false,
     description: 'Thickness in millimeters',
-    defaultSourceKey: 'thickness'
+    defaultSourceKey: 'thickness',
+    category: 'main',
+    displayOrder: 14
   },
 
   shape: {
@@ -323,13 +351,15 @@ const DEFAULT_FIELD_MAPPING = {
     enabled: true,
     requiresIssueData: false,
     description: 'Coin shape (Round, Square, etc.)',
-    defaultSourceKey: 'shape'
+    defaultSourceKey: 'shape',
+    category: 'main',
+    displayOrder: 15
   },
   
   // ============================================================================
   // EDGE FIELDS (MEDIUM PRIORITY)
   // ============================================================================
-  
+
   edge: {
     numistaPath: 'edge.description',
     transform: null,
@@ -337,7 +367,9 @@ const DEFAULT_FIELD_MAPPING = {
     enabled: true,
     requiresIssueData: false,
     description: 'Edge type/description',
-    defaultSourceKey: 'edge_description'
+    defaultSourceKey: 'edge_description',
+    category: 'main',
+    displayOrder: 16
   },
 
   edgelabel: {
@@ -347,13 +379,15 @@ const DEFAULT_FIELD_MAPPING = {
     enabled: true,
     requiresIssueData: false,
     description: 'Edge lettering/inscription',
-    defaultSourceKey: 'edge_lettering'
+    defaultSourceKey: 'edge_lettering',
+    category: 'main',
+    displayOrder: 17
   },
   
   // ============================================================================
   // OBVERSE FIELDS (HIGH PRIORITY)
   // ============================================================================
-  
+
   obversedesign: {
     numistaPath: 'obverse.description',
     transform: null,
@@ -361,7 +395,9 @@ const DEFAULT_FIELD_MAPPING = {
     enabled: true,
     requiresIssueData: false,
     description: 'Obverse design description',
-    defaultSourceKey: 'obverse_description'
+    defaultSourceKey: 'obverse_description',
+    category: 'main',
+    displayOrder: 18
   },
 
   obversedesigner: {
@@ -371,7 +407,9 @@ const DEFAULT_FIELD_MAPPING = {
     enabled: true,
     requiresIssueData: false,
     description: 'Obverse designer name(s)',
-    defaultSourceKey: 'obverse_designers'
+    defaultSourceKey: 'obverse_designers',
+    category: 'main',
+    displayOrder: 19
   },
 
   obverseengraver: {
@@ -381,7 +419,9 @@ const DEFAULT_FIELD_MAPPING = {
     enabled: true,
     requiresIssueData: false,
     description: 'Obverse engraver name(s)',
-    defaultSourceKey: 'obverse_engravers'
+    defaultSourceKey: 'obverse_engravers',
+    category: 'main',
+    displayOrder: 20
   },
 
   obversevar: {
@@ -391,13 +431,15 @@ const DEFAULT_FIELD_MAPPING = {
     enabled: false,
     requiresIssueData: false,
     description: 'Obverse description (variant field)',
-    defaultSourceKey: 'obverse_description'
+    defaultSourceKey: 'obverse_description',
+    category: 'main',
+    displayOrder: 21
   },
   
   // ============================================================================
   // REVERSE FIELDS (HIGH PRIORITY)
   // ============================================================================
-  
+
   reversedesign: {
     numistaPath: 'reverse.description',
     transform: null,
@@ -405,7 +447,9 @@ const DEFAULT_FIELD_MAPPING = {
     enabled: true,
     requiresIssueData: false,
     description: 'Reverse design description',
-    defaultSourceKey: 'reverse_description'
+    defaultSourceKey: 'reverse_description',
+    category: 'main',
+    displayOrder: 22
   },
 
   reversedesigner: {
@@ -415,7 +459,9 @@ const DEFAULT_FIELD_MAPPING = {
     enabled: true,
     requiresIssueData: false,
     description: 'Reverse designer name(s)',
-    defaultSourceKey: 'reverse_designers'
+    defaultSourceKey: 'reverse_designers',
+    category: 'main',
+    displayOrder: 23
   },
 
   reverseengraver: {
@@ -425,7 +471,9 @@ const DEFAULT_FIELD_MAPPING = {
     enabled: true,
     requiresIssueData: false,
     description: 'Reverse engraver name(s)',
-    defaultSourceKey: 'reverse_engravers'
+    defaultSourceKey: 'reverse_engravers',
+    category: 'main',
+    displayOrder: 24
   },
 
   reversevar: {
@@ -435,14 +483,16 @@ const DEFAULT_FIELD_MAPPING = {
     enabled: false,
     requiresIssueData: false,
     description: 'Reverse description (variant field)',
-    defaultSourceKey: 'reverse_description'
+    defaultSourceKey: 'reverse_description',
+    category: 'main',
+    displayOrder: 25
   },
   
   // ============================================================================
   // IMAGE FIELDS (HIGH PRIORITY)
   // Note: Images require downloading from URLs and converting to BLOBs
   // ============================================================================
-  
+
   obverseimg: {
     numistaPath: 'obverse.picture',
     transform: null,
@@ -450,7 +500,9 @@ const DEFAULT_FIELD_MAPPING = {
     enabled: true,
     requiresIssueData: false,
     description: 'Obverse image URL (requires download)',
-    defaultSourceKey: 'obverse_picture'
+    defaultSourceKey: 'obverse_picture',
+    category: 'main',
+    displayOrder: 26
   },
 
   reverseimg: {
@@ -460,7 +512,9 @@ const DEFAULT_FIELD_MAPPING = {
     enabled: true,
     requiresIssueData: false,
     description: 'Reverse image URL (requires download)',
-    defaultSourceKey: 'reverse_picture'
+    defaultSourceKey: 'reverse_picture',
+    category: 'main',
+    displayOrder: 27
   },
 
   edgeimg: {
@@ -470,13 +524,15 @@ const DEFAULT_FIELD_MAPPING = {
     enabled: true,
     requiresIssueData: false,
     description: 'Edge image URL (requires download)',
-    defaultSourceKey: 'edge_picture'
+    defaultSourceKey: 'edge_picture',
+    category: 'main',
+    displayOrder: 28
   },
   
   // ============================================================================
-  // MINTAGE (MEDIUM PRIORITY)
+  // MINTAGE (MEDIUM PRIORITY) - Issue Data
   // ============================================================================
-  
+
   mintage: {
     numistaPath: 'issue.mintage',
     transform: null,
@@ -484,7 +540,9 @@ const DEFAULT_FIELD_MAPPING = {
     enabled: true,
     requiresIssueData: true,
     description: 'Total mintage (from issue data, requires year match)',
-    defaultSourceKey: 'issue_mintage'
+    defaultSourceKey: 'issue_mintage',
+    category: 'issue',
+    displayOrder: 1
   },
 
   mintmark: {
@@ -494,14 +552,16 @@ const DEFAULT_FIELD_MAPPING = {
     enabled: true,
     requiresIssueData: true,
     description: 'Mint mark (from issue data, requires year match)',
-    defaultSourceKey: 'issue_mint_letter'
+    defaultSourceKey: 'issue_mint_letter',
+    category: 'issue',
+    displayOrder: 2
   },
   
   // ============================================================================
   // PRICING DATA (MEDIUM PRIORITY)
   // Requires both issue data AND pricing data from separate API calls
   // ============================================================================
-  
+
   price1: {
     numistaPath: 'pricing.unc',
     transform: null,
@@ -510,7 +570,9 @@ const DEFAULT_FIELD_MAPPING = {
     requiresIssueData: true,
     requiresPricingData: true,
     description: 'Price 1 - Uncirculated (UNC) grade',
-    defaultSourceKey: 'pricing_unc'
+    defaultSourceKey: 'pricing_unc',
+    category: 'pricing',
+    displayOrder: 1
   },
 
   price2: {
@@ -521,7 +583,9 @@ const DEFAULT_FIELD_MAPPING = {
     requiresIssueData: true,
     requiresPricingData: true,
     description: 'Price 2 - Extremely Fine (XF/EF) grade',
-    defaultSourceKey: 'pricing_xf'
+    defaultSourceKey: 'pricing_xf',
+    category: 'pricing',
+    displayOrder: 2
   },
 
   price3: {
@@ -532,7 +596,9 @@ const DEFAULT_FIELD_MAPPING = {
     requiresIssueData: true,
     requiresPricingData: true,
     description: 'Price 3 - Very Fine (VF) grade',
-    defaultSourceKey: 'pricing_vf'
+    defaultSourceKey: 'pricing_vf',
+    category: 'pricing',
+    displayOrder: 3
   },
 
   price4: {
@@ -543,13 +609,15 @@ const DEFAULT_FIELD_MAPPING = {
     requiresIssueData: true,
     requiresPricingData: true,
     description: 'Price 4 - Fine (F) grade',
-    defaultSourceKey: 'pricing_f'
+    defaultSourceKey: 'pricing_f',
+    category: 'pricing',
+    displayOrder: 4
   },
   
   // ============================================================================
   // ORIENTATION (LOW PRIORITY)
   // ============================================================================
-  
+
   axis: {
     numistaPath: 'orientation',
     transform: transformOrientation,
@@ -557,14 +625,16 @@ const DEFAULT_FIELD_MAPPING = {
     enabled: false,
     requiresIssueData: false,
     description: 'Die axis orientation (coin=6, medal=12)',
-    defaultSourceKey: 'orientation'
+    defaultSourceKey: 'orientation',
+    category: 'main',
+    displayOrder: 29
   },
   
   // ============================================================================
   // CATALOG NUMBERS (HIGH PRIORITY - SPECIAL HANDLING)
   // NOTE: User needs to configure which catalog goes to which field
   // ============================================================================
-  
+
   catalognum1: {
     numistaPath: 'references',
     transform: null,
@@ -573,7 +643,9 @@ const DEFAULT_FIELD_MAPPING = {
     requiresIssueData: false,
     catalogCode: 'KM',
     description: 'Primary catalog number (KM by default)',
-    defaultSourceKey: 'catalog_references'
+    defaultSourceKey: 'catalog_references',
+    category: 'main',
+    displayOrder: 30
   },
 
   catalognum2: {
@@ -584,7 +656,9 @@ const DEFAULT_FIELD_MAPPING = {
     requiresIssueData: false,
     catalogCode: 'Schön',
     description: 'Secondary catalog number (Schön by default)',
-    defaultSourceKey: 'catalog_references'
+    defaultSourceKey: 'catalog_references',
+    category: 'main',
+    displayOrder: 31
   },
 
   catalognum3: {
@@ -595,7 +669,9 @@ const DEFAULT_FIELD_MAPPING = {
     requiresIssueData: false,
     catalogCode: 'Y',
     description: 'Tertiary catalog number (Y by default)',
-    defaultSourceKey: 'catalog_references'
+    defaultSourceKey: 'catalog_references',
+    category: 'main',
+    displayOrder: 32
   },
 
   catalognum4: {
@@ -606,7 +682,9 @@ const DEFAULT_FIELD_MAPPING = {
     requiresIssueData: false,
     catalogCode: 'Numista',
     description: 'Numista catalog number (Numista ID)',
-    defaultSourceKey: 'numista_id'
+    defaultSourceKey: 'numista_id',
+    category: 'main',
+    displayOrder: 33
   },
   
   // ============================================================================

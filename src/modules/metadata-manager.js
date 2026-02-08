@@ -22,6 +22,8 @@
  * ```
  */
 
+const log = require('../main/logger').scope('Metadata');
+
 const METADATA_START_TAG = '<!-- NUMISMAT_ENRICHMENT_DATA';
 const METADATA_END_TAG = '-->';
 
@@ -61,7 +63,7 @@ function readEnrichmentMetadata(noteField) {
     
     if (endIndex === -1) {
       // Malformed metadata block - treat as user notes
-      console.warn('Malformed metadata block detected - missing end tag');
+      log.warn('Malformed metadata block detected - missing end tag');
       result.userNotes = noteField.trim();
       return result;
     }
@@ -79,17 +81,17 @@ function readEnrichmentMetadata(noteField) {
         if (isValidMetadata(parsed)) {
           result.metadata = parsed;
         } else {
-          console.warn('Invalid metadata structure - using defaults');
+          log.warn('Invalid metadata structure - using defaults');
           // Keep default metadata but preserve user notes
         }
       } catch (parseError) {
-        console.error('Failed to parse metadata JSON:', parseError.message);
+        log.error('Failed to parse metadata JSON:', parseError.message);
         // Keep default metadata but preserve user notes
       }
     }
 
   } catch (error) {
-    console.error('Error reading enrichment metadata:', error);
+    log.error('Error reading enrichment metadata:', error);
     // On any error, preserve as much as possible
     result.userNotes = noteField ? noteField.trim() : '';
   }
@@ -126,7 +128,7 @@ function writeEnrichmentMetadata(userNotes, metadata) {
     return noteContent;
 
   } catch (error) {
-    console.error('Error writing enrichment metadata:', error);
+    log.error('Error writing enrichment metadata:', error);
     // On error, preserve user notes only
     return userNotes || '';
   }

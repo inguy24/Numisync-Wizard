@@ -7,10 +7,16 @@
     "start": "electron .",
     "dev": "electron . --inspect",
     "build": "electron-builder build --win",
+    "build:win": "electron-builder build --win",
     "build:dir": "electron-builder build --win --dir",
     "build:portable": "electron-builder build --win portable",
     "pack": "electron-builder --dir",
     "dist": "electron-builder",
+    "version:patch": "npm version patch",
+    "version:minor": "npm version minor",
+    "version:major": "npm version major",
+    "preversion": "node scripts/validate-version.js",
+    "postversion": "node scripts/post-version.js",
     "postinstall": "electron-builder install-app-deps",
     "test": "echo 'Tests not yet configured'"
   },
@@ -35,6 +41,8 @@
     "@polar-sh/sdk": "^0.42.5",
     "axios": "^1.13.4",
     "electron": "^28.3.3",
+    "electron-log": "^5.4.3",
+    "electron-updater": "^6.7.3",
     "sql.js": "^1.10.3"
   },
   "devDependencies": {

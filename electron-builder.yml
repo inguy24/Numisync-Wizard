@@ -24,6 +24,8 @@ files:
 extraResources:
   - from: swagger.yaml
     to: swagger.yaml
+  - from: EULA.txt
+    to: EULA.txt
 
 # Windows-specific configuration
 win:
@@ -48,7 +50,8 @@ nsis:
   createStartMenuShortcut: true
   shortcutName: NumiSync Wizard
   uninstallDisplayName: NumiSync Wizard
-  license: LICENSE.txt
+  license: build/eula/eula-windows.rtf
+  include: build/installer.nsh
   installerIcon: build/icon.ico
   uninstallerIcon: build/icon.ico
   installerHeaderIcon: build/icon.ico

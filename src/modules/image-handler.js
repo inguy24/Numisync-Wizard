@@ -1,4 +1,5 @@
 const axios = require('axios');
+const log = require('../main/logger').scope('ImageHandler');
 
 /**
  * Image Handler Module
@@ -55,7 +56,7 @@ class ImageHandler {
       const base64 = buffer.toString('base64');
       return `data:${mimeType};base64,${base64}`;
     } catch (error) {
-      console.error('Error converting BLOB to data URI:', error);
+      log.error('Error converting BLOB to data URI:', error);
       return null;
     }
   }
@@ -181,8 +182,11 @@ class ImageHandler {
       urls.reverse = numistaType.reverse_thumbnail.replace('150x150', '400x400');
     }
 
+    // edge_thumbnail may not exist at top level - fall back to edge.picture
     if (numistaType.edge_thumbnail) {
       urls.edge = numistaType.edge_thumbnail.replace('150x150', '400x400');
+    } else if (numistaType.edge?.picture) {
+      urls.edge = numistaType.edge.picture;
     }
 
     return urls;

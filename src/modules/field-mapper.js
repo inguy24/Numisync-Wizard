@@ -1,4 +1,5 @@
 const { DEFAULT_FIELD_MAPPING, getCatalogNumber, getNestedValue, formatCatalogForDisplay } = require('./default-field-mapping');
+const log = require('../main/logger').scope('FieldMapper');
 
 /**
  * Field Mapper
@@ -25,10 +26,10 @@ class FieldMapper {
    * @returns {Object} - Mapped data ready for OpenNumismat
    */
   mapToOpenNumismat(numistaData, issueData = null, pricingData = null, userSettings = {}) {
-    console.log('=== mapToOpenNumismat called ===');
-    console.log('numistaData keys:', Object.keys(numistaData || {}));
-    console.log('issueData:', issueData ? 'provided' : 'null');
-    console.log('pricingData:', pricingData ? 'provided' : 'null');
+    log.debug('=== mapToOpenNumismat called ===');
+    log.debug('numistaData keys:', Object.keys(numistaData || {}));
+    log.debug('issueData:', issueData ? 'provided' : 'null');
+    log.debug('pricingData:', pricingData ? 'provided' : 'null');
     
     const mapped = {};
     let processedCount = 0;
@@ -50,14 +51,14 @@ class FieldMapper {
       // Skip if requires issue data but none provided
       if (config.requiresIssueData && !issueData) {
         skippedRequiresIssue++;
-        console.log(`  Skipping '${onField}' - requires issue data`);
+        log.debug(`  Skipping '${onField}' - requires issue data`);
         continue;
       }
       
       // Skip if requires pricing data but none provided
       if (config.requiresPricingData && !pricingData) {
         skippedRequiresPricing++;
-        console.log(`  Skipping '${onField}' - requires pricing data`);
+        log.debug(`  Skipping '${onField}' - requires pricing data`);
         continue;
       }
 
@@ -68,21 +69,21 @@ class FieldMapper {
         if (onField.startsWith('catalognum')) {
           // Special handling for catalog numbers
           const catalogCode = config.catalogCode || userSettings.catalogMappings?.[onField];
-          console.log(`  Processing catalognum '${onField}' with code '${catalogCode}'`);
+          log.debug(`  Processing catalognum '${onField}' with code '${catalogCode}'`);
           
           if (catalogCode === 'Numista' && onField === 'catalognum4') {
             // Special case: Numista ID (direct from numistaData.id)
             value = numistaData.id ? String(numistaData.id) : null;
-            console.log(`    -> Numista ID: ${value}`);
+            log.debug(`    -> Numista ID: ${value}`);
           } else if (catalogCode && numistaData.references) {
             // Standard catalog reference lookup
             value = getCatalogNumber(numistaData.references, catalogCode);
-            console.log(`    -> Found in references: ${value}`);
+            log.debug(`    -> Found in references: ${value}`);
           }
         } else if (onField.match(/img$/)) {
           // Image fields - just store the URL (or download later)
           value = getNestedValue(numistaData, config.numistaPath);
-          console.log(`  Image field '${onField}': ${value ? 'has URL' : 'no URL'}`);
+          log.debug(`  Image field '${onField}': ${value ? 'has URL' : 'no URL'}`);
         } else if (onField === 'mintage' && issueData) {
           // Get mintage from issue data
           value = issueData.mintage;
@@ -102,7 +103,7 @@ class FieldMapper {
           if (gradeKey && pricingData.prices) {
             const priceObj = pricingData.prices.find(p => p.grade === gradeKey);
             value = priceObj?.price || null;
-            console.log(`  Pricing field '${onField}' (${gradeKey}): ${value}`);
+            log.debug(`  Pricing field '${onField}' (${gradeKey}): ${value}`);
           }
         } else {
           // Standard field mapping
@@ -110,7 +111,7 @@ class FieldMapper {
           value = getNestedValue(numistaData, path);
           
           if (processedCount <= 10 || value !== null) {  // Log first 10 or any with values
-            console.log(`  Field '${onField}' from '${path}': ${value === null ? 'null' : (typeof value === 'object' ? JSON.stringify(value).substring(0, 50) : value)}`);
+            log.debug(`  Field '${onField}' from '${path}': ${value === null ? 'null' : (typeof value === 'object' ? JSON.stringify(value).substring(0, 50) : value)}`);
           }
         }
 
@@ -118,31 +119,31 @@ class FieldMapper {
         if (value !== null && config.transform && typeof config.transform === 'function') {
           const originalValue = value;
           value = config.transform(value, numistaData);
-          console.log(`    Transformed '${onField}': ${JSON.stringify(originalValue).substring(0, 30)} -> ${value}`);
+          log.debug(`    Transformed '${onField}': ${JSON.stringify(originalValue).substring(0, 30)} -> ${value}`);
         }
 
         // Only add if we have a value
         if (value !== null && value !== undefined && value !== '') {
           mapped[onField] = value;
           addedCount++;
-          console.log(`    ✔ Added '${onField}' = '${value}'`);
+          log.debug('[OK] Added %s = %s', onField, value);
         } else {
           skippedNoValue++;
         }
       } catch (error) {
-        console.error(`Error mapping field ${onField}:`, error);
+        log.error(`Error mapping field ${onField}:`, error);
         // Continue with other fields
       }
     }
 
-    console.log(`=== Mapping complete ===`);
-    console.log(`  Processed: ${processedCount} fields`);
-    console.log(`  Skipped (disabled): ${skippedDisabled}`);
-    console.log(`  Skipped (requires issue): ${skippedRequiresIssue}`);
-    console.log(`  Skipped (requires pricing): ${skippedRequiresPricing}`);
-    console.log(`  Skipped (no value): ${skippedNoValue}`);
-    console.log(`  Added to mapped: ${addedCount}`);
-    console.log(`  Final mapped keys:`, Object.keys(mapped));
+    log.debug(`=== Mapping complete ===`);
+    log.debug(`  Processed: ${processedCount} fields`);
+    log.debug(`  Skipped (disabled): ${skippedDisabled}`);
+    log.debug(`  Skipped (requires issue): ${skippedRequiresIssue}`);
+    log.debug(`  Skipped (requires pricing): ${skippedRequiresPricing}`);
+    log.debug(`  Skipped (no value): ${skippedNoValue}`);
+    log.debug(`  Added to mapped: ${addedCount}`);
+    log.debug(`  Final mapped keys:`, Object.keys(mapped));
 
     return mapped;
   }
@@ -194,7 +195,9 @@ class FieldMapper {
         isDifferent,
         priority: config.priority,
         description: config.description,
-        catalogCode: config.catalogCode || null  // Include catalog code for reference
+        catalogCode: config.catalogCode || null,  // Include catalog code for reference
+        category: config.category || 'main',  // Field category (main, issue, pricing)
+        displayOrder: config.displayOrder || 999  // Display order within category
       });
 
       if (isDifferent) {
@@ -202,15 +205,17 @@ class FieldMapper {
       }
     }
 
-    // Sort by priority and whether different
+    // Sort by category (main → issue → pricing), then by displayOrder within category
+    const categoryOrder = { main: 0, issue: 1, pricing: 2 };
     comparison.fields.sort((a, b) => {
-      // Different fields first
-      if (a.isDifferent !== b.isDifferent) {
-        return a.isDifferent ? -1 : 1;
+      // First sort by category
+      const catA = categoryOrder[a.category] ?? 99;
+      const catB = categoryOrder[b.category] ?? 99;
+      if (catA !== catB) {
+        return catA - catB;
       }
-      // Then by priority
-      const priorityOrder = { HIGH: 0, MEDIUM: 1, LOW: 2 };
-      return priorityOrder[a.priority] - priorityOrder[b.priority];
+      // Then by displayOrder within category
+      return (a.displayOrder || 999) - (b.displayOrder || 999);
     });
 
     return comparison;
@@ -258,35 +263,35 @@ class FieldMapper {
    * @returns {Object} - Data to update in database
    */
   mergeFields(selectedFields, numistaData, issueData = null, pricingData = null) {
-    console.log('=== mergeFields called ===');
-    console.log('selectedFields:', JSON.stringify(selectedFields, null, 2));
-    console.log('numistaData.id:', numistaData?.id);
-    console.log('numistaData.title:', numistaData?.title);
-    console.log('issueData:', issueData ? 'provided' : 'null');
-    console.log('pricingData:', pricingData ? 'provided' : 'null');
+    log.debug('=== mergeFields called ===');
+    log.debug('selectedFields:', JSON.stringify(selectedFields, null, 2));
+    log.debug('numistaData.id:', numistaData?.id);
+    log.debug('numistaData.title:', numistaData?.title);
+    log.debug('issueData:', issueData ? 'provided' : 'null');
+    log.debug('pricingData:', pricingData ? 'provided' : 'null');
     
     const updates = {};
 
     // Map Numista data (pass issueData and pricingData)
     const mapped = this.mapToOpenNumismat(numistaData, issueData, pricingData);
-    console.log('Mapped data:', JSON.stringify(mapped, null, 2));
+    log.debug('Mapped data:', JSON.stringify(mapped, null, 2));
 
     for (const [field, value] of Object.entries(selectedFields)) {
-      console.log(`Checking field '${field}': selected=${value}, hasMappedValue=${mapped[field] !== undefined}`);
+      log.debug(`Checking field '${field}': selected=${value}, hasMappedValue=${mapped[field] !== undefined}`);
       
       // Handle both boolean (true/false) and string ("numista"/"keep") formats
       const shouldUpdate = value === true || value === 'numista';
       
       if (shouldUpdate && mapped[field] !== undefined) {
         updates[field] = mapped[field];
-        console.log(`  ✔ Adding '${field}' = '${mapped[field]}'`);
+        log.debug('[OK] Adding %s = %s', field, mapped[field]);
       } else {
-        console.log(`  ✗ Skipping '${field}' (shouldUpdate=${shouldUpdate}, hasValue=${mapped[field] !== undefined})`);
+        log.debug('[SKIP] Skipping %s (shouldUpdate=%s, hasValue=%s)', field, shouldUpdate, mapped[field] !== undefined);
       }
     }
 
-    console.log('Final updates object:', JSON.stringify(updates, null, 2));
-    console.log('=== mergeFields done ===');
+    log.debug('Final updates object:', JSON.stringify(updates, null, 2));
+    log.debug('=== mergeFields done ===');
     
     return updates;
   }

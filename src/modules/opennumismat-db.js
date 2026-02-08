@@ -1,6 +1,7 @@
 const initSqlJs = require('sql.js');
 const path = require('path');
 const fs = require('fs');
+const log = require('../main/logger').scope('Database');
 
 // Fields that must never be overwritten by merge operations.
 // These are primary keys or foreign keys referencing other tables.
@@ -132,8 +133,8 @@ class OpenNumismatDB {
    */
   _run(sql, params = []) {
     try {
-      console.log('Running SQL:', sql);
-      console.log('With params:', params);
+      log.debug('Running SQL:', sql);
+      log.debug('With params:', params);
       
       // sql.js requires prepared statements for parameterized queries
       const stmt = this.db.prepare(sql);
@@ -141,15 +142,15 @@ class OpenNumismatDB {
       const result = stmt.step();
       stmt.free();
       
-      console.log('Statement executed, result:', result);
+      log.debug('Statement executed, result:', result);
       
       // Save to file immediately
       this._saveToFile();
       
-      console.log('Database file saved successfully');
+      log.debug('Database file saved successfully');
       return { changes: 1 };  // Assume 1 row changed if no error
     } catch (error) {
-      console.error('Error in _run:', error);
+      log.error('Error in _run:', error);
       throw error;
     }
   }
@@ -161,21 +162,21 @@ class OpenNumismatDB {
    */
   _saveToFile() {
     try {
-      console.log('Exporting database...');
+      log.debug('Exporting database...');
       const data = this.db.export();
-      console.log('Database exported, size:', data.length, 'bytes');
+      log.debug('Database exported, size:', data.length, 'bytes');
       
       const buffer = Buffer.from(data);
-      console.log('Writing to file:', this.filePath);
+      log.debug('Writing to file:', this.filePath);
       
       fs.writeFileSync(this.filePath, buffer);
-      console.log('File written successfully');
+      log.debug('File written successfully');
       
       // Verify file was written
       const stats = fs.statSync(this.filePath);
-      console.log('File size on disk:', stats.size, 'bytes');
+      log.debug('File size on disk:', stats.size, 'bytes');
     } catch (error) {
-      console.error('Error saving database file:', error);
+      log.error('Error saving database file:', error);
       throw error;
     }
   }
@@ -300,17 +301,17 @@ class OpenNumismatDB {
     // Filter out protected fields (primary key, foreign keys)
     const fields = Object.keys(data).filter(field => {
       if (PROTECTED_FIELDS.has(field)) {
-        console.warn(`Blocked attempt to update protected field: ${field}`);
+        log.warn('Blocked attempt to update protected field: %s', field);
         return false;
       }
       return true;
     });
     if (fields.length === 0) {
-      console.log('No fields to update');
+      log.debug('No fields to update');
       return false;
     }
 
-    console.log(`Updating coin ${coinId} with ${fields.length} fields:`, fields);
+    log.debug(`Updating coin ${coinId} with ${fields.length} fields:`, fields);
 
     const setClause = fields.map(field => `${field} = ?`).join(', ');
     const values = fields.map(field => data[field]);
@@ -322,16 +323,16 @@ class OpenNumismatDB {
     
     // Verify the update by reading back the coin
     const updatedCoin = this.getCoinById(coinId);
-    console.log('Coin after update:', updatedCoin);
+    log.debug('Coin after update:', updatedCoin);
     
     // Check if at least one field was updated correctly
     let verified = false;
     for (const field of fields) {
       if (updatedCoin[field] === data[field]) {
         verified = true;
-        console.log(`✔ Field '${field}' verified: ${data[field]}`);
+        log.debug('[OK] Field %s verified: %s', field, data[field]);
       } else {
-        console.warn(`✗ Field '${field}' mismatch. Expected: ${data[field]}, Got: ${updatedCoin[field]}`);
+        log.warn('[MISMATCH] Field %s mismatch. Expected: %s, Got: %s', field, data[field], updatedCoin[field]);
       }
     }
     
@@ -408,9 +409,9 @@ class OpenNumismatDB {
       try {
         fs.unlinkSync(fullPath);
         deleted.push(fullPath);
-        console.log(`Pruned old backup: ${filename}`);
+        log.info('Pruned old backup: %s', filename);
       } catch (err) {
-        console.warn(`Failed to delete backup ${filename}:`, err.message);
+        log.warn('Failed to delete backup %s: %s', filename, err.message);
       }
     }
     return deleted;
@@ -466,7 +467,7 @@ class OpenNumismatDB {
       // sql.js returns BLOB data as Uint8Array
       return Buffer.from(result.image);
     } catch (error) {
-      console.error(`Error reading image ${imageId}:`, error);
+      log.error(`Error reading image ${imageId}:`, error);
       return null;
     }
   }
@@ -494,7 +495,7 @@ class OpenNumismatDB {
       // sql.js returns BLOB data as Uint8Array
       return Buffer.from(result.image);
     } catch (error) {
-      console.error(`Error reading photo ${photoId}:`, error);
+      log.error(`Error reading photo ${photoId}:`, error);
       return null;
     }
   }
@@ -516,17 +517,18 @@ class OpenNumismatDB {
       return null;
     }
 
-    // obverseimg/reverseimg reference the photos table (separate obverse/reverse images)
+    // obverseimg/reverseimg/edgeimg reference the photos table
     const obverse = this.getPhotoData(coin.obverseimg);
     const reverse = this.getPhotoData(coin.reverseimg);
+    const edge = this.getPhotoData(coin.edgeimg);
 
     return {
       obverse,
       reverse,
-      edge: null,
+      edge,
       obverseId: coin.obverseimg,
       reverseId: coin.reverseimg,
-      edgeId: null
+      edgeId: coin.edgeimg
     };
   }
 
@@ -551,7 +553,8 @@ class OpenNumismatDB {
   }
 
   /**
-   * Insert image BLOB into images table
+   * Insert image BLOB into images table (for composite thumbnails)
+   * Note: For obverse/reverse/edge images, use insertPhoto() instead.
    *
    * @param {Buffer} imageData - Image data as buffer
    * @param {string} title - Optional title for the image
@@ -579,21 +582,61 @@ class OpenNumismatDB {
       // Save to file
       this._saveToFile();
 
-      console.log(`Image inserted with ID: ${imageId}`);
+      log.debug(`Image inserted with ID: ${imageId}`);
       return imageId;
     } catch (error) {
-      console.error('Error inserting image:', error);
+      log.error('Error inserting image:', error);
       throw error;
     }
   }
 
   /**
-   * Update coin images (using image IDs)
+   * Insert photo BLOB into photos table (for obverse/reverse/edge images)
+   * OpenNumismat uses the photos table for coin face images, referenced by
+   * obverseimg, reverseimg, edgeimg columns in the coins table.
+   *
+   * @param {Buffer} photoData - Photo data as buffer
+   * @returns {number} The ID of the inserted photo
+   */
+  insertPhoto(photoData) {
+    if (!photoData || !Buffer.isBuffer(photoData)) {
+      throw new Error('Invalid photo data');
+    }
+
+    try {
+      // Convert Buffer to Uint8Array for sql.js
+      const uint8Array = new Uint8Array(photoData);
+
+      // Insert the photo (photos table has id and image columns)
+      const stmt = this.db.prepare('INSERT INTO photos (image) VALUES (?)');
+      stmt.bind([uint8Array]);
+      stmt.step();
+      stmt.free();
+
+      // Get the last inserted ID
+      const result = this.db.exec('SELECT last_insert_rowid() as id');
+      const photoId = result[0].values[0][0];
+
+      // Save to file
+      this._saveToFile();
+
+      log.debug(`Photo inserted with ID: ${photoId}`);
+      return photoId;
+    } catch (error) {
+      log.error('Error inserting photo:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update coin image references (using photo IDs from photos table)
+   * The obverseimg/reverseimg/edgeimg columns reference the photos table.
    *
    * @param {number} coinId
-   * @param {Object} images - Object with obverse, reverse, and/or edge properties (image IDs)
+   * @param {Object} images - Object with obverse, reverse, and/or edge properties (photo IDs)
    */
   updateCoinImages(coinId, images) {
+    log.debug(`updateCoinImages called for coin ${coinId}:`, images);
     const updates = {};
 
     if (images.obverse !== undefined) {
@@ -606,45 +649,81 @@ class OpenNumismatDB {
       updates.edgeimg = images.edge;
     }
 
-    if (Object.keys(updates).length > 0) {
-      this.updateCoin(coinId, updates);
+    log.debug('Updates to apply:', updates);
+
+    const fields = Object.keys(updates);
+    if (fields.length === 0) {
+      log.debug('No image updates to apply');
+      return;
     }
+
+    // Direct SQL update - bypasses PROTECTED_FIELDS since we're setting valid photo IDs
+    // (PROTECTED_FIELDS blocks URL strings from merge operations, but photo IDs are valid)
+    const setClause = fields.map(field => `${field} = ?`).join(', ');
+    const values = fields.map(field => updates[field]);
+    values.push(coinId);
+
+    const query = `UPDATE coins SET ${setClause} WHERE id = ?`;
+    log.debug('Running image update SQL:', query);
+    log.debug('With values:', values);
+
+    this._run(query, values);
+    log.debug(`Coin ${coinId} image columns updated successfully`);
   }
 
   /**
    * Download and store images for a coin
+   * Uses photos table for obverse/reverse/edge images (not images table).
    *
    * @param {number} coinId - The coin ID
    * @param {Object} imageBuffers - Object with obverse, reverse, and/or edge Buffers
-   * @returns {Object} Object with the image IDs that were created
+   * @returns {Object} Object with the photo IDs that were created
    */
   async storeImagesForCoin(coinId, imageBuffers) {
-    const imageIds = {};
+    log.debug('=== storeImagesForCoin DEBUG ===');
+    log.debug('Coin ID:', coinId);
+    log.debug('Image buffers received:', {
+      obverse: imageBuffers.obverse ? `Buffer(${imageBuffers.obverse.length})` : 'none',
+      reverse: imageBuffers.reverse ? `Buffer(${imageBuffers.reverse.length})` : 'none',
+      edge: imageBuffers.edge ? `Buffer(${imageBuffers.edge.length})` : 'none'
+    });
+
+    const photoIds = {};
 
     try {
+      // Use insertPhoto (photos table) for coin face images
+      // The coins table columns obverseimg/reverseimg/edgeimg reference photos table
       if (imageBuffers.obverse && Buffer.isBuffer(imageBuffers.obverse)) {
-        console.log(`Storing obverse image for coin ${coinId}`);
-        imageIds.obverse = this.insertImage(imageBuffers.obverse, `Coin ${coinId} - Obverse`);
+        log.debug(`Storing obverse photo for coin ${coinId} (${imageBuffers.obverse.length} bytes)`);
+        photoIds.obverse = this.insertPhoto(imageBuffers.obverse);
+        log.debug(`Obverse photo stored with ID: ${photoIds.obverse}`);
       }
 
       if (imageBuffers.reverse && Buffer.isBuffer(imageBuffers.reverse)) {
-        console.log(`Storing reverse image for coin ${coinId}`);
-        imageIds.reverse = this.insertImage(imageBuffers.reverse, `Coin ${coinId} - Reverse`);
+        log.debug(`Storing reverse photo for coin ${coinId} (${imageBuffers.reverse.length} bytes)`);
+        photoIds.reverse = this.insertPhoto(imageBuffers.reverse);
+        log.debug(`Reverse photo stored with ID: ${photoIds.reverse}`);
       }
 
       if (imageBuffers.edge && Buffer.isBuffer(imageBuffers.edge)) {
-        console.log(`Storing edge image for coin ${coinId}`);
-        imageIds.edge = this.insertImage(imageBuffers.edge, `Coin ${coinId} - Edge`);
+        log.debug(`Storing edge photo for coin ${coinId} (${imageBuffers.edge.length} bytes)`);
+        photoIds.edge = this.insertPhoto(imageBuffers.edge);
+        log.debug(`Edge photo stored with ID: ${photoIds.edge}`);
+      } else {
+        log.debug('No edge buffer to store - edge image will not be saved');
       }
 
-      // Update the coin record with the new image IDs
-      if (Object.keys(imageIds).length > 0) {
-        this.updateCoinImages(coinId, imageIds);
+      log.debug('Photo IDs to update coin with:', photoIds);
+
+      // Update the coin record with the new photo IDs
+      if (Object.keys(photoIds).length > 0) {
+        this.updateCoinImages(coinId, photoIds);
       }
 
-      return imageIds;
+      log.debug('=== END storeImagesForCoin ===');
+      return photoIds;
     } catch (error) {
-      console.error('Error storing images for coin:', error);
+      log.error('Error storing images for coin:', error);
       throw error;
     }
   }

@@ -1,5 +1,7 @@
 const axios = require('axios');
 const { mintmarksMatch } = require('./mintmark-normalizer');
+const { unitsMatch: denominationUnitsMatch } = require('./denomination-normalizer');
+const log = require('../main/logger').scope('NumistaAPI');
 
 /**
  * Numista API Client
@@ -65,6 +67,30 @@ function diceCoefficient(a, b) {
   return (2.0 * intersectionSize) / ((a.length - 1) + (b.length - 1));
 }
 
+// Default persistent cache TTLs (overridden by user settings)
+const DEFAULT_CACHE_TTL = {
+  ISSUERS: 90 * 24 * 60 * 60 * 1000,      // 90 days
+  TYPE_DATA: 30 * 24 * 60 * 60 * 1000,     // 30 days
+  ISSUES_DATA: 30 * 24 * 60 * 60 * 1000    // 30 days
+};
+
+// Map API endpoint paths to usage tracking names
+const ENDPOINT_USAGE_MAP = {
+  '/types': 'searchTypes',
+  '/issuers': 'getIssuers'
+};
+
+// Derive endpoint name from path for usage tracking
+function getEndpointName(endpoint) {
+  // Exact match first
+  if (ENDPOINT_USAGE_MAP[endpoint]) return ENDPOINT_USAGE_MAP[endpoint];
+  // Pattern matching for parameterized endpoints
+  if (/^\/types\/\d+\/issues\/\d+\/prices/.test(endpoint)) return 'getPrices';
+  if (/^\/types\/\d+\/issues/.test(endpoint)) return 'getIssues';
+  if (/^\/types\/\d+/.test(endpoint)) return 'getType';
+  return 'other';
+}
+
 /**
  * Numista API client class for communicating with Numista v3 API.
  * Implements rate limiting, caching, and comprehensive error handling.
@@ -73,14 +99,29 @@ class NumistaAPI {
   /**
    * Creates a new NumistaAPI instance
    * @param {string|null} apiKey - Numista API key (can be set later via setApiKey)
+   * @param {Object|null} persistentCache - ApiCache instance for disk-based caching
+   * @param {Object} [cacheTTLs] - User-configured cache TTLs in days (0 = no caching)
+   * @param {number} [cacheTTLs.issuers] - Issuers cache TTL in days
+   * @param {number} [cacheTTLs.types] - Type data cache TTL in days
+   * @param {number} [cacheTTLs.issues] - Issues data cache TTL in days
    */
-  constructor(apiKey = null) {
+  constructor(apiKey = null, persistentCache = null, cacheTTLs = {}) {
     this.baseURL = 'https://api.numista.com/v3';
     this.apiKey = apiKey;
     this.cache = new Map();  // Simple in-memory cache
     this.issuerCodeCache = new Map();  // country name -> issuer code cache
     this.lastRequestTime = 0;
     this.minRequestDelay = 2000;  // 2 seconds between requests (respectful rate limiting)
+    this.persistentCache = persistentCache;
+    this.apiCallCount = 0;  // Tracks real HTTP calls made (not cache hits)
+
+    // Convert user TTLs from days to milliseconds (0 = no caching)
+    const DAY_MS = 24 * 60 * 60 * 1000;
+    this.cacheTTLs = {
+      issuers: cacheTTLs.issuers != null ? cacheTTLs.issuers * DAY_MS : DEFAULT_CACHE_TTL.ISSUERS,
+      types: cacheTTLs.types != null ? cacheTTLs.types * DAY_MS : DEFAULT_CACHE_TTL.TYPE_DATA,
+      issues: cacheTTLs.issues != null ? cacheTTLs.issues * DAY_MS : DEFAULT_CACHE_TTL.ISSUES_DATA
+    };
   }
 
   /**
@@ -133,6 +174,13 @@ class NumistaAPI {
         },
         timeout: 30000  // 30 second timeout
       });
+
+      // Track usage — only reached when a real HTTP call was made (not a cache hit)
+      this.apiCallCount++;
+      if (this.persistentCache) {
+        const endpointName = getEndpointName(endpoint);
+        this.persistentCache.incrementUsage(endpointName);
+      }
 
       return response.data;
     } catch (error) {
@@ -201,14 +249,29 @@ class NumistaAPI {
    */
   async getType(typeId, lang = 'en') {
     const cacheKey = `type:${typeId}:${lang}`;
-    
+
+    // 1. Check in-memory cache
     if (this.cache.has(cacheKey)) {
       return this.cache.get(cacheKey);
     }
 
+    // 2. Check persistent cache
+    if (this.persistentCache && this.cacheTTLs.types > 0) {
+      const cached = this.persistentCache.get(cacheKey);
+      if (cached) {
+        this.cache.set(cacheKey, cached);
+        return cached;
+      }
+    }
+
+    // 3. Fetch from API
     const result = await this.request(`/types/${typeId}`, { lang });
     this.cache.set(cacheKey, result);
-    
+
+    if (this.persistentCache && this.cacheTTLs.types > 0) {
+      this.persistentCache.set(cacheKey, result, this.cacheTTLs.types);
+    }
+
     return result;
   }
 
@@ -222,13 +285,28 @@ class NumistaAPI {
   async getTypeIssues(typeId, lang = 'en') {
     const cacheKey = `issues:${typeId}:${lang}`;
 
+    // 1. Check in-memory cache
     if (this.cache.has(cacheKey)) {
       return this.cache.get(cacheKey);
     }
 
+    // 2. Check persistent cache
+    if (this.persistentCache && this.cacheTTLs.issues > 0) {
+      const cached = this.persistentCache.get(cacheKey);
+      if (cached) {
+        this.cache.set(cacheKey, cached);
+        return cached;
+      }
+    }
+
+    // 3. Fetch from API
     const result = await this.request(`/types/${typeId}/issues`, { lang });
-    console.log('getTypeIssues response for type', typeId, ':', JSON.stringify(result, null, 2));
+    log.debug('getTypeIssues response for type', typeId, ':', JSON.stringify(result, null, 2));
     this.cache.set(cacheKey, result);
+
+    if (this.persistentCache && this.cacheTTLs.issues > 0) {
+      this.persistentCache.set(cacheKey, result, this.cacheTTLs.issues);
+    }
 
     return result;
   }
@@ -264,17 +342,17 @@ class NumistaAPI {
    * @returns {Object} - { type: 'AUTO_MATCHED'|'USER_PICK'|'NO_MATCH'|'NO_ISSUES', issue?, options?, privyMarksDetected? }
    */
   matchIssue(coin, issuesResponse, options = {}) {
-    console.log('\n=== SMART ISSUE MATCHING ===');
-    console.log('User coin data:', { year: coin.year, mintmark: coin.mintmark, type: coin.type });
+    log.debug('\n=== SMART ISSUE MATCHING ===');
+    log.debug('User coin data:', { year: coin.year, mintmark: coin.mintmark, type: coin.type });
 
     const emptyMintmarkInterpretation = options.emptyMintmarkInterpretation || 'no_mint_mark';
 
     // API returns array directly, not wrapped in object
     const issues = Array.isArray(issuesResponse) ? issuesResponse : (issuesResponse?.issues || []);
-    console.log(`Total issues available: ${issues.length}`);
+    log.debug(`Total issues available: ${issues.length}`);
 
     if (issues.length === 0) {
-      console.log('Result: NO_ISSUES (empty array)');
+      log.debug('Result: NO_ISSUES (empty array)');
       return { type: 'NO_ISSUES' };
     }
 
@@ -283,44 +361,44 @@ class NumistaAPI {
 
     // STEP 1: Filter by year (required)
     if (!userYear) {
-      console.log('Result: USER_PICK (no year in user coin - cannot auto-match)');
+      log.debug('Result: USER_PICK (no year in user coin - cannot auto-match)');
       return { type: 'USER_PICK', options: issues };
     }
 
-    const yearMatchedIssues = issues.filter(i => i.year == userYear);
+    const yearMatchedIssues = issues.filter(i => i.year == userYear || i.gregorian_year == userYear);
     let candidates = [...yearMatchedIssues];
-    console.log(`After year filter (${userYear}): ${candidates.length} matches`);
+    log.debug(`After year filter (${userYear}): ${candidates.length} matches`);
 
     if (candidates.length === 0) {
-      console.log('Result: USER_PICK (no issues match year - showing all for user to pick)');
+      log.debug('Result: USER_PICK (no issues match year - showing all for user to pick)');
       return { type: 'USER_PICK', options: issues };
     }
 
     if (candidates.length === 1) {
-      console.log('Result: AUTO_MATCHED (only one issue for this year)');
+      log.debug('Result: AUTO_MATCHED (only one issue for this year)');
       return { type: 'AUTO_MATCHED', issue: candidates[0] };
     }
 
     // STEP 2: Multiple matches for year - check which fields differentiate them
-    console.log('\nMultiple issues for year - analyzing differentiating fields...');
+    log.debug('\nMultiple issues for year - analyzing differentiating fields...');
 
     // Check if mint_letter varies (include null/empty as a distinct value)
     const mintLetterValues = candidates.map(c => c.mint_letter || null);
     const uniqueMints = new Set(mintLetterValues);
     const hasMintVariation = uniqueMints.size > 1;
-    console.log(`Mint variation: ${hasMintVariation} (unique values: ${Array.from(uniqueMints).join(', ') || 'none'})`);
+    log.debug(`Mint variation: ${hasMintVariation} (unique values: ${Array.from(uniqueMints).join(', ') || 'none'})`);
 
     // Check if comment varies (Proof vs regular)
     const comments = new Set(candidates.map(c => c.comment).filter(c => c));
     const hasCommentVariation = candidates.some(c => c.comment) && candidates.some(c => !c.comment);
-    console.log(`Comment variation: ${hasCommentVariation} (values: ${Array.from(comments).join(', ') || 'none'})`);
+    log.debug(`Comment variation: ${hasCommentVariation} (values: ${Array.from(comments).join(', ') || 'none'})`);
 
     // Task 3.12.8: Check if privy marks or signatures vary (OpenNumismat can't store these)
     const hasPrivyMarks = candidates.some(c => c.marks && c.marks.length > 0);
     const hasSignatures = candidates.some(c => c.signatures && c.signatures.length > 0);
     const hasUnmappableVariation = hasPrivyMarks || hasSignatures;
     if (hasUnmappableVariation) {
-      console.log(`Unmappable variation detected: privy marks=${hasPrivyMarks}, signatures=${hasSignatures}`);
+      log.debug(`Unmappable variation detected: privy marks=${hasPrivyMarks}, signatures=${hasSignatures}`);
     }
 
     // STEP 3: Apply filters based on user's data and field variations
@@ -337,7 +415,7 @@ class NumistaAPI {
         // User has no mintmark - behavior depends on emptyMintmarkInterpretation setting
         if (emptyMintmarkInterpretation === 'unknown') {
           // Task 3.12.7: Treat empty as unknown - let user pick instead of auto-matching
-          console.log('Empty mintmark interpreted as "unknown" - prompting user to pick');
+          log.debug('Empty mintmark interpreted as "unknown" - prompting user to pick');
           return {
             type: 'USER_PICK',
             options: yearMatchedIssues,
@@ -348,16 +426,16 @@ class NumistaAPI {
         // Default: no_mint_mark - match issues with no mint letter (regular/Philadelphia)
         candidates = candidates.filter(i => !i.mint_letter || i.mint_letter.trim() === '');
       }
-      console.log(`Applied mintmark filter (${userMintmark || 'none/blank'}): ${beforeCount} -> ${candidates.length}`);
+      log.debug(`Applied mintmark filter (${userMintmark || 'none/blank'}): ${beforeCount} -> ${candidates.length}`);
 
       if (candidates.length === 1) {
-        console.log('Result: AUTO_MATCHED (after mintmark filter)');
+        log.debug('Result: AUTO_MATCHED (after mintmark filter)');
         return { type: 'AUTO_MATCHED', issue: candidates[0], privyMarksDetected: hasPrivyMarks, signaturesDetected: hasSignatures };
       }
 
       if (candidates.length === 0) {
         // User's mintmark didn't match any issues - show all year matches for user to pick
-        console.log('Mintmark filter yielded no matches - showing all year-matched issues');
+        log.debug('Mintmark filter yielded no matches - showing all year-matched issues');
         return { type: 'USER_PICK', options: yearMatchedIssues, privyMarksDetected: hasPrivyMarks, signaturesDetected: hasSignatures };
       }
     }
@@ -370,25 +448,25 @@ class NumistaAPI {
       if (!userType || userType === '') {
         // User has blank/undefined type → match issues with NO comment (regular circulation)
         candidates = candidates.filter(i => !i.comment || i.comment.trim() === '');
-        console.log(`Applied type filter (blank/regular): ${beforeCount} -> ${candidates.length}`);
+        log.debug(`Applied type filter (blank/regular): ${beforeCount} -> ${candidates.length}`);
       } else if (userType.toLowerCase() === 'proof') {
         // User has type="Proof" → match issues with comment containing "Proof"
         candidates = candidates.filter(i => i.comment && i.comment.toLowerCase().includes('proof'));
-        console.log(`Applied type filter (Proof): ${beforeCount} -> ${candidates.length}`);
+        log.debug(`Applied type filter (Proof): ${beforeCount} -> ${candidates.length}`);
       } else {
         // User has other type value → try to match comment
         candidates = candidates.filter(i => i.comment && i.comment.toLowerCase().includes(userType.toLowerCase()));
-        console.log(`Applied type filter (${userType}): ${beforeCount} -> ${candidates.length}`);
+        log.debug(`Applied type filter (${userType}): ${beforeCount} -> ${candidates.length}`);
       }
 
       if (candidates.length === 1) {
-        console.log('Result: AUTO_MATCHED (after type/comment filter)');
+        log.debug('Result: AUTO_MATCHED (after type/comment filter)');
         return { type: 'AUTO_MATCHED', issue: candidates[0], privyMarksDetected: hasPrivyMarks, signaturesDetected: hasSignatures };
       }
 
       if (candidates.length === 0) {
         // User's type didn't match any issues - show all year matches for user to pick
-        console.log('Type filter yielded no matches - showing all year-matched issues');
+        log.debug('Type filter yielded no matches - showing all year-matched issues');
         return { type: 'USER_PICK', options: yearMatchedIssues, privyMarksDetected: hasPrivyMarks, signaturesDetected: hasSignatures };
       }
     }
@@ -396,12 +474,12 @@ class NumistaAPI {
     // STEP 4: Final result - could not narrow down to 1, show ALL year-matched issues
     // This ensures user sees full options even if filters partially matched
     if (candidates.length === 1) {
-      console.log('Result: AUTO_MATCHED (after all filters)');
+      log.debug('Result: AUTO_MATCHED (after all filters)');
       return { type: 'AUTO_MATCHED', issue: candidates[0], privyMarksDetected: hasPrivyMarks, signaturesDetected: hasSignatures };
     }
 
-    console.log(`Result: USER_PICK (showing all ${yearMatchedIssues.length} year-matched issues for user selection)`);
-    console.log('=== END MATCHING ===\n');
+    log.debug(`Result: USER_PICK (showing all ${yearMatchedIssues.length} year-matched issues for user selection)`);
+    log.debug('=== END MATCHING ===\n');
     return { type: 'USER_PICK', options: yearMatchedIssues, privyMarksDetected: hasPrivyMarks, signaturesDetected: hasSignatures };
   }
 
@@ -425,13 +503,13 @@ class NumistaAPI {
 
     // Fetch basic data if requested
     if (fetchSettings.basicData) {
-      console.log('Fetching basic data for type:', typeId);
+      log.debug('Fetching basic data for type:', typeId);
       result.basicData = await this.getType(typeId);
     }
 
     // Fetch issue data if requested OR if pricing is requested (pricing requires issue data)
     if (fetchSettings.issueData || fetchSettings.pricingData) {
-      console.log('Fetching issues for type:', typeId);
+      log.debug('Fetching issues for type:', typeId);
       const issuesResponse = await this.getTypeIssues(typeId);
 
       // Try to auto-match issue (pass settings for empty mintmark interpretation)
@@ -440,7 +518,7 @@ class NumistaAPI {
       };
       const matchResult = this.matchIssue(coin, issuesResponse, matchOptions);
       result.issueMatchResult = matchResult;
-      console.log('Issue match result:', matchResult.type);
+      log.debug('Issue match result:', matchResult.type);
 
       if (matchResult.type === 'AUTO_MATCHED') {
         result.matchedIssue = matchResult.issue;
@@ -452,11 +530,11 @@ class NumistaAPI {
 
         // Fetch pricing if we have a matched issue and pricing is requested
         if (fetchSettings.pricingData && matchResult.issue.id) {
-          console.log('Fetching pricing for issue:', matchResult.issue.id);
+          log.debug('Fetching pricing for issue:', matchResult.issue.id);
           try {
             result.pricingData = await this.getIssuePricing(typeId, matchResult.issue.id, currency);
           } catch (e) {
-            console.log('Pricing fetch failed:', e.message);
+            log.debug('Pricing fetch failed:', e.message);
             result.pricingData = null;
           }
         }
@@ -512,6 +590,12 @@ class NumistaAPI {
    * @returns {number} Confidence score from 0 to 100
    */
   calculateMatchConfidence(coin, numistaType) {
+    // Numista ID match is a perfect match (100%) - coin was previously enriched with this exact type
+    const coinNumistaId = coin.metadata?.basicData?.numistaId;
+    if (coinNumistaId && numistaType.id && coinNumistaId === numistaType.id) {
+      return 100;
+    }
+
     let score = 0;
 
     // Title match (30 points) - uses Dice coefficient for fuzzy comparison
@@ -552,7 +636,9 @@ class NumistaAPI {
     // Try value.text first, fallback to extracting from title
     let matchDenomination = numistaType.value?.text?.toLowerCase().trim();
     if (!matchDenomination && numistaType.title) {
-      const titleMatch = numistaType.title.match(/^([\d.]+\s*[a-zA-Z]+)/i);
+      // Extract denomination from start of title up to first separator (dash, paren, comma)
+      // Captures multi-word units: "2 Euro Cents - Beatrix" -> "2 Euro Cents"
+      const titleMatch = numistaType.title.match(/^([\d.]+\s*[^-–(,]+)/i);
       if (titleMatch) {
         matchDenomination = titleMatch[1].toLowerCase().trim();
       }
@@ -567,12 +653,12 @@ class NumistaAPI {
 
       if (matchValue !== null) {
         // Check if units match (e.g., "cents" vs "cent" should match, "cent" vs "dime" should not)
-        const unitsMatch = coinUnit && matchUnit && (
-          matchUnit.includes(coinUnit) || coinUnit.includes(matchUnit) ||
+        const unitsAreMatch = coinUnit && matchUnit && (
+          denominationUnitsMatch(coinUnit, matchUnit) ||
           diceCoefficient(coinUnit, matchUnit) > 0.7
         );
 
-        if (coinValue === matchValue && unitsMatch) {
+        if (coinValue === matchValue && unitsAreMatch) {
           // Both numeric value AND unit match - full points
           score += 25;
         } else if (coinValue === matchValue && (!coinUnit || !matchUnit)) {
@@ -582,6 +668,21 @@ class NumistaAPI {
           // Either numeric value differs OR units differ (e.g., "1 Cent" vs "1 Dime")
           // This is a denomination mismatch - penalty
           score -= 20;
+        }
+      }
+    } else if (coinUnit && matchDenomination) {
+      // No numeric value from user's coin, but we have a unit to compare
+      // This handles cases like unit="Euro" where value is empty in OpenNumismat
+      const matchUnit = matchDenomination.replace(/^[\d.]+\s*/, '').trim();
+      if (matchUnit) {
+        const unitsAreMatch = (
+          denominationUnitsMatch(coinUnit, matchUnit) ||
+          diceCoefficient(coinUnit, matchUnit) > 0.7
+        );
+        if (unitsAreMatch) {
+          score += 15; // Unit matches but can't verify numeric value
+        } else {
+          score -= 10; // Unit mismatch
         }
       }
     }
@@ -609,13 +710,29 @@ class NumistaAPI {
   async getIssuers() {
     const cacheKey = 'issuers:all';
 
+    // 1. Check in-memory cache
     if (this.cache.has(cacheKey)) {
       return this.cache.get(cacheKey);
     }
 
+    // 2. Check persistent cache
+    if (this.persistentCache && this.cacheTTLs.issuers > 0) {
+      const cached = this.persistentCache.get(cacheKey);
+      if (cached) {
+        this.cache.set(cacheKey, cached); // Promote to in-memory
+        return cached;
+      }
+    }
+
+    // 3. Fetch from API
     const result = await this.request('/issuers', { lang: 'en' });
     const issuers = result.issuers || [];
     this.cache.set(cacheKey, issuers);
+
+    // Write to persistent cache
+    if (this.persistentCache && this.cacheTTLs.issuers > 0) {
+      this.persistentCache.set(cacheKey, issuers, this.cacheTTLs.issuers);
+    }
 
     return issuers;
   }
@@ -670,17 +787,17 @@ class NumistaAPI {
 
       // Only accept matches above a reasonable threshold
       if (bestScore >= 0.6) {
-        console.log(`Resolved issuer: "${countryName}" -> "${bestCode}" (score: ${bestScore.toFixed(2)})`);
+        log.info(`Resolved issuer: "${countryName}" -> "${bestCode}" (score: ${bestScore.toFixed(2)})`);
         this.issuerCodeCache.set(normalized, bestCode);
         return bestCode;
       }
 
       // No good match found
-      console.log(`Could not resolve issuer for: "${countryName}" (best score: ${bestScore.toFixed(2)})`);
+      log.warn(`Could not resolve issuer for: "${countryName}" (best score: ${bestScore.toFixed(2)})`);
       this.issuerCodeCache.set(normalized, null);
       return null;
     } catch (error) {
-      console.warn('Failed to resolve issuer code:', error.message);
+      log.warn('Failed to resolve issuer code:', error.message);
       return null;
     }
   }

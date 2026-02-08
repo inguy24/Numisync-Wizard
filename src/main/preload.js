@@ -8,6 +8,43 @@ const { contextBridge, ipcRenderer } = require('electron');
  */
 
 /**
+ * Denomination alias lookup map (variant -> canonical form).
+ * Loaded from main process via synchronous IPC at startup.
+ * Source of truth: src/data/denomination-aliases.json
+ */
+const DENOMINATION_ALIASES = ipcRenderer.sendSync('get-denomination-aliases');
+
+/**
+ * Normalize a denomination unit string to its canonical form.
+ * @param {string|null} raw - Raw unit string (e.g., "Kopeks", "pfenning", "Cents")
+ * @returns {string} Canonical form, or cleaned input if not in alias map
+ */
+function normalizeUnit(raw) {
+  if (!raw || typeof raw !== 'string') return '';
+  const unit = raw.toLowerCase().trim().replace(/[.]/g, '');
+  if (unit === '') return '';
+  if (DENOMINATION_ALIASES[unit]) return DENOMINATION_ALIASES[unit];
+  if (unit.endsWith('s') && unit.length > 2) {
+    const singular = unit.slice(0, -1);
+    if (DENOMINATION_ALIASES[singular]) return DENOMINATION_ALIASES[singular];
+  }
+  return unit;
+}
+
+/**
+ * Check if two denomination unit strings refer to the same denomination.
+ * @param {string|null} unitA - First unit string
+ * @param {string|null} unitB - Second unit string
+ * @returns {boolean} True if both normalize to the same canonical form
+ */
+function denominationUnitsMatch(unitA, unitB) {
+  const a = normalizeUnit(unitA);
+  const b = normalizeUnit(unitB);
+  if (!a || !b) return false;
+  return a === b;
+}
+
+/**
  * Calculate Dice's coefficient string similarity
  * Defined directly in preload to avoid importing heavy modules (axios, etc.)
  * into the renderer preload context.
@@ -134,7 +171,22 @@ const apiMethods = {
   fastPricingUpdate: (data) => ipcRenderer.invoke('fast-pricing-update', data),
 
   // Batch Type Data Propagation (Premium Feature - Task 3.12)
-  propagateTypeData: (data) => ipcRenderer.invoke('propagate-type-data', data)
+  propagateTypeData: (data) => ipcRenderer.invoke('propagate-type-data', data),
+
+  // Installer EULA marker check
+  checkInstallerEulaMarker: () => ipcRenderer.invoke('check-installer-eula-marker'),
+
+  // Auto-update
+  checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+
+  // API Cache & Monthly Usage
+  getMonthlyUsage: () => ipcRenderer.invoke('get-monthly-usage'),
+  setMonthlyUsage: (limit) => ipcRenderer.invoke('set-monthly-usage', limit),
+  setMonthlyUsageTotal: (total) => ipcRenderer.invoke('set-monthly-usage-total', total),
+  clearApiCache: () => ipcRenderer.invoke('clear-api-cache'),
+
+  // Logging
+  exportLogFile: () => ipcRenderer.invoke('export-log-file')
 };
 
 // Expose as both 'electronAPI' (for backward compatibility) and 'api' (for new code)
@@ -142,7 +194,11 @@ contextBridge.exposeInMainWorld('electronAPI', apiMethods);
 contextBridge.exposeInMainWorld('api', apiMethods);
 
 // Expose diceCoefficient as a standalone utility for renderer-side confidence scoring
-contextBridge.exposeInMainWorld('stringSimilarity', { diceCoefficient });
+contextBridge.exposeInMainWorld('stringSimilarity', {
+  diceCoefficient,
+  normalizeUnit,
+  unitsMatch: denominationUnitsMatch
+});
 
 /**
  * Menu event listeners for renderer process
@@ -179,6 +235,7 @@ contextBridge.exposeInMainWorld('menuEvents', {
     ipcRenderer.on('menu:about', () => callback('about'));
     ipcRenderer.on('menu:view-eula', () => callback('view-eula'));
     ipcRenderer.on('menu:purchase-license', () => callback('purchase-license'));
+    ipcRenderer.on('menu:report-issue', () => callback('report-issue'));
     // Fast Pricing Mode menu actions
     ipcRenderer.on('menu:enter-fast-pricing-mode', () => callback('enter-fast-pricing-mode'));
     ipcRenderer.on('menu:exit-fast-pricing-mode', () => callback('exit-fast-pricing-mode'));

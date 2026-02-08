@@ -454,7 +454,16 @@
     </li>
     <li><a href="#closing-collection">16. Closing a Collection</a></li>
     <li><a href="#troubleshooting">17. Troubleshooting</a></li>
-    <li><a href="#faq">18. FAQ</a></li>
+    <li><a href="#getting-help">18. Getting Help</a></li>
+    <li><a href="#faq">19. FAQ</a></li>
+    <li><a href="#api-cache-usage">20. API Cache &amp; Usage</a>
+      <ul>
+        <li><a href="#cache-overview">Cache Overview</a></li>
+        <li><a href="#cache-settings">Cache Settings</a></li>
+        <li><a href="#monthly-usage">Monthly Usage Tracking</a></li>
+        <li><a href="#numista-quota">Numista API Quota</a></li>
+      </ul>
+    </li>
     <li><a href="#appendix-fields">Appendix A: Field Reference</a></li>
     <li><a href="#appendix-statuses">Appendix B: Status Reference</a></li>
   </ul>
@@ -730,7 +739,9 @@
 <h3 id="automatic-search">Automatic Search</h3>
 <p>
   When you click a coin, the tool builds a search query from your coin's existing data (title, year,
-  country, denomination) and sends it to the Numista API. Up to <strong>20 matches</strong> are
+  country, denomination) and sends it to the Numista API. Denomination unit spellings are automatically
+  normalized for better results &mdash; for example, if your coin says &ldquo;Kopeks&rdquo;, the search
+  uses &ldquo;Kopecks&rdquo; (Numista&rsquo;s preferred spelling). Up to <strong>20 matches</strong> are
   returned and displayed as cards.
 </p>
 <p>Each match card shows:</p>
@@ -766,6 +777,10 @@
 <p>
   Each search result is assigned a confidence score based on how well it matches your coin's data.
   The score considers title similarity, year overlap, country match, denomination, and catalog numbers.
+  Denomination matching uses an alias normalizer that recognizes over 100 denomination families
+  and their spelling variants (e.g., &ldquo;Kopeks&rdquo; matches &ldquo;Kopeck&rdquo;,
+  &ldquo;Pfenning&rdquo; matches &ldquo;Pfennig&rdquo;, &ldquo;Rouble&rdquo; matches &ldquo;Ruble&rdquo;),
+  so confidence scores are accurate even when your collection uses different spellings than Numista.
 </p>
 <table>
   <tr><th>Score Range</th><th>Color</th><th>Meaning</th></tr>
@@ -823,13 +838,18 @@
 
 <h3 id="image-comparison">Image Comparison</h3>
 <p>
-  The comparison screen also displays images side-by-side:
+  Image fields (<code>obverseimg</code>, <code>reverseimg</code>, <code>edgeimg</code>) display inline image previews
+  directly in the field row, just like other data fields:
 </p>
 <ul>
-  <li><strong>Your coin images</strong> &mdash; Obverse and reverse from your database (60&times;60px, hover to zoom 3&times;)</li>
-  <li><strong>Numista images</strong> &mdash; Reference images from Numista (80&times;80px, hover to zoom 2.5&times;)</li>
+  <li><strong>Current column</strong> &mdash; Shows your coin's existing image from the database (or a placeholder if none).</li>
+  <li><strong>Numista column</strong> &mdash; Shows the reference image from Numista (or a placeholder if unavailable).</li>
 </ul>
-<p>You can choose to import Numista images into your database (see <a href="#images">Image Handling</a>).</p>
+<p>
+  Images display at 80&times;80px with hover-to-zoom (2.5&times;) and lightbox click support. Check the checkbox
+  next to an image field to replace your image with Numista's image. When you click <strong>Apply Changes</strong>,
+  selected images are automatically downloaded and stored in your database.
+</p>
 
 <h3 id="applying-changes">Applying Changes</h3>
 <p>
@@ -839,6 +859,7 @@
 <ol>
   <li>Create an automatic backup of your database (if enabled in Settings).</li>
   <li>Write the selected field values to your coin's record in the database.</li>
+  <li>If any image fields were selected, download the images from Numista and store them in the database.</li>
   <li>Store enrichment metadata in the coin's notes field (invisible to OpenNumismat users).</li>
   <li>Update the coin's status to "Merged".</li>
   <li>Return you to the Collection Overview with the coin's status updated.</li>
@@ -859,7 +880,7 @@
 <h3 id="auto-matching">Automatic Matching</h3>
 <p>The tool uses a smart multi-step algorithm to find the right issue:</p>
 <ol>
-  <li><strong>Filter by year</strong> &mdash; Only issues matching your coin's year are considered.</li>
+  <li><strong>Filter by year</strong> &mdash; Only issues matching your coin's year are considered. For coins with non-Gregorian dating (e.g., Japanese Meiji, Islamic Hijri, Thai Buddhist), both the era-specific year and the Gregorian equivalent are checked.</li>
   <li><strong>Filter by mintmark</strong> &mdash; If mintmarks vary across issues and your coin has one, further narrow the results.</li>
   <li><strong>Filter by type</strong> &mdash; If there are still multiple matches (e.g., regular vs. Proof), filter by comment/type.</li>
   <li><strong>Result:</strong>
@@ -901,6 +922,15 @@
   <li>If your coin has no mintmark, issues with no mintmark are prioritized and shown as "Exact Match".</li>
   <li>Mintmark variations (e.g., "D" vs "Denver") are normalized for accurate matching.</li>
   <li>Issues from other mints are still shown as "Other options" in case you need to select one.</li>
+</ul>
+
+<h4>Denomination Matching</h4>
+<p>Denomination units are normalized for both search and scoring:</p>
+<ul>
+  <li>Spelling variants are automatically mapped to a common form (e.g., &ldquo;Kopeks&rdquo; &rarr; &ldquo;Kopecks&rdquo;, &ldquo;Pfenning&rdquo; &rarr; &ldquo;Pfennig&rdquo;, &ldquo;Rouble&rdquo; &rarr; &ldquo;Ruble&rdquo;).</li>
+  <li>Plural forms are preserved in search queries since Numista&rsquo;s search is sensitive to singular vs. plural.</li>
+  <li>Over 100 denomination families are covered, including transliterations from Russian, Greek, Arabic, and other scripts.</li>
+  <li>Unrecognized denominations fall back to fuzzy string matching so they still work &mdash; just without alias normalization.</li>
 </ul>
 
 <a href="#introduction" class="back-to-top">Back to top &uarr;</a>
@@ -1197,10 +1227,10 @@
   <tr><th>Context</th><th>Size</th><th>Interaction</th></tr>
   <tr><td>Coin list (Collection Overview)</td><td>40 &times; 40 px</td><td>Lazy-loaded thumbnails</td></tr>
   <tr><td>Match Selection (your coin)</td><td>60 &times; 60 px</td><td>Hover to zoom 3&times;, click for lightbox</td></tr>
-  <tr><td>Field Comparison (Numista images)</td><td>80 &times; 80 px</td><td>Hover to zoom 2.5&times;, click for lightbox</td></tr>
+  <tr><td>Field Comparison (image fields)</td><td>80 &times; 80 px</td><td>Hover to zoom 2.5&times;, click for lightbox</td></tr>
   <tr><td>Issue Picker</td><td>50 &times; 50 px</td><td>Hover to zoom 4&times;</td></tr>
 </table>
-<p>Both obverse and reverse images are shown where available. Coins without images display a placeholder.</p>
+<p>Obverse, reverse, and edge images are shown where available. Coins without images display a placeholder (labeled OBV, REV, or EDGE).</p>
 
 <h4 id="image-lightbox">Image Lightbox</h4>
 <p>
@@ -1210,25 +1240,22 @@
 </p>
 <p>This is useful for examining fine details like mintmarks, date variations, or design elements.</p>
 
-<h3 id="image-modes">Storage Modes</h3>
-<p>Configure image handling in Settings. Two modes are available:</p>
-
-<h4>URL Mode (Recommended)</h4>
+<h3 id="image-modes">How Images Are Stored</h3>
+<p>
+  When you select image fields (obverseimg, reverseimg, edgeimg) during field comparison and click
+  <strong>Apply Changes</strong>, images are automatically downloaded from Numista and stored directly
+  in your OpenNumismat database:
+</p>
 <ul>
-  <li>Stores image URLs from Numista in your database.</li>
-  <li>OpenNumismat downloads the images automatically when you open the collection.</li>
-  <li>Requires internet when viewing in OpenNumismat.</li>
-  <li>Keeps your database file smaller.</li>
-  <li>Uses zero additional API calls (images served from Numista CDN).</li>
+  <li>Images are downloaded at full resolution from the Numista CDN.</li>
+  <li>Stored as binary data (BLOBs) in the <code>photos</code> table.</li>
+  <li>Works offline &mdash; no internet needed to view images in OpenNumismat after enrichment.</li>
+  <li>Each image adds approximately 50-500 KB to your database size (varies by image).</li>
 </ul>
-
-<h4>BLOB Mode</h4>
-<ul>
-  <li>Downloads images immediately and stores them as binary data in your database.</li>
-  <li>Works offline &mdash; no internet needed to view images in OpenNumismat.</li>
-  <li>Increases database file size.</li>
-  <li>Images are downloaded at 400 &times; 400 px resolution.</li>
-</ul>
+<p>
+  If Numista doesn't have an image for a particular coin side (obverse, reverse, or edge), a placeholder
+  will be shown in the field comparison and no image will be downloaded for that field.
+</p>
 
 <a href="#introduction" class="back-to-top">Back to top &uarr;</a>
 
@@ -1293,11 +1320,12 @@
 </div>
 
 <h3 id="image-settings">Image Handling</h3>
-<table>
-  <tr><th>Option</th><th>Description</th></tr>
-  <tr><td><strong>Store image URLs</strong> (default)</td><td>Only saves the URL. OpenNumismat downloads images on next open. Requires internet.</td></tr>
-  <tr><td><strong>Download and store as BLOBs</strong></td><td>Downloads images now and embeds them in the database. Works offline.</td></tr>
-</table>
+<p>
+  Images are automatically downloaded and stored in your database when you select image fields
+  (<code>obverseimg</code>, <code>reverseimg</code>, <code>edgeimg</code>) during field comparison
+  and click <strong>Apply Changes</strong>. Images are stored as binary data directly in the database,
+  so they work offline without requiring an internet connection.
+</p>
 
 <h3 id="safety-settings">Safety &amp; Backups</h3>
 <table>
@@ -1523,6 +1551,7 @@
   <li>Use shorter, simpler search terms (denomination + year often works well).</li>
   <li>Try searching by catalog number (e.g., "KM 23").</li>
   <li>Ensure your coin's title in OpenNumismat is not too generic or contains special characters.</li>
+  <li>Common denomination spelling variants (e.g., Kopeks, Pfenning, Rouble) are automatically normalized, but very unusual spellings may not be recognized. Try using Numista&rsquo;s spelling in the manual search.</li>
 </ul>
 
 <h4>"API Key invalid" error</h4>
@@ -1548,9 +1577,10 @@
 
 <h4>Images not appearing in OpenNumismat</h4>
 <ul>
-  <li>If using <strong>URL mode</strong>, ensure you have an internet connection when opening the collection in OpenNumismat.</li>
-  <li>If using <strong>BLOB mode</strong>, images should appear immediately.</li>
-  <li>Some coin types on Numista do not have images available.</li>
+  <li>Make sure you selected the image fields (obverseimg, reverseimg, edgeimg) and clicked <strong>Apply Changes</strong>.</li>
+  <li>Images are stored directly in the database and should appear immediately after enrichment.</li>
+  <li>Some coin types on Numista do not have images available &mdash; check if Numista showed a placeholder during field comparison.</li>
+  <li>Close and reopen your collection in OpenNumismat to refresh the image cache.</li>
 </ul>
 
 <h4>Database file appears locked</h4>
@@ -1582,7 +1612,55 @@
 <a href="#introduction" class="back-to-top">Back to top &uarr;</a>
 
 <!-- ──────────────────────────────────────────────────────────────────────── -->
-<h2 id="faq">18. Frequently Asked Questions</h2>
+<h2 id="getting-help">18. Getting Help</h2>
+
+<h3>Report an Issue</h3>
+<p>If you encounter a bug or unexpected behavior:</p>
+<ol>
+  <li>Open <strong>Help &rarr; Report an Issue</strong> from the menu bar.</li>
+  <li>Check the <a href="#troubleshooting">Troubleshooting</a> section to see if your
+      issue is already covered.</li>
+  <li>If not, click <strong>Open GitHub Issues</strong> to search for existing reports
+      or create a new one.</li>
+</ol>
+
+<h3>Including Log Files</h3>
+<p>Log files help diagnose issues by recording what the application was doing when a
+   problem occurred. To provide a useful log:</p>
+<ol>
+  <li>Go to <strong>Settings &rarr; Logging</strong> and set the log level to
+      <strong>Debug</strong>.</li>
+  <li>Reproduce the issue (perform the action that caused the problem).</li>
+  <li>Click <strong>Download Log File</strong> in Settings, or use
+      <strong>Help &rarr; Report an Issue &rarr; Download Log File</strong>.</li>
+  <li>Attach the downloaded <code>.log</code> file to your GitHub issue.</li>
+  <li>Set the log level back to <strong>Info</strong> for normal use.</li>
+</ol>
+
+<div class="callout-info">
+  <strong>Privacy:</strong> Log files contain technical details about application operations
+  (API calls, database operations, error messages) but do not contain your personal data,
+  API keys, or collection content. You can open the .log file in any text editor to review
+  its contents before sharing.
+</div>
+
+<h3>Resources</h3>
+<table>
+  <tr><th>Resource</th><th>Description</th></tr>
+  <tr>
+    <td><a href="https://github.com/inguy24/Numisync-Wizard/issues" target="_blank">GitHub Issues</a></td>
+    <td>Report bugs, request features, or search existing issues</td>
+  </tr>
+  <tr>
+    <td><a href="https://en.numista.com/api/" target="_blank">Numista API Dashboard</a></td>
+    <td>Check your API key status and monthly usage</td>
+  </tr>
+</table>
+
+<a href="#introduction" class="back-to-top">Back to top &uarr;</a>
+
+<!-- ──────────────────────────────────────────────────────────────────────── -->
+<h2 id="faq">19. Frequently Asked Questions</h2>
 
 <h4>Is the Numista API free?</h4>
 <p>Yes. Numista provides free API access for personal use. You just need to create a free account and generate an API key.</p>
@@ -1637,6 +1715,87 @@
 
 <h4>What if I lose my license key?</h4>
 <p>Contact support with your purchase information. Your license key is associated with your email address from the original purchase.</p>
+
+<a href="#introduction" class="back-to-top">Back to top &uarr;</a>
+
+<!-- ──────────────────────────────────────────────────────────────────────── -->
+<h2 id="api-cache-usage">20. API Cache &amp; Usage Tracking</h2>
+
+<h3 id="cache-overview">Cache Overview</h3>
+
+<p>NumiSync Wizard caches Numista API responses locally on disk to reduce API calls across sessions. When you look up a coin type or fetch issuer data, the response is saved so that future requests for the same data can be served from the local cache instead of making another API call.</p>
+
+<p>The following data types are cached persistently (surviving app restarts):</p>
+
+<table>
+  <tr><th>Data Type</th><th>Default TTL</th><th>Description</th></tr>
+  <tr><td>Issuers (countries)</td><td>90 days</td><td>The full list of Numista issuing authorities. Rarely changes.</td></tr>
+  <tr><td>Type data (coin specs)</td><td>30 days</td><td>Detailed coin type information (composition, rulers, references, etc.).</td></tr>
+  <tr><td>Issue data (mintage, mintmarks)</td><td>30 days</td><td>Year/mint/mintage variants for a coin type.</td></tr>
+</table>
+
+<p>The following are <strong>not</strong> cached persistently:</p>
+<table>
+  <tr><th>Data Type</th><th>Reason</th></tr>
+  <tr><td>Search results</td><td>Searches are situational and vary by query; cached per session only.</td></tr>
+  <tr><td>Pricing data</td><td>Prices change frequently; freshness is the whole point of fetching them.</td></tr>
+</table>
+
+<p>The cache file (<code>numista_api_cache.json</code>) is stored in the application data directory and is shared across all collections, since issuer/type/issue data is global Numista catalog data.</p>
+
+<h3 id="cache-settings">Cache Settings</h3>
+
+<p>You can configure cache durations in <strong>Settings &rarr; API Cache</strong>:</p>
+
+<table>
+  <tr><th>Setting</th><th>Options</th><th>Description</th></tr>
+  <tr><td>Issuers TTL</td><td>No caching, 30&ndash;360 days</td><td>How long to keep the issuers (countries) list cached. The issuers list rarely changes, so longer durations are safe.</td></tr>
+  <tr><td>Type Data TTL</td><td>No caching, 30&ndash;360 days</td><td>How long to keep coin type details cached.</td></tr>
+  <tr><td>Issue Data TTL</td><td>No caching, 30&ndash;360 days</td><td>How long to keep issue (mintage/mintmark) data cached.</td></tr>
+  <tr><td>Monthly API Call Limit</td><td>100&ndash;100,000</td><td>Your Numista API monthly quota. Free accounts have 2,000 calls/month.</td></tr>
+  <tr><td>Current Month Usage</td><td>Editable number</td><td>Locally tracked API call count. Adjust manually to match your Numista dashboard if needed.</td></tr>
+  <tr><td>Clear API Cache</td><td>Button</td><td>Wipes all cached data. Monthly usage tracking is preserved.</td></tr>
+</table>
+
+<div class="callout-info">
+  <strong>Tip:</strong> Setting any TTL to &ldquo;No caching&rdquo; means that data type will always be fetched fresh from the API. This uses more quota but ensures you always have the latest data.
+</div>
+
+<h3 id="monthly-usage">Monthly Usage Tracking</h3>
+
+<p>The status bar at the bottom of the window shows your monthly API usage alongside the session counter:</p>
+
+<p><code>Fetch: Basic (2 calls) &bull; Session: 12 &bull; Month: 825/2,000</code></p>
+
+<p>The monthly counter tracks how many API calls have been made in the current calendar month. It resets automatically at the start of each new month. The counter changes color as you approach your limit:</p>
+
+<table>
+  <tr><th>Usage Level</th><th>Color</th></tr>
+  <tr><td>Below 75%</td><td>Default (normal text color)</td></tr>
+  <tr><td>75% &ndash; 90%</td><td>Orange/yellow (warning)</td></tr>
+  <tr><td>Above 90%</td><td>Red (critical)</td></tr>
+</table>
+
+<div class="callout-warning">
+  <strong>Important:</strong> Usage is tracked locally and only counts API calls made by this application. If you use the same API key with other tools, the local count may not match your actual Numista usage. Use the Numista dashboard link in Settings to verify.
+</div>
+
+<h3 id="numista-quota">Numista API Quota</h3>
+
+<p>Numista free accounts have a <strong>2,000 API call/month</strong> limit. The following operations each count as one API call:</p>
+
+<table>
+  <tr><th>Operation</th><th>API Endpoint</th><th>Calls</th></tr>
+  <tr><td>Search for coin types</td><td><code>searchTypes</code></td><td>1 per search attempt</td></tr>
+  <tr><td>Get coin type details</td><td><code>getType</code></td><td>1 per type</td></tr>
+  <tr><td>Get issue data (years/mints)</td><td><code>getIssues</code></td><td>1 per type</td></tr>
+  <tr><td>Get pricing data</td><td><code>getPrices</code></td><td>1 per issue</td></tr>
+  <tr><td>Get issuers list</td><td><code>getIssuers</code></td><td>1 (cached for extended periods)</td></tr>
+</table>
+
+<p>A typical enrichment with Basic + Issue + Pricing data costs <strong>4 API calls</strong> per coin (1 search + 1 type + 1 issues + 1 pricing). The persistent cache significantly reduces this for repeated lookups &mdash; if you enrich the same coin type again (or a different coin of the same type), the type and issue data come from cache at zero API cost.</p>
+
+<p>To check your actual server-side usage, visit the <a href="https://en.numista.com/api/dashboard.php" target="_blank">Numista API Dashboard</a>. You can also access this link from <strong>Settings &rarr; API Cache</strong>.</p>
 
 <a href="#introduction" class="back-to-top">Back to top &uarr;</a>
 

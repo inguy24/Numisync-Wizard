@@ -1,0 +1,176 @@
+NumiSync Wizard for OpenNumismat
+End User License Agreement - Version 2.0
+Last Updated: February 2026
+
+1. ACCEPTANCE OF TERMS
+
+By installing, copying, or otherwise using this software ("Software"), you agree to be bound by the terms of this End User License Agreement ("Agreement"). If you do not agree to these terms, do not install or use the Software.
+
+2. LICENSE GRANT
+
+Subject to the terms of this Agreement, you are granted a limited, non-exclusive, non-transferable, non-sublicensable, revocable license to install and use the Software on devices you own or control, solely for your personal, non-commercial use in managing your coin collection.
+
+3. LICENSE TIERS
+
+The Software is offered in two tiers:
+
+(a) Free Version. The Free Version provides core functionality at no cost, including single-coin data enrichment from the Numista catalog. The Free Version may display periodic prompts encouraging upgrade to the Supporter Edition.
+
+(b) Supporter Edition. The Supporter Edition is available through purchase of a license key and provides additional features including batch pricing updates (Fast Pricing Mode), batch type data propagation (Auto-Propagate), and removal of upgrade prompts. A Supporter license key:
+
+- May be activated on up to five (5) devices you own or control
+- Is non-transferable and may not be shared, sold, or given to others
+- Covers the current major version of the Software and all updates within that major version (e.g., version 1.x includes all 1.0, 1.1, 1.2 releases)
+- Does not automatically include future major versions (e.g., version 2.0); new major versions with significant added functionality may require a separate purchase
+- Entitles you to discounted pricing on future major version upgrades as a benefit of being an existing supporter
+- Grants access to premium features as they exist at time of purchase; future premium features may require additional purchase
+- Does not grant ownership of the Software, access to source code, or any intellectual property rights
+- May be deactivated from a device to free an activation slot for use on a different device
+- Is subject to validation through third-party license management services (currently Polar.sh)
+
+Both license tiers are subject to all other terms of this Agreement. The Developer reserves the right to modify features available in each tier.
+
+4. RESTRICTIONS
+
+You shall not:
+
+- Reverse engineer, decompile, disassemble, or attempt to derive the source code of the Software
+- Modify, adapt, translate, or create derivative works based on the Software
+- Rent, lease, lend, sell, redistribute, or sublicense the Software or any license keys
+- Share, publish, or distribute license keys to any third party
+- Circumvent, disable, or interfere with license validation or activation systems
+- Use the Software for any commercial purpose
+- Remove or alter any proprietary notices, labels, or marks on the Software
+
+5. THIRD-PARTY SERVICES
+
+This Software uses the Numista API to retrieve numismatic data and Polar.sh for license management. By using this Software:
+
+- You acknowledge that you have your own separate agreement with Numista, obtained when you registered for an API key
+- You understand that your use of Numista's services is governed solely by your agreement with them
+- You acknowledge that license validation requires communication with Polar.sh servers
+- The Developer is not responsible for your interactions, dealings, or disputes with Numista or Polar.sh
+- The Developer does not control and is not liable for any data provided by these third parties
+
+6. DATA COLLECTION AND PRIVACY
+
+The Software is designed with privacy in mind:
+
+- Local Data Only. Your coin collection data remains stored locally on your device in your OpenNumismat database. The Software does not upload, transmit, or store your collection data on any external servers.
+- No Personal Information Collected. The Software does not collect, store, or transmit personal information such as your name, email address, location, or browsing history.
+- API Communications. The Software makes requests to the Numista API to retrieve catalog data and to Polar.sh for license validation. These requests contain only the minimum information necessary for operation (such as coin identifiers for Numista lookups and license keys for validation).
+- Device Fingerprint. For Supporter Edition license activation, a device fingerprint (derived from hardware identifiers) is generated and transmitted to Polar.sh solely to manage device activation limits. This fingerprint is not linked to your personal identity.
+- Local Settings. Application preferences (such as your Numista API key and license activation status) are stored locally on your device and are not transmitted to the Developer.
+
+7. CALIFORNIA PRIVACY RIGHTS (CCPA/CPRA)
+
+If you are a California resident, you have specific rights under the California Consumer Privacy Act (CCPA) and California Privacy Rights Act (CPRA):
+
+- Right to Know. You have the right to know what personal information is collected. As stated above, this Software does not collect personal information.
+- Right to Delete. You have the right to request deletion of personal information. Since no personal information is collected or stored by the Developer, there is nothing to delete. Your local application settings can be removed by uninstalling the Software.
+- Right to Opt-Out of Sale. The Developer does not sell, share, or disclose personal information to third parties for monetary or other valuable consideration.
+- Right to Non-Discrimination. You will not receive discriminatory treatment for exercising your privacy rights.
+- Sensitive Personal Information. The Software does not collect sensitive personal information as defined under California law.
+
+For any privacy-related inquiries, please contact the Developer through the project's GitHub repository.
+
+8. INTELLECTUAL PROPERTY
+
+The Software is licensed, not sold. The Developer retains all right, title, and interest in and to the Software, including all intellectual property rights. This Agreement does not grant you any rights to trademarks or service marks of the Developer. Purchase of a Supporter Edition license grants only the right to use premium features; it does not constitute purchase of the Software itself or any intellectual property rights therein.
+
+9. DISCLAIMER OF WARRANTIES
+
+THE SOFTWARE IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT.
+
+- Pricing information is for reference only and may be inaccurate, incomplete, or outdated
+- Catalog data may contain errors or omissions
+- No guarantee of data accuracy, completeness, reliability, or timeliness is made
+- The Developer does not warrant that the Software will meet your requirements or operate uninterrupted or error-free
+- No guarantee is made regarding the continued availability of third-party services (Numista, Polar.sh)
+
+10. LIMITATION OF LIABILITY
+
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL THE DEVELOPER BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS, DATA, USE, GOODWILL, OR OTHER INTANGIBLE LOSSES, RESULTING FROM:
+
+- Your use or inability to use the Software
+- Any loss, corruption, or modification of your OpenNumismat database or any other data
+- Any financial decisions made based on pricing or valuation data
+- Any unauthorized access to or alteration of your data
+- Any third-party conduct or content, including Numista or Polar.sh
+- Interruption or unavailability of license validation services
+- Any other matter relating to the Software
+
+In no event shall the Developer's total liability exceed the amount you paid for the Software (if any), or $10 USD, whichever is lesser.
+
+11. REFUNDS
+
+Supporter Edition license purchases are processed through Polar.sh. Refund requests are subject to Polar.sh's refund policies. The Developer may, at its sole discretion, issue refunds for license purchases within a reasonable period after purchase. Refunds are not guaranteed and are evaluated on a case-by-case basis.
+
+12. INDEMNIFICATION
+
+You agree to indemnify, defend, and hold harmless the Developer from and against any claims, liabilities, damages, losses, and expenses, including reasonable attorneys' fees, arising out of or in any way connected with: (a) your use of the Software; (b) your violation of this Agreement; (c) your violation of any third-party rights, including Numista's terms of service; or (d) your violation of any applicable law or regulation.
+
+13. USER RESPONSIBILITIES
+
+You acknowledge and agree that:
+
+- You are responsible for maintaining backups of your data
+- You should close OpenNumismat before using this Software to avoid database conflicts
+- You are solely responsible for any decisions made based on data obtained through this Software
+- You will comply with all applicable laws in your use of the Software
+- You are responsible for maintaining the confidentiality of your license key
+
+14. NO OBLIGATION TO SUPPORT OR MAINTAIN
+
+The Developer is under no obligation to:
+
+- Provide updates, bug fixes, patches, or new versions of the Software
+- Provide technical support, customer service, or assistance of any kind
+- Maintain compatibility with future versions of operating systems, OpenNumismat, or third-party services
+- Continue operating, distributing, or making the Software available
+
+The Developer may, at its sole discretion, discontinue the Software, cease providing updates, or terminate license validation services at any time without notice or liability. Any updates, support, or maintenance provided are voluntary and do not create an ongoing obligation. Purchase of a Supporter Edition license does not entitle you to any guaranteed period of support, updates, or availability.
+
+15. GOVERNING LAW AND JURISDICTION
+
+This Agreement shall be governed by and construed in accordance with the laws of the State of California, United States of America, without regard to its conflict of law provisions. You agree to submit to the personal and exclusive jurisdiction of the courts located in California for the resolution of any disputes.
+
+16. DISPUTE RESOLUTION AND ARBITRATION
+
+PLEASE READ THIS SECTION CAREFULLY. IT AFFECTS YOUR LEGAL RIGHTS.
+
+Any dispute, controversy, or claim arising out of or relating to this Agreement, or the breach thereof, shall be determined by binding arbitration administered by a mutually agreed-upon arbitration service, in accordance with its rules then in effect. The arbitration shall be conducted in California, United States of America. The arbitrator's decision shall be final and binding, and judgment on the award may be entered in any court having jurisdiction.
+
+17. CLASS ACTION WAIVER
+
+YOU AND THE DEVELOPER AGREE THAT EACH MAY BRING CLAIMS AGAINST THE OTHER ONLY IN YOUR OR ITS INDIVIDUAL CAPACITY AND NOT AS A PLAINTIFF OR CLASS MEMBER IN ANY PURPORTED CLASS OR REPRESENTATIVE PROCEEDING. Unless both you and the Developer agree otherwise, the arbitrator may not consolidate more than one person's claims and may not otherwise preside over any form of a representative or class proceeding.
+
+18. FORCE MAJEURE
+
+The Developer shall not be liable for any failure or delay in performance under this Agreement due to circumstances beyond its reasonable control, including but not limited to acts of God, natural disasters, climate change, pandemics, war, terrorism, riots, embargoes, acts of civil or military authorities, fire, floods, earthquakes, accidents, strikes, or shortages of transportation, facilities, fuel, energy, labor, or materials.
+
+19. SEVERABILITY
+
+If any provision of this Agreement is held to be illegal, invalid, or unenforceable by a court of competent jurisdiction, such provision shall be modified to the minimum extent necessary to make it legal, valid, and enforceable, or if modification is not possible, shall be severed from this Agreement. The remaining provisions shall continue in full force and effect.
+
+20. WAIVER
+
+No failure or delay by the Developer in exercising any right, power, or remedy under this Agreement shall operate as a waiver thereof, nor shall any single or partial exercise of any right, power, or remedy preclude any other or further exercise thereof or the exercise of any other right, power, or remedy.
+
+21. ENTIRE AGREEMENT
+
+This Agreement constitutes the entire agreement between you and the Developer regarding the Software and supersedes all prior and contemporaneous agreements, proposals, or representations, written or oral, concerning its subject matter.
+
+22. TERMINATION
+
+This Agreement is effective until terminated. Your rights under this Agreement will terminate automatically without notice if you fail to comply with any of its terms. Upon termination, you must cease all use of the Software and destroy all copies in your possession or control. Supporter Edition license keys may be revoked for violation of this Agreement without refund. Sections 8-21 shall survive any termination of this Agreement.
+
+23. CHANGES TO THIS AGREEMENT
+
+The Developer reserves the right to modify this Agreement at any time. Continued use of the Software after changes constitutes acceptance of the modified Agreement. Material changes will be indicated by updating the version number and "Last Updated" date.
+
+24. CONTACT
+
+For questions about this Agreement, please visit the project's GitHub repository.
+
+By installing or using this Software, you acknowledge that you have read, understood, and agree to be bound by this End User License Agreement, including the arbitration provision and class action waiver.

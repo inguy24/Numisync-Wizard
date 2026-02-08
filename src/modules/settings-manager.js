@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { DEFAULT_FIELD_MAPPING, NUMISTA_SOURCES } = require('./default-field-mapping');
+const log = require('../main/logger').scope('Settings');
 
 /**
  * Settings Manager - Phase 2
@@ -73,7 +74,8 @@ class SettingsManager {
         autoBackup: true,
         maxBackups: 5,        // 0 = unlimited (no pruning), positive int = keep that many
         imageHandling: 'url', // 'url' or 'blob'
-        stickyInfoBar: false  // Pin info bar to top when scrolling
+        stickyInfoBar: false, // Pin info bar to top when scrolling
+        lastViewState: null   // Saved page/scroll/filter/sort state for session restore
       }
     };
   }
@@ -144,7 +146,7 @@ class SettingsManager {
         return this.mergeWithDefaults(loaded);
       }
     } catch (error) {
-      console.error('Error loading settings file:', error);
+      log.error('Error loading settings file:', error);
     }
 
     // Return defaults
@@ -225,7 +227,7 @@ class SettingsManager {
       fs.writeFileSync(this.settingsFilePath, data, 'utf8');
       return true;
     } catch (error) {
-      console.error('Error saving settings file:', error);
+      log.error('Error saving settings file:', error);
       return false;
     }
   }
@@ -460,7 +462,7 @@ class SettingsManager {
       this.saveSettings();
       return true;
     } catch (error) {
-      console.error('Error importing settings:', error);
+      log.error('Error importing settings:', error);
       return false;
     }
   }

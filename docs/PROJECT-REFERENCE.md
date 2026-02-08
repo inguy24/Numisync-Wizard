@@ -1,7 +1,7 @@
 # NumiSync Wizard for OpenNumismat - Project Reference
 
 **Purpose:** Architecture reference for implementation. Read when building features.
-**Last Updated:** February 6, 2026 (Auto-Propagate Bug Fix)
+**Last Updated:** February 8, 2026 (Structured Logging & Report an Issue)
 
 ---
 
@@ -12,7 +12,9 @@ numismat-enrichment/
 ├── src/
 │   ├── main/
 │   │   ├── index.js          # Main process, IPC handlers
-│   │   └── preload.js        # Renderer/Main bridge
+│   │   ├── preload.js        # Renderer/Main bridge
+│   │   ├── logger.js         # Centralized electron-log configuration
+│   │   └── updater.js        # Auto-update module (electron-updater)
 │   ├── renderer/
 │   │   ├── index.html        # UI structure (HAS EMOJIS)
 │   │   ├── app.js            # UI logic (HAS EMOJIS)
@@ -20,6 +22,8 @@ numismat-enrichment/
 │   │   └── images/           # Logo and branding assets
 │   │       ├── logo_with_text.svg   # Full logo (header, welcome, about, EULA, manual)
 │   │       └── logo_no_text.svg     # Icon-only logo (source for app icon)
+│   ├── data/
+│   │   └── denomination-aliases.json # Denomination variant mappings (editable without code changes)
 │   └── modules/
 │       ├── opennumismat-db.js      # SQLite database access
 │       ├── numista-api.js          # Numista API wrapper
@@ -30,11 +34,20 @@ numismat-enrichment/
 │       ├── settings-manager.js     # Settings persistence
 │       ├── freshness-calculator.js # Pricing age calculation
 │       ├── image-handler.js        # Image operations
-│       └── mintmark-normalizer.js  # Mintmark utilities
+│       ├── mintmark-normalizer.js  # Mintmark utilities
+│       ├── denomination-normalizer.js # Denomination alias normalization
+│       └── api-cache.js              # Persistent API cache + monthly usage tracking
 ├── build/
 │   ├── icon.png              # App icon for dev/Linux (500x500)
 │   ├── icon.ico              # App icon for Windows builds (256x256)
-│   └── ICONS-README.txt      # Icon conversion instructions
+│   ├── ICONS-README.txt      # Icon conversion instructions
+│   ├── installer.nsh         # NSIS custom script (EULA marker creation/removal)
+│   └── eula/
+│       └── eula-windows.rtf  # RTF EULA for NSIS installer license screen
+├── scripts/
+│   ├── validate-version.js   # Pre-version validation (npm preversion hook)
+│   └── post-version.js       # Post-version reminders (npm postversion hook)
+├── EULA.txt                  # Plain text EULA (bundled as extraResource)
 ├── docs/
 │   ├── PROJECT-REFERENCE.md  # THIS FILE
 │   ├── CHANGELOG.md          # Compressed fix history
@@ -88,6 +101,11 @@ numismat-enrichment/
 | `create-backup-before-batch` | Create single backup before batch operations (avoids per-coin backups) |
 | `fast-pricing-update` | Update pricing for a single coin using existing numistaId/issueId (premium) |
 | `propagate-type-data` | Apply type data to a matching coin from batch operation (premium) |
+| `get-monthly-usage` | Get current month's API usage breakdown and total |
+| `set-monthly-usage` | Set the monthly API call limit (minimum 100) |
+| `set-monthly-usage-total` | Manually adjust current month's total usage count |
+| `clear-api-cache` | Clear all persistent API cache entries |
+| `export-log-file` | Export current log file to user-chosen location via Save As |
 
 ---
 
@@ -100,7 +118,8 @@ numismat-enrichment/
 | `getTypeIssues(typeId)` | Get all issues for a type |
 | `getIssuePricing(typeId, issueId, currency)` | Get pricing for specific issue |
 | `fetchCoinData(typeId, coin, fetchSettings)` | Main orchestration - conditional fetch |
-| `matchIssue(coin, issuesResponse)` | Auto-match logic (year+mintmark+type) |
+| `matchIssue(coin, issuesResponse)` | Auto-match logic (year/gregorian_year+mintmark+type) |
+| `calculateMatchConfidence(coin, type)` | Scoring with denomination normalization via `denomination-normalizer.js` |
 | `getIssuers()` | Fetch and cache full issuer list |
 | `resolveIssuerCode(countryName)` | Resolve country to issuer code |
 
@@ -319,7 +338,7 @@ The stats and filters area is wrapped in a unified card with a pinnable header f
 
 **EULA Version:** 2.0 (February 2026)
 
-The EULA is defined in `EULA_CONTENT` constant in `src/renderer/app.js` with version tracked in `EULA_VERSION`.
+The EULA is defined in `EULA_CONTENT` constant in `src/renderer/app.js` with version tracked in `EULA_VERSION`. Also exists as `EULA.txt` (plain text, bundled as extraResource) and `build/eula/eula-windows.rtf` (RTF for NSIS installer license screen).
 
 **Key Sections:**
 | Section | Content |
@@ -335,12 +354,29 @@ The EULA is defined in `EULA_CONTENT` constant in `src/renderer/app.js` with ver
 ```
 App launch → checkEulaOnStartup()
     ↓
-isEulaAccepted() checks app settings for eulaAccepted && eulaVersion match
+1. Check for installer marker (eula-installer-accepted.marker in install dir)
+    ├── Marker exists → saveEulaAcceptance() to app settings, return true
+    └── No marker → continue to step 2
+    ↓
+2. isEulaAccepted() checks app settings for eulaAccepted && eulaVersion match
     ↓
 If not accepted → showEulaModal(true)
     ├── User accepts → saveEulaAcceptance() stores version + timestamp
     └── User declines → window.close()
 ```
+
+**Installer EULA Marker:** NSIS installer shows EULA via `build/eula/eula-windows.rtf`. On install, `build/installer.nsh` creates `eula-installer-accepted.marker` in `$INSTDIR`. App checks for this marker via `check-installer-eula-marker` IPC handler. Marker is deleted on uninstall.
+
+## Auto-Update
+
+Uses `electron-updater` with GitHub Releases (`src/main/updater.js`).
+
+- **Auto-check:** 10 seconds after app launch (packaged builds only)
+- **Manual check:** Help > Check for Updates...
+- **Download:** User-initiated (autoDownload: false)
+- **Install:** On app restart (quitAndInstall) or next app quit (autoInstallOnAppQuit)
+- **Logging:** via `electron-log` (file + console)
+- **IPC channels:** `check-for-updates`, `update:download-started`, `update:progress`
 
 **Privacy Compliance:**
 - No personal information collected or transmitted to Developer
@@ -365,6 +401,11 @@ If not accepted → showEulaModal(true)
 3. Progress Cache ({database}_enrichment_progress.json) - TEMPORARY
    └─ Status lookup cache, session stats
    └─ Rebuilt from database on startup
+
+4. API Cache (numista_api_cache.json in userData) - APP-WIDE
+   └─ Persistent Numista API response cache (issuers, types, issues)
+   └─ Monthly usage tracking per endpoint
+   └─ Survives: App restart, collection switches
 ```
 
 ---
@@ -375,6 +416,7 @@ If not accepted → showEulaModal(true)
 index.js (main process)
     ├── opennumismat-db.js    # Database operations
     ├── numista-api.js        # API calls
+    │   └── api-cache.js      # Persistent cache (shared singleton)
     ├── field-mapper.js       # Field mapping
     │   └── default-field-mapping.js
     ├── settings-manager.js   # Settings

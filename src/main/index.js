@@ -25,6 +25,10 @@ const ProgressTracker = require('../modules/progress-tracker');
 const SettingsManager = require('../modules/settings-manager');
 const metadataManager = require('../modules/metadata-manager');
 const ImageHandler = require('../modules/image-handler');
+const { initAutoUpdater, checkForUpdatesManually } = require('./updater');
+const { DENOMINATION_ALIASES } = require('../modules/denomination-normalizer');
+const ApiCache = require('../modules/api-cache');
+const log = require('./logger');
 
 /** @type {BrowserWindow|null} */
 let mainWindow;
@@ -43,6 +47,42 @@ const imageHandler = new ImageHandler();
  * @type {Map<number, {data: Object, cachedAt: number}>}
  */
 const typeDataCache = new Map();
+
+/**
+ * Persistent API cache — lazy-initialized because app.getPath() requires app.whenReady()
+ * @type {ApiCache|null}
+ */
+let apiCache = null;
+
+/**
+ * Get or create the persistent API cache singleton
+ * @returns {ApiCache} The persistent API cache instance
+ */
+function getApiCache() {
+  if (!apiCache) {
+    apiCache = new ApiCache(path.join(app.getPath('userData'), 'numista_api_cache.json'));
+  }
+  return apiCache;
+}
+
+/**
+ * Read cache TTL settings from app settings and return as days object for NumistaAPI constructor
+ * @returns {Object} TTLs in days: { issuers, types, issues }
+ */
+function getCacheTTLs() {
+  try {
+    const settingsPath = path.join(app.getPath('userData'), 'settings.json');
+    if (fs.existsSync(settingsPath)) {
+      const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+      return {
+        issuers: settings.cacheTtlIssuers != null ? settings.cacheTtlIssuers : 90,
+        types: settings.cacheTtlTypes != null ? settings.cacheTtlTypes : 30,
+        issues: settings.cacheTtlIssues != null ? settings.cacheTtlIssues : 30
+      };
+    }
+  } catch (e) { /* fallback to defaults */ }
+  return { issuers: 90, types: 30, issues: 30 };
+}
 
 // Menu state - tracks whether items should be enabled/disabled
 let menuState = {
@@ -450,6 +490,16 @@ function buildMenuTemplate() {
         {
           label: 'View License Agreement',
           click: () => sendMenuAction('menu:view-eula')
+        },
+        { type: 'separator' },
+        {
+          label: 'Report an Issue...',
+          click: () => sendMenuAction('menu:report-issue')
+        },
+        { type: 'separator' },
+        {
+          label: 'Check for Updates...',
+          click: () => checkForUpdatesManually()
         }
       ]
     }
@@ -480,7 +530,7 @@ async function loadRecentCollections() {
     }
     return [];
   } catch (error) {
-    console.error('Error loading recent collections:', error);
+    log.error('Error loading recent collections:', error);
     return [];
   }
 }
@@ -499,7 +549,7 @@ async function saveRecentCollections(collections) {
     settings.recentCollections = collections;
     fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
   } catch (error) {
-    console.error('Error saving recent collections:', error);
+    log.error('Error saving recent collections:', error);
   }
 }
 
@@ -532,6 +582,9 @@ app.whenReady().then(async () => {
   // Load recent collections and build menu
   menuState.recentCollections = await loadRecentCollections();
   rebuildMenu();
+
+  // Initialize auto-updater (only in packaged builds)
+  initAutoUpdater(mainWindow);
 });
 
 app.on('window-all-closed', () => {
@@ -595,13 +648,21 @@ function checkDatabaseInUse(filePath) {
         };
       }
     } catch (error) {
-      console.warn('PowerShell lock check failed (non-fatal):', error.message);
+      log.warn('PowerShell lock check failed (non-fatal):', error.message);
       // Fall through — if PowerShell fails, don't block the user
     }
   }
 
   return { inUse: false, reason: null };
 }
+
+// ============================================================================
+// IPC HANDLERS - Synchronous (preload startup)
+// ============================================================================
+
+ipcMain.on('get-denomination-aliases', (event) => {
+  event.returnValue = DENOMINATION_ALIASES;
+});
 
 // ============================================================================
 // IPC HANDLERS - File Operations
@@ -655,18 +716,18 @@ ipcMain.handle('load-collection', async (event, filePath) => {
 
     // Clear type data cache when loading a new collection (Task 3.12.4)
     typeDataCache.clear();
-    console.log('[Silent Reuse] Type data cache cleared for new collection');
+    log.info('[Silent Reuse] Type data cache cleared for new collection');
 
     // Open the collection database (async now)
     db = await OpenNumismatDB.open(filePath);
     
     // Get collection summary FIRST
     const summary = db.getCollectionSummary();
-    console.log('Collection summary:', summary);
+    log.info('Collection summary:', summary);
 
     // Initialize settings manager for this collection
     settingsManager = new SettingsManager(filePath);
-    console.log('Settings loaded:', settingsManager.getFetchSettings());
+    log.info('Settings loaded:', settingsManager.getFetchSettings());
 
     // Auto-migrate API key from Phase 1 app settings if collection has none
     if (!settingsManager.getApiKey()) {
@@ -676,11 +737,11 @@ ipcMain.handle('load-collection', async (event, filePath) => {
           const phase1Settings = JSON.parse(fs.readFileSync(phase1Path, 'utf8'));
           if (phase1Settings.apiKey) {
             settingsManager.setApiKey(phase1Settings.apiKey);
-            console.log('API key migrated from Phase 1 app settings to collection settings');
+            log.info('API key migrated from Phase 1 app settings to collection settings');
           }
         }
       } catch (migrationError) {
-        console.error('API key migration failed (non-fatal):', migrationError.message);
+        log.error('API key migration failed (non-fatal):', migrationError.message);
       }
     }
     
@@ -698,7 +759,7 @@ ipcMain.handle('load-collection', async (event, filePath) => {
 
     // Get progress stats
     const progress = progressTracker.getProgress();
-    console.log('Progress stats:', progress.statistics);
+    log.info('Progress stats:', progress.statistics);
 
     // Add to recent collections and update menu state
     await addToRecentCollections(filePath);
@@ -713,7 +774,7 @@ ipcMain.handle('load-collection', async (event, filePath) => {
       settings: settingsManager.getSettings()
     };
   } catch (error) {
-    console.error('Error loading collection:', error);
+    log.error('Error loading collection:', error);
     return {
       success: false,
       error: error.message
@@ -752,7 +813,7 @@ ipcMain.handle('get-coins', async (event, options = {}) => {
     
     return { success: true, coins };
   } catch (error) {
-    console.error('Error getting coins:', error);
+    log.error('Error getting coins:', error);
     return { success: false, error: error.message };
   }
 });
@@ -766,7 +827,7 @@ ipcMain.handle('get-coin-details', async (event, coinId) => {
     const coin = db.getCoinById(coinId);
     return { success: true, coin };
   } catch (error) {
-    console.error('Error getting coin details:', error);
+    log.error('Error getting coin details:', error);
     return { success: false, error: error.message };
   }
 });
@@ -797,7 +858,7 @@ function getApiKey() {
 
     return null;
   } catch (error) {
-    console.error('Error loading API key:', error);
+    log.error('Error loading API key:', error);
     return null;
   }
 }
@@ -814,14 +875,14 @@ ipcMain.handle('resolve-issuer', async (event, countryName) => {
   try {
     const apiKey = getApiKey();
     if (!issuerApi) {
-      issuerApi = new NumistaAPI(apiKey);
+      issuerApi = new NumistaAPI(apiKey, getApiCache(), getCacheTTLs());
     } else {
       issuerApi.setApiKey(apiKey);
     }
     const code = await issuerApi.resolveIssuerCode(countryName);
     return { success: true, code };
   } catch (error) {
-    console.warn('Issuer resolution failed:', error.message);
+    log.warn('Issuer resolution failed:', error.message);
     return { success: true, code: null };
   }
 });
@@ -832,15 +893,15 @@ ipcMain.handle('resolve-issuer', async (event, countryName) => {
 
 ipcMain.handle('search-numista', async (event, searchParams) => {
   try {
-    console.log('=== BACKEND SEARCH ===');
-    console.log('Received search params:', searchParams);
+    log.debug('=== BACKEND SEARCH ===');
+    log.debug('Received search params:', searchParams);
 
     const apiKey = getApiKey();
-    const api = new NumistaAPI(apiKey);
+    const api = new NumistaAPI(apiKey, getApiCache(), getCacheTTLs());
     const results = await api.searchTypes(searchParams);
 
-    console.log('Search results count:', results.count);
-    console.log('Number of types returned:', results.types?.length || 0);
+    log.info('Search results count:', results.count);
+    log.debug('Number of types returned:', results.types?.length || 0);
 
     // Increment session counter - 1 API call for search
     if (progressTracker) {
@@ -849,17 +910,17 @@ ipcMain.handle('search-numista', async (event, searchParams) => {
 
     return { success: true, results };
   } catch (error) {
-    console.error('Error searching Numista:', error);
+    log.error('Error searching Numista:', error);
     return { success: false, error: error.message };
   }
 });
 
 ipcMain.handle('manual-search-numista', async (event, { query, coinId, category }) => {
   try {
-    console.log('Manual search requested:', query, 'for coin:', coinId, 'category:', category);
+    log.info('Manual search requested:', query, 'for coin:', coinId, 'category:', category);
 
     const apiKey = getApiKey();
-    const api = new NumistaAPI(apiKey);
+    const api = new NumistaAPI(apiKey, getApiCache(), getCacheTTLs());
 
     // Use the query directly as provided by user
     const searchParams = { q: query };
@@ -869,7 +930,7 @@ ipcMain.handle('manual-search-numista', async (event, { query, coinId, category 
 
     const results = await api.searchTypes(searchParams);
 
-    console.log('Manual search found:', results.count, 'results');
+    log.info('Manual search found:', results.count, 'results');
 
     // Note: Search tracking removed - status updates happen on merge
 
@@ -880,7 +941,7 @@ ipcMain.handle('manual-search-numista', async (event, { query, coinId, category 
 
     return { success: true, results };
   } catch (error) {
-    console.error('Error in manual search:', error);
+    log.error('Error in manual search:', error);
     return { success: false, error: error.message };
   }
 });
@@ -888,32 +949,32 @@ ipcMain.handle('manual-search-numista', async (event, { query, coinId, category 
 ipcMain.handle('get-numista-type', async (event, typeId) => {
   try {
     const apiKey = getApiKey();
-    const api = new NumistaAPI(apiKey);
+    const api = new NumistaAPI(apiKey, getApiCache(), getCacheTTLs());
     const typeData = await api.getType(typeId);
     
     return { success: true, typeData };
   } catch (error) {
-    console.error('Error getting Numista type:', error);
+    log.error('Error getting Numista type:', error);
     return { success: false, error: error.message };
   }
 });
 
 ipcMain.handle('fetch-coin-data', async (event, { typeId, coin }) => {
   try {
-    console.log('=== fetch-coin-data called ===');
-    console.log('typeId:', typeId);
-    console.log('coin year:', coin?.year, 'mintmark:', coin?.mintmark);
+    log.debug('=== fetch-coin-data called ===');
+    log.debug('typeId:', typeId);
+    log.debug('coin year:', coin?.year, 'mintmark:', coin?.mintmark);
 
     const apiKey = getApiKey();
-    const api = new NumistaAPI(apiKey);
+    const api = new NumistaAPI(apiKey, getApiCache(), getCacheTTLs());
 
     // Get fetch settings
     const fetchSettings = settingsManager ? settingsManager.getFetchSettings() : { basicData: true, issueData: false, pricingData: false };
-    console.log('Fetch settings:', fetchSettings);
+    log.debug('Fetch settings:', fetchSettings);
 
     // Get currency from settings (defaults to USD)
     const currency = settingsManager ? settingsManager.getCurrency() : 'USD';
-    console.log('Currency:', currency);
+    log.debug('Currency:', currency);
 
     // Task 3.12.4: Silent Type Data Reuse - check cache before API call
     let cachedBasicData = null;
@@ -922,7 +983,7 @@ ipcMain.handle('fetch-coin-data', async (event, { typeId, coin }) => {
       const cached = typeDataCache.get(typeId);
       cachedBasicData = cached.data;
       usedCache = true;
-      console.log(`[Silent Reuse] Type data for ${typeId} found in cache (cached at ${new Date(cached.cachedAt).toISOString()}), skipping API call`);
+      log.debug(`[Silent Reuse] Type data for ${typeId} found in cache (cached at ${new Date(cached.cachedAt).toISOString()}), skipping API call`);
     }
 
     // If we have cached basicData, modify settings to skip fetching it
@@ -942,91 +1003,75 @@ ipcMain.handle('fetch-coin-data', async (event, { typeId, coin }) => {
         data: result.basicData,
         cachedAt: Date.now()
       });
-      console.log(`[Silent Reuse] Type data for ${typeId} cached for future reuse`);
+      log.debug(`[Silent Reuse] Type data for ${typeId} cached for future reuse`);
     }
 
-    console.log('Fetch result - basicData:', !!result.basicData, 'issueData:', !!result.issueData, 'pricingData:', !!result.pricingData);
-    console.log('Issue match result:', result.issueMatchResult?.type);
+    log.debug('Fetch result - basicData:', !!result.basicData, 'issueData:', !!result.issueData, 'pricingData:', !!result.pricingData);
+    log.debug('Issue match result:', result.issueMatchResult?.type);
 
-    // Increment session counter based on actual API calls made
+    // Increment session counter based on actual API calls made (from apiCallCount)
     if (progressTracker) {
-      let callCount = 0;
-
-      // Count API calls based on what was fetched:
-      // - getType() was called if basicData was requested AND not cached
-      if (fetchSettings.basicData && !usedCache) {
-        callCount += 1;
-      }
-
-      // - getTypeIssues() was called if issueData OR pricingData was requested
-      if (fetchSettings.issueData || fetchSettings.pricingData) {
-        callCount += 1;
-      }
-
-      // - getIssuePricing() was called if pricingData exists
-      if (result.pricingData) {
-        callCount += 1;
-      }
+      const callCount = api.apiCallCount;
 
       if (callCount > 0) {
         progressTracker.incrementSessionCalls(callCount);
-        console.log(`Session counter incremented by ${callCount} (total now: ${progressTracker.getSessionCallCount()})`);
-      } else if (usedCache) {
-        console.log('[Silent Reuse] No API calls made - all data from cache');
+        log.info(`Session counter incremented by ${callCount} (total now: ${progressTracker.getSessionCallCount()})`);
+      } else {
+        log.debug('[Cache] No API calls made - all data from cache');
       }
     }
 
     return { success: true, ...result };
   } catch (error) {
-    console.error('Error fetching coin data:', error);
+    log.error('Error fetching coin data:', error);
     return { success: false, error: error.message };
   }
 });
 
 ipcMain.handle('fetch-pricing-for-issue', async (event, { typeId, issueId }) => {
   try {
-    console.log('=== fetch-pricing-for-issue called ===');
-    console.log('typeId:', typeId, 'issueId:', issueId);
+    log.debug('=== fetch-pricing-for-issue called ===');
+    log.debug('typeId:', typeId, 'issueId:', issueId);
 
     const apiKey = getApiKey();
-    const api = new NumistaAPI(apiKey);
+    const api = new NumistaAPI(apiKey, getApiCache(), getCacheTTLs());
 
     // Get currency from settings (defaults to USD)
     const currency = settingsManager ? settingsManager.getCurrency() : 'USD';
-    console.log('Currency:', currency);
+    log.debug('Currency:', currency);
 
     // Fetch pricing for this specific issue
     const pricingData = await api.getIssuePricing(typeId, issueId, currency);
-    console.log('Pricing fetched:', !!pricingData);
+    log.debug('Pricing fetched:', !!pricingData);
 
     // Increment session counter - 1 API call for pricing
     if (progressTracker) {
       progressTracker.incrementSessionCalls(1);
-      console.log(`Session counter incremented by 1 (total now: ${progressTracker.getSessionCallCount()})`);
+      log.info(`Session counter incremented by 1 (total now: ${progressTracker.getSessionCallCount()})`);
     }
 
     return { success: true, pricingData };
   } catch (error) {
-    console.error('Error fetching pricing for issue:', error);
+    log.error('Error fetching pricing for issue:', error);
     return { success: false, error: error.message };
   }
 });
 
 ipcMain.handle('fetch-issue-data', async (event, { typeId, coin }) => {
   try {
-    console.log('=== fetch-issue-data called ===');
-    console.log('typeId:', typeId);
+    log.debug('=== fetch-issue-data called ===');
+    log.debug('typeId:', typeId);
 
     const apiKey = getApiKey();
-    const api = new NumistaAPI(apiKey);
+    const api = new NumistaAPI(apiKey, getApiCache(), getCacheTTLs());
 
-    // Fetch issues for this type (1 API call)
+    // Fetch issues for this type (may be served from persistent cache)
     const issuesResponse = await api.getTypeIssues(typeId);
 
-    // Increment session counter - 1 API call for issues
-    if (progressTracker) {
-      progressTracker.incrementSessionCalls(1);
-      console.log(`Session counter incremented by 1 (total now: ${progressTracker.getSessionCallCount()})`);
+    // Increment session counter based on actual API calls made
+    if (progressTracker && api.apiCallCount > 0) {
+      progressTracker.incrementSessionCalls(api.apiCallCount);
+      log.info(`Session counter incremented by ${api.apiCallCount} (total now: ${progressTracker.getSessionCallCount()})`);
     }
 
     // Try to auto-match (local logic, no API call)
@@ -1036,7 +1081,7 @@ ipcMain.handle('fetch-issue-data', async (event, { typeId, coin }) => {
       emptyMintmarkInterpretation: fetchSettings.emptyMintmarkInterpretation || 'no_mint_mark'
     };
     const matchResult = api.matchIssue(coin, issuesResponse, matchOptions);
-    console.log('Issue match result type:', matchResult.type);
+    log.debug('Issue match result type:', matchResult.type);
 
     if (matchResult.type === 'AUTO_MATCHED') {
       return {
@@ -1060,7 +1105,7 @@ ipcMain.handle('fetch-issue-data', async (event, { typeId, coin }) => {
       };
     }
   } catch (error) {
-    console.error('Error fetching issue data:', error);
+    log.error('Error fetching issue data:', error);
     return { success: false, error: error.message };
   }
 });
@@ -1077,7 +1122,7 @@ ipcMain.handle('compare-fields', async (event, { coin, numistaData, issueData, p
     
     return { success: true, comparison };
   } catch (error) {
-    console.error('Error comparing fields:', error);
+    log.error('Error comparing fields:', error);
     return { success: false, error: error.message };
   }
 });
@@ -1088,44 +1133,93 @@ ipcMain.handle('merge-data', async (event, { coinId, selectedFields, numistaData
       throw new Error('No collection loaded');
     }
 
-    console.log('=== IPC merge-data received ===');
-    console.log('coinId:', coinId);
-    console.log('selectedFields type:', typeof selectedFields);
-    console.log('selectedFields:', JSON.stringify(selectedFields, null, 2));
-    console.log('selectedFields keys:', Object.keys(selectedFields));
-    console.log('selectedFields values:', Object.values(selectedFields));
-    console.log('issueData:', issueData ? 'provided' : 'null');
-    console.log('pricingData:', pricingData ? 'provided' : 'null');
+    log.debug('=== IPC merge-data received ===');
+    log.debug('coinId:', coinId);
+    log.debug('selectedFields type:', typeof selectedFields);
+    log.debug('selectedFields:', JSON.stringify(selectedFields, null, 2));
+    log.debug('selectedFields keys:', Object.keys(selectedFields));
+    log.debug('selectedFields values:', Object.values(selectedFields));
+    log.debug('issueData:', issueData ? 'provided' : 'null');
+    log.debug('pricingData:', pricingData ? 'provided' : 'null');
     
     // Count true values
     const trueCount = Object.values(selectedFields).filter(v => v === true).length;
-    console.log('Number of TRUE values:', trueCount);
+    log.debug('Number of TRUE values:', trueCount);
     
-    console.log('numistaData.id:', numistaData?.id);
-    console.log('numistaData.title:', numistaData?.title);
+    log.debug('numistaData.id:', numistaData?.id);
+    log.debug('numistaData.title:', numistaData?.title);
 
     // Create backup before merging (if enabled in settings)
     let backupPath = null;
     const autoBackup = settingsManager ? settingsManager.getAutoBackup() : true;
     if (autoBackup) {
       backupPath = db.createBackup();
-      console.log('Backup created:', backupPath);
+      log.info('Backup created:', backupPath);
 
       // Prune old backups beyond the configured limit
       const maxBackups = settingsManager ? settingsManager.getMaxBackups() : 5;
       const pruned = db.pruneOldBackups(maxBackups);
       if (pruned.length > 0) {
-        console.log(`Pruned ${pruned.length} old backup(s)`);
+        log.info(`Pruned ${pruned.length} old backup(s)`);
       }
     } else {
-      console.log('Auto-backup disabled, skipping backup creation');
+      log.info('Auto-backup disabled, skipping backup creation');
     }
     
     // Perform the merge (pass issueData and pricingData)
     const customMapping = settingsManager ? settingsManager.buildFieldMapperConfig() : null;
     const mapper = new FieldMapper(customMapping);
     const updatedData = mapper.mergeFields(selectedFields, numistaData, issueData, pricingData);
-    console.log('Data to update:', updatedData);
+    log.debug('Data to update:', updatedData);
+
+    // Handle image fields specially - download and store in photos table
+    const imageFields = ['obverseimg', 'reverseimg', 'edgeimg'];
+    const selectedImageFields = imageFields.filter(f => selectedFields[f] === true);
+
+    if (selectedImageFields.length > 0) {
+      log.debug('=== AUTO-DOWNLOADING IMAGES ===');
+      log.debug('Selected image fields:', selectedImageFields);
+
+      // Build image URLs from numistaData
+      const imageUrls = {};
+      if (selectedFields.obverseimg && numistaData.obverse?.picture) {
+        imageUrls.obverse = numistaData.obverse.picture;
+      }
+      if (selectedFields.reverseimg && numistaData.reverse?.picture) {
+        imageUrls.reverse = numistaData.reverse.picture;
+      }
+      if (selectedFields.edgeimg && numistaData.edge?.picture) {
+        imageUrls.edge = numistaData.edge.picture;
+      }
+
+      log.debug('Image URLs to download:', imageUrls);
+
+      // Download images
+      const imageBuffers = {};
+      for (const [type, url] of Object.entries(imageUrls)) {
+        if (url) {
+          try {
+            log.debug(`Downloading ${type} image: ${url}`);
+            imageBuffers[type] = await imageHandler.downloadImage(url);
+            log.debug(`${type} downloaded: ${imageBuffers[type]?.length || 0} bytes`);
+          } catch (error) {
+            log.error(`Failed to download ${type} image:`, error.message);
+          }
+        }
+      }
+
+      // Store images in photos table and update coin
+      if (Object.keys(imageBuffers).length > 0) {
+        const photoIds = await db.storeImagesForCoin(coinId, imageBuffers);
+        log.debug('Images stored with photo IDs:', photoIds);
+      }
+
+      // Remove image URLs from updatedData - they've been handled via photos table
+      for (const field of imageFields) {
+        delete updatedData[field];
+      }
+      log.debug('=== END AUTO-DOWNLOADING IMAGES ===');
+    }
     
     // Get current coin to preserve existing note
     const currentCoin = db.getCoinById(coinId);
@@ -1165,17 +1259,17 @@ ipcMain.handle('merge-data', async (event, { coinId, selectedFields, numistaData
     // Write metadata to note field
     const updatedNote = metadataManager.writeEnrichmentMetadata(userNotes, newMetadata);
     updatedData.note = updatedNote;
-    console.log('Metadata written to note field');
+    log.info('Metadata written to note field');
     
     // Update database (now includes note with metadata)
     const updateResult = db.updateCoin(coinId, updatedData);
-    console.log('Update result:', updateResult);
+    log.info('Update result:', updateResult);
     
     // Update progress cache immediately
     if (progressTracker && settingsManager) {
       const fetchSettings = settingsManager.getFetchSettings();
       progressTracker.updateCoinInCache(coinId, newMetadata, fetchSettings);
-      console.log('Progress cache updated');
+      log.info('Progress cache updated');
     }
     
     return { 
@@ -1185,7 +1279,7 @@ ipcMain.handle('merge-data', async (event, { coinId, selectedFields, numistaData
       message: `Coin updated successfully (${Object.keys(updatedData).length} fields)`
     };
   } catch (error) {
-    console.error('Error merging data:', error);
+    log.error('Error merging data:', error);
     return { success: false, error: error.message };
   }
 });
@@ -1224,7 +1318,7 @@ ipcMain.handle('update-coin-status', async (event, { coinId, status, metadata })
         const { userNotes } = metadataManager.readEnrichmentMetadata(coin.note || '');
         const updatedNote = metadataManager.writeEnrichmentMetadata(userNotes, phase2Metadata);
         db.updateCoin(coinId, { note: updatedNote });
-        console.log(`Skipped metadata written to database for coin ${coinId}`);
+        log.info(`Skipped metadata written to database for coin ${coinId}`);
 
         // Read back the complete metadata from the note we just wrote
         const { metadata: completeMetadata } = metadataManager.readEnrichmentMetadata(updatedNote);
@@ -1250,7 +1344,7 @@ ipcMain.handle('update-coin-status', async (event, { coinId, status, metadata })
 
     return { success: true };
   } catch (error) {
-    console.error('Error updating coin status:', error);
+    log.error('Error updating coin status:', error);
     return { success: false, error: error.message };
   }
 });
@@ -1265,7 +1359,7 @@ ipcMain.handle('get-progress-stats', async () => {
     
     return { success: true, stats };
   } catch (error) {
-    console.error('Error getting progress stats:', error);
+    log.error('Error getting progress stats:', error);
     return { success: false, error: error.message };
   }
 });
@@ -1307,7 +1401,7 @@ ipcMain.handle('get-app-settings', async () => {
       };
     }
   } catch (error) {
-    console.error('Error getting app settings:', error);
+    log.error('Error getting app settings:', error);
     return { success: false, error: error.message };
   }
 });
@@ -1331,13 +1425,13 @@ ipcMain.handle('save-app-settings', async (event, settings) => {
     // Sync API key to collection-specific settings if a collection is loaded
     if (settingsManager && settings.apiKey) {
       settingsManager.setApiKey(settings.apiKey);
-      console.log('API key synced to collection settings');
+      log.info('API key synced to collection settings');
     }
 
     // Sync rate limit to collection settings if a collection is loaded
     if (settingsManager && settings.searchDelay) {
       settingsManager.setRateLimit(settings.searchDelay);
-      console.log('Rate limit synced to collection settings');
+      log.info('Rate limit synced to collection settings');
     }
 
     // Sync backup settings to collection settings
@@ -1348,12 +1442,19 @@ ipcMain.handle('save-app-settings', async (event, settings) => {
       if (settings.maxBackups !== undefined) {
         settingsManager.setMaxBackups(settings.maxBackups);
       }
-      console.log('Backup settings synced to collection settings');
+      log.info('Backup settings synced to collection settings');
+    }
+
+    // Sync log level to logger
+    if (settings.logLevel) {
+      const { setLogLevel } = require('./logger');
+      setLogLevel(settings.logLevel);
+      log.info('Log level changed to:', settings.logLevel);
     }
 
     return { success: true };
   } catch (error) {
-    console.error('Error saving app settings:', error);
+    log.error('Error saving app settings:', error);
     return { success: false, error: error.message };
   }
 });
@@ -1380,7 +1481,7 @@ ipcMain.handle('get-default-collection', async () => {
           // Use fs.accessSync for better network path support
           fs.accessSync(defaultPath, fs.constants.R_OK);
         } catch (accessError) {
-          console.warn('Default collection path not accessible:', defaultPath);
+          log.warn('Default collection path not accessible:', defaultPath);
           return { success: true, path: null, warning: 'File not accessible: ' + accessError.message };
         }
       }
@@ -1390,7 +1491,7 @@ ipcMain.handle('get-default-collection', async () => {
 
     return { success: true, path: null };
   } catch (error) {
-    console.error('Error getting default collection:', error);
+    log.error('Error getting default collection:', error);
     return { success: false, error: error.message };
   }
 });
@@ -1416,11 +1517,11 @@ ipcMain.handle('set-default-collection', async (event, collectionPath) => {
 
     // Save settings
     fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
-    console.log('Default collection path set to:', collectionPath || '(none)');
+    log.info('Default collection path set to:', collectionPath || '(none)');
 
     return { success: true };
   } catch (error) {
-    console.error('Error setting default collection:', error);
+    log.error('Error setting default collection:', error);
     return { success: false, error: error.message };
   }
 });
@@ -1447,7 +1548,7 @@ ipcMain.handle('browse-default-collection', async () => {
 
     return { success: true, path: result.filePaths[0] };
   } catch (error) {
-    console.error('Error browsing for default collection:', error);
+    log.error('Error browsing for default collection:', error);
     return { success: false, error: error.message };
   }
 });
@@ -1463,7 +1564,7 @@ ipcMain.handle('get-settings', async () => {
     }
     return settingsManager.getSettings();
   } catch (error) {
-    console.error('Error getting settings:', error);
+    log.error('Error getting settings:', error);
     throw error;
   }
 });
@@ -1483,7 +1584,7 @@ ipcMain.handle('save-fetch-settings', async (event, fetchSettings) => {
     
     return true;
   } catch (error) {
-    console.error('Error saving fetch settings:', error);
+    log.error('Error saving fetch settings:', error);
     throw error;
   }
 });
@@ -1495,11 +1596,11 @@ ipcMain.handle('save-currency', async (event, currency) => {
     }
     
     settingsManager.setCurrency(currency);
-    console.log('Currency saved:', currency);
+    log.info('Currency saved:', currency);
     
     return true;
   } catch (error) {
-    console.error('Error saving currency:', error);
+    log.error('Error saving currency:', error);
     throw error;
   }
 });
@@ -1512,7 +1613,7 @@ ipcMain.handle('get-currency', async () => {
 
     return settingsManager.getCurrency();
   } catch (error) {
-    console.error('Error getting currency:', error);
+    log.error('Error getting currency:', error);
     return 'USD';
   }
 });
@@ -1526,7 +1627,7 @@ ipcMain.handle('save-ui-preference', async (event, key, value) => {
     settingsManager.setUiPreferences({ [key]: value });
     return true;
   } catch (error) {
-    console.error('Error saving UI preference:', error);
+    log.error('Error saving UI preference:', error);
     throw error;
   }
 });
@@ -1538,7 +1639,7 @@ ipcMain.handle('reset-settings', async () => {
     }
 
     settingsManager.resetToDefaults();
-    console.log('Settings reset to defaults');
+    log.info('Settings reset to defaults');
 
     // Rebuild progress with reset settings
     if (progressTracker && db) {
@@ -1548,7 +1649,7 @@ ipcMain.handle('reset-settings', async () => {
 
     return { success: true, settings: settingsManager.getSettings() };
   } catch (error) {
-    console.error('Error resetting settings:', error);
+    log.error('Error resetting settings:', error);
     return { success: false, error: error.message };
   }
 });
@@ -1560,7 +1661,7 @@ ipcMain.handle('get-statistics', async () => {
     }
     return progressTracker.getStatistics();
   } catch (error) {
-    console.error('Error getting statistics:', error);
+    log.error('Error getting statistics:', error);
     throw error;
   }
 });
@@ -1573,7 +1674,7 @@ ipcMain.handle('increment-api-calls', async (event, count = 1) => {
     progressTracker.incrementSessionCalls(count);
     return progressTracker.getSessionCallCount();
   } catch (error) {
-    console.error('Error incrementing API calls:', error);
+    log.error('Error incrementing API calls:', error);
     throw error;
   }
 });
@@ -1624,7 +1725,7 @@ ipcMain.handle('get-coin-images', async (event, coinId) => {
 
     return result;
   } catch (error) {
-    console.error('Error getting coin images:', error);
+    log.error('Error getting coin images:', error);
     return {
       success: false,
       error: error.message
@@ -1638,49 +1739,67 @@ ipcMain.handle('download-and-store-images', async (event, { coinId, imageUrls })
       throw new Error('No collection loaded');
     }
 
-    console.log(`Downloading images for coin ${coinId}:`, imageUrls);
+    log.debug('=== DOWNLOAD-AND-STORE-IMAGES DEBUG ===');
+    log.debug(`Coin ID: ${coinId}`);
+    log.debug('Image URLs received:', JSON.stringify(imageUrls, null, 2));
 
     const imageBuffers = {};
 
     // Download each image
     if (imageUrls.obverse) {
       try {
-        console.log(`Downloading obverse: ${imageUrls.obverse}`);
+        log.debug(`Downloading obverse: ${imageUrls.obverse}`);
         imageBuffers.obverse = await imageHandler.downloadImage(imageUrls.obverse);
+        log.debug(`Obverse downloaded: ${imageBuffers.obverse?.length || 0} bytes`);
       } catch (error) {
-        console.error('Failed to download obverse image:', error.message);
+        log.error('Failed to download obverse image:', error.message);
       }
+    } else {
+      log.debug('No obverse URL provided');
     }
 
     if (imageUrls.reverse) {
       try {
-        console.log(`Downloading reverse: ${imageUrls.reverse}`);
+        log.debug(`Downloading reverse: ${imageUrls.reverse}`);
         imageBuffers.reverse = await imageHandler.downloadImage(imageUrls.reverse);
+        log.debug(`Reverse downloaded: ${imageBuffers.reverse?.length || 0} bytes`);
       } catch (error) {
-        console.error('Failed to download reverse image:', error.message);
+        log.error('Failed to download reverse image:', error.message);
       }
+    } else {
+      log.debug('No reverse URL provided');
     }
 
     if (imageUrls.edge) {
       try {
-        console.log(`Downloading edge: ${imageUrls.edge}`);
+        log.debug(`Downloading edge: ${imageUrls.edge}`);
         imageBuffers.edge = await imageHandler.downloadImage(imageUrls.edge);
+        log.debug(`Edge downloaded: ${imageBuffers.edge?.length || 0} bytes`);
       } catch (error) {
-        console.error('Failed to download edge image:', error.message);
+        log.error('Failed to download edge image:', error.message);
       }
+    } else {
+      log.debug('No edge URL provided');
     }
 
-    // Store images in database
-    const imageIds = await db.storeImagesForCoin(coinId, imageBuffers);
+    log.debug('Image buffers ready:', {
+      obverse: imageBuffers.obverse ? `${imageBuffers.obverse.length} bytes` : 'none',
+      reverse: imageBuffers.reverse ? `${imageBuffers.reverse.length} bytes` : 'none',
+      edge: imageBuffers.edge ? `${imageBuffers.edge.length} bytes` : 'none'
+    });
 
-    console.log(`Images stored for coin ${coinId}:`, imageIds);
+    // Store images in database
+    const photoIds = await db.storeImagesForCoin(coinId, imageBuffers);
+
+    log.debug(`Photos stored for coin ${coinId}:`, photoIds);
+    log.debug('=== END DOWNLOAD-AND-STORE-IMAGES ===');
 
     return {
       success: true,
-      imageIds
+      imageIds: photoIds
     };
   } catch (error) {
-    console.error('Error downloading and storing images:', error);
+    log.error('Error downloading and storing images:', error);
     return {
       success: false,
       error: error.message
@@ -1698,9 +1817,28 @@ ipcMain.handle('open-external', async (event, url) => {
     }
     return { success: false, error: 'Invalid URL protocol' };
   } catch (error) {
-    console.error('Error opening external URL:', error);
+    log.error('Error opening external URL:', error);
     return { success: false, error: error.message };
   }
+});
+
+// Check for installer-created EULA acceptance marker
+ipcMain.handle('check-installer-eula-marker', async () => {
+  try {
+    const installDir = app.isPackaged
+      ? path.dirname(path.dirname(app.getAppPath()))
+      : path.dirname(app.getAppPath());
+    const markerPath = path.join(installDir, 'eula-installer-accepted.marker');
+    return fs.existsSync(markerPath);
+  } catch (error) {
+    log.error('Error checking installer EULA marker:', error);
+    return false;
+  }
+});
+
+// Manual check for updates
+ipcMain.handle('check-for-updates', async () => {
+  checkForUpdatesManually();
 });
 
 // Get app version from package.json
@@ -1727,7 +1865,7 @@ ipcMain.handle('get-field-mappings', async () => {
     const sources = getSerializableSources();
     return { success: true, fieldMappings, sources };
   } catch (error) {
-    console.error('Error getting field mappings:', error);
+    log.error('Error getting field mappings:', error);
     return { success: false, error: error.message };
   }
 });
@@ -1755,7 +1893,7 @@ ipcMain.handle('save-field-mappings', async (event, fieldMappings) => {
     settingsManager.setFieldMappings(validated);
     return { success: true };
   } catch (error) {
-    console.error('Error saving field mappings:', error);
+    log.error('Error saving field mappings:', error);
     return { success: false, error: error.message };
   }
 });
@@ -1764,7 +1902,7 @@ ipcMain.handle('get-available-sources', async () => {
   try {
     return { success: true, sources: getSerializableSources() };
   } catch (error) {
-    console.error('Error getting available sources:', error);
+    log.error('Error getting available sources:', error);
     return { success: false, error: error.message };
   }
 });
@@ -1786,7 +1924,7 @@ ipcMain.handle('export-field-mappings', async () => {
     fs.writeFileSync(result.filePath, JSON.stringify(mappings, null, 2), 'utf8');
     return { success: true, filePath: result.filePath };
   } catch (error) {
-    console.error('Error exporting field mappings:', error);
+    log.error('Error exporting field mappings:', error);
     return { success: false, error: error.message };
   }
 });
@@ -1826,7 +1964,7 @@ ipcMain.handle('import-field-mappings', async () => {
     settingsManager.setFieldMappings(validated);
     return { success: true, fieldMappings: validated };
   } catch (error) {
-    console.error('Error importing field mappings:', error);
+    log.error('Error importing field mappings:', error);
     return { success: false, error: error.message };
   }
 });
@@ -1840,7 +1978,7 @@ ipcMain.handle('reset-field-mappings', async () => {
     settingsManager.setFieldMappings(defaults);
     return { success: true, fieldMappings: defaults };
   } catch (error) {
-    console.error('Error resetting field mappings:', error);
+    log.error('Error resetting field mappings:', error);
     return { success: false, error: error.message };
   }
 });
@@ -1859,7 +1997,7 @@ ipcMain.handle('menu:update-state', async (event, state) => {
     rebuildMenu();
     return { success: true };
   } catch (error) {
-    console.error('Error updating menu state:', error);
+    log.error('Error updating menu state:', error);
     return { success: false, error: error.message };
   }
 });
@@ -1872,7 +2010,7 @@ ipcMain.handle('get-recent-collections', async () => {
     const collections = await loadRecentCollections();
     return { success: true, collections };
   } catch (error) {
-    console.error('Error getting recent collections:', error);
+    log.error('Error getting recent collections:', error);
     return { success: false, error: error.message };
   }
 });
@@ -1887,7 +2025,7 @@ ipcMain.handle('clear-recent-collections', async () => {
     rebuildMenu();
     return { success: true };
   } catch (error) {
-    console.error('Error clearing recent collections:', error);
+    log.error('Error clearing recent collections:', error);
     return { success: false, error: error.message };
   }
 });
@@ -1938,7 +2076,7 @@ function getDeviceFingerprint() {
     // Return a readable label with the hash
     return `NumiSync-${platform}-${hash}`;
   } catch (error) {
-    console.error('Error generating device fingerprint:', error);
+    log.error('Error generating device fingerprint:', error);
     // Fallback to hostname-based label if fingerprinting fails
     return `NumiSync-${os.platform()}-${os.hostname().substring(0, 12)}`;
   }
@@ -1973,7 +2111,7 @@ ipcMain.handle('get-supporter-status', async () => {
       }
     };
   } catch (error) {
-    console.error('Error getting supporter status:', error);
+    log.error('Error getting supporter status:', error);
     return { success: false, error: error.message };
   }
 });
@@ -1990,8 +2128,8 @@ ipcMain.handle('validate-license-key', async (event, licenseKey) => {
     }
 
     // DEBUG: Log configuration
-    console.log('[LICENSE DEBUG] POLAR_CONFIG:', JSON.stringify(POLAR_CONFIG, null, 2));
-    console.log('[LICENSE DEBUG] License key (first 8 chars):', licenseKey.trim().substring(0, 8) + '...');
+    log.debug('[LICENSE DEBUG] POLAR_CONFIG:', JSON.stringify(POLAR_CONFIG, null, 2));
+    log.debug('[LICENSE DEBUG] License key (first 8 chars):', licenseKey.trim().substring(0, 8) + '...');
 
     const { Polar } = require('@polar-sh/sdk');
     const polar = new Polar({ server: POLAR_CONFIG.server });
@@ -2000,7 +2138,7 @@ ipcMain.handle('validate-license-key', async (event, licenseKey) => {
     // Uses machine fingerprint to ensure same device always gets same label
     const deviceLabel = getDeviceFingerprint();
 
-    console.log('[LICENSE DEBUG] Calling activate with:', {
+    log.debug('[LICENSE DEBUG] Calling activate with:', {
       key: licenseKey.trim().substring(0, 8) + '...',
       organizationId: POLAR_CONFIG.organizationId,
       label: deviceLabel
@@ -2014,12 +2152,12 @@ ipcMain.handle('validate-license-key', async (event, licenseKey) => {
     });
 
     // DEBUG: Log the full result
-    console.log('[LICENSE DEBUG] API Response:', JSON.stringify(result, null, 2));
+    log.debug('[LICENSE DEBUG] API Response:', JSON.stringify(result, null, 2));
 
     // The activate endpoint returns an activation object with licenseKey nested inside
     // Status is at result.licenseKey.status, not result.status
     const licenseStatus = result?.licenseKey?.status;
-    console.log('[LICENSE DEBUG] License status:', licenseStatus);
+    log.debug('[LICENSE DEBUG] License status:', licenseStatus);
 
     // Check if the license is valid and active
     if (result && licenseStatus === 'granted') {
@@ -2051,18 +2189,18 @@ ipcMain.handle('validate-license-key', async (event, licenseKey) => {
         supporter: settings.supporter
       };
     } else if (result && licenseStatus === 'revoked') {
-      console.log('[LICENSE DEBUG] License revoked');
+      log.debug('[LICENSE DEBUG] License revoked');
       return { success: true, valid: false, message: 'This license has been revoked' };
     } else if (result && licenseStatus === 'disabled') {
-      console.log('[LICENSE DEBUG] License disabled');
+      log.debug('[LICENSE DEBUG] License disabled');
       return { success: true, valid: false, message: 'This license has been disabled' };
     } else {
-      console.log('[LICENSE DEBUG] Unexpected license status:', licenseStatus, 'Full result:', result);
+      log.debug('[LICENSE DEBUG] Unexpected license status:', licenseStatus, 'Full result:', result);
       return { success: true, valid: false, message: 'Invalid license key' };
     }
   } catch (error) {
-    console.error('[LICENSE DEBUG] Error validating license key:', error);
-    console.error('[LICENSE DEBUG] Error details:', {
+    log.error('[LICENSE DEBUG] Error validating license key:', error);
+    log.error('[LICENSE DEBUG] Error details:', {
       message: error.message,
       statusCode: error.statusCode,
       body: error.body,
@@ -2116,7 +2254,7 @@ ipcMain.handle('update-supporter-status', async (event, updates) => {
 
     return { success: true, supporter: settings.supporter };
   } catch (error) {
-    console.error('Error updating supporter status:', error);
+    log.error('Error updating supporter status:', error);
     return { success: false, error: error.message };
   }
 });
@@ -2179,7 +2317,7 @@ ipcMain.handle('increment-lifetime-enrichments', async (event, count = 1) => {
       isSupporter: settings.supporter.isSupporter
     };
   } catch (error) {
-    console.error('Error incrementing lifetime enrichments:', error);
+    log.error('Error incrementing lifetime enrichments:', error);
     return { success: false, error: error.message };
   }
 });
@@ -2202,7 +2340,7 @@ ipcMain.handle('get-lifetime-stats', async () => {
       lifetimeStats: settings.lifetimeStats || { totalCoinsEnriched: 0 }
     };
   } catch (error) {
-    console.error('Error getting lifetime stats:', error);
+    log.error('Error getting lifetime stats:', error);
     return { success: false, error: error.message };
   }
 });
@@ -2231,7 +2369,7 @@ ipcMain.handle('clear-license', async () => {
 
     return { success: true };
   } catch (error) {
-    console.error('Error clearing license:', error);
+    log.error('Error clearing license:', error);
     return { success: false, error: error.message };
   }
 });
@@ -2265,11 +2403,11 @@ ipcMain.handle('validate-license', async () => {
     });
 
     // DEBUG: Log the validate response
-    console.log('[LICENSE DEBUG] Validate response:', JSON.stringify(result, null, 2));
+    log.debug('[LICENSE DEBUG] Validate response:', JSON.stringify(result, null, 2));
 
     // Status may be at result.status or result.licenseKey.status depending on endpoint
     const licenseStatus = result?.status || result?.licenseKey?.status;
-    console.log('[LICENSE DEBUG] Validate license status:', licenseStatus);
+    log.debug('[LICENSE DEBUG] Validate license status:', licenseStatus);
 
     if (result && licenseStatus === 'granted') {
       // Update last validation timestamp and reset offline skip
@@ -2305,7 +2443,7 @@ ipcMain.handle('validate-license', async () => {
       };
     }
   } catch (error) {
-    console.error('Error validating license:', error);
+    log.error('Error validating license:', error);
     return {
       success: false,
       valid: false,
@@ -2358,7 +2496,7 @@ ipcMain.handle('deactivate-license', async () => {
       message: 'License deactivated successfully. This device slot is now free.'
     };
   } catch (error) {
-    console.error('Error deactivating license:', error);
+    log.error('Error deactivating license:', error);
 
     if (error.statusCode === 404) {
       // Activation not found - clear local data anyway
@@ -2391,6 +2529,94 @@ ipcMain.handle('deactivate-license', async () => {
 // Fast Pricing Update Handlers
 // =============================================================================
 
+// ============================================================================
+// IPC HANDLERS - API Cache & Monthly Usage
+// ============================================================================
+
+/**
+ * Get current monthly API usage and limit
+ * @returns {Promise<{success: boolean, usage: Object, limit: number}>}
+ */
+ipcMain.handle('get-monthly-usage', async () => {
+  try {
+    const cache = getApiCache();
+    return { success: true, usage: cache.getMonthlyUsage(), limit: cache.getMonthlyLimit() };
+  } catch (error) {
+    log.error('Error getting monthly usage:', error);
+    return { success: false, error: error.message, usage: { total: 0 }, limit: 2000 };
+  }
+});
+
+/**
+ * Set the monthly API call limit
+ * @param {number} limit - New monthly limit
+ * @returns {Promise<{success: boolean}>}
+ */
+ipcMain.handle('set-monthly-usage', async (event, limit) => {
+  try {
+    const cache = getApiCache();
+    cache.setMonthlyLimit(limit);
+    return { success: true };
+  } catch (error) {
+    log.error('Error setting monthly limit:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+/**
+ * Manually set the total monthly usage (for user correction against Numista dashboard)
+ * @param {number} total - New total usage count
+ * @returns {Promise<{success: boolean}>}
+ */
+ipcMain.handle('set-monthly-usage-total', async (event, total) => {
+  try {
+    const cache = getApiCache();
+    cache.setMonthlyUsageTotal(total);
+    return { success: true };
+  } catch (error) {
+    log.error('Error setting monthly usage total:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+/**
+ * Clear all persistent API cache entries (preserves monthly usage)
+ * @returns {Promise<{success: boolean}>}
+ */
+ipcMain.handle('clear-api-cache', async () => {
+  try {
+    const cache = getApiCache();
+    cache.clear();
+    return { success: true };
+  } catch (error) {
+    log.error('Error clearing API cache:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+/**
+ * Export the current log file to a user-chosen location
+ * @returns {Promise<{success: boolean, filePath?: string}>}
+ */
+ipcMain.handle('export-log-file', async () => {
+  try {
+    const logPath = log.transports.file.getFile().path;
+    const date = new Date().toISOString().slice(0, 10);
+    const result = await dialog.showSaveDialog(mainWindow, {
+      defaultPath: `numisync-wizard-log-${date}.log`,
+      filters: [{ name: 'Log Files', extensions: ['log', 'txt'] }]
+    });
+    if (!result.canceled && result.filePath) {
+      fs.copyFileSync(logPath, result.filePath);
+      return { success: true, filePath: result.filePath };
+    }
+    return { success: false };
+  } catch (error) {
+    log.error('Error exporting log file:', error);
+    return { success: false, error: error.message };
+  }
+});
+
 /**
  * Create a single backup before batch operations
  * This avoids creating multiple backups during batch processing
@@ -2406,14 +2632,14 @@ ipcMain.handle('create-backup-before-batch', async () => {
     }
 
     const backupPath = db.createBackup();
-    console.log('Pre-batch backup created:', backupPath);
+    log.info('Pre-batch backup created:', backupPath);
 
     const maxBackups = settingsManager ? settingsManager.getMaxBackups() : 5;
     db.pruneOldBackups(maxBackups);
 
     return { success: true, backupPath };
   } catch (error) {
-    console.error('Pre-batch backup error:', error);
+    log.error('Pre-batch backup error:', error);
     return { success: false, error: error.message };
   }
 });
@@ -2430,7 +2656,7 @@ ipcMain.handle('fast-pricing-update', async (event, { coinId, numistaId, issueId
     const apiKey = getApiKey();
     if (!apiKey) throw new Error('API key not configured');
 
-    const api = new NumistaAPI(apiKey);
+    const api = new NumistaAPI(apiKey, getApiCache(), getCacheTTLs());
     const currency = settingsManager?.getCurrency() || 'USD';
 
     // Fetch pricing
@@ -2475,7 +2701,7 @@ ipcMain.handle('fast-pricing-update', async (event, { coinId, numistaId, issueId
 
     return { success: true, pricesUpdated: Object.keys(priceFields).length };
   } catch (error) {
-    console.error('fast-pricing-update error:', error);
+    log.error('fast-pricing-update error:', error);
     return { success: false, error: error.message };
   }
 });
@@ -2490,7 +2716,7 @@ ipcMain.handle('propagate-type-data', async (event, { coinId, numistaData, issue
   try {
     if (!db) throw new Error('No collection loaded');
 
-    console.log(`[Batch Type] Propagating to coin ${coinId}, isDuplicate: ${isDuplicate}`);
+    log.info(`[Batch Type] Propagating to coin ${coinId}, isDuplicate: ${isDuplicate}`);
 
     // Get current coin
     const currentCoin = db.getCoinById(coinId);
@@ -2536,7 +2762,7 @@ ipcMain.handle('propagate-type-data', async (event, { coinId, numistaData, issue
 
     // Skip if no fields to propagate (user didn't select any applicable fields)
     if (Object.keys(typeFields).length === 0) {
-      console.log(`[Batch Type] Skipping coin ${coinId} - no selected fields to propagate`);
+      log.debug(`[Batch Type] Skipping coin ${coinId} - no selected fields to propagate`);
       return { success: true, skipped: true };
     }
 
@@ -2610,12 +2836,12 @@ ipcMain.handle('propagate-type-data', async (event, { coinId, numistaData, issue
       progressTracker.updateCoinInCache(coinId, newMetadata, fetchSettings);
     }
 
-    console.log(`[Batch Type] Successfully propagated to coin ${coinId}`);
+    log.info(`[Batch Type] Successfully propagated to coin ${coinId}`);
     return { success: true };
   } catch (error) {
-    console.error('[Batch Type] propagate-type-data error:', error);
+    log.error('[Batch Type] propagate-type-data error:', error);
     return { success: false, error: error.message };
   }
 });
 
-console.log('NumiSync Wizard - Main process started');
+log.info('NumiSync Wizard - Main process started');

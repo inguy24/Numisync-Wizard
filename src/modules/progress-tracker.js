@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const metadataManager = require('./metadata-manager');
+const log = require('../main/logger').scope('Progress');
 
 /**
  * Progress Tracker - Phase 2
@@ -62,7 +63,7 @@ class ProgressTracker {
         return JSON.parse(data);
       }
     } catch (error) {
-      console.error('Error loading progress file:', error);
+      log.error('Error loading progress file:', error);
     }
 
     // Return default structure
@@ -126,7 +127,7 @@ class ProgressTracker {
    * @throws {Error} When database query fails
    */
   async rebuildFromDatabase(dbConnection, fetchSettings) {
-    console.log('Rebuilding progress from database metadata...');
+    log.info('Rebuilding progress from database metadata...');
     
     // Store fetch settings for later use
     this.currentFetchSettings = fetchSettings;
@@ -158,10 +159,10 @@ class ProgressTracker {
       }
       
       this.saveProgress();
-      console.log(`Progress rebuilt: ${coins.length} coins processed`);
+      log.info(`Progress rebuilt: ${coins.length} coins processed`);
       
     } catch (error) {
-      console.error('Error rebuilding progress from database:', error);
+      log.error('Error rebuilding progress from database:', error);
       throw error;
     }
   }
@@ -327,7 +328,7 @@ class ProgressTracker {
       const data = JSON.stringify(this.progress, null, 2);
       fs.writeFileSync(this.progressFilePath, data, 'utf8');
     } catch (error) {
-      console.error('Error saving progress file:', error);
+      log.error('Error saving progress file:', error);
       throw error;
     }
   }

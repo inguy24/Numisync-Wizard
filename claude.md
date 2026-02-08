@@ -56,6 +56,8 @@
 
 14. **Propagate user choices through multi-step flows** - When a user makes selections (e.g., checkboxes), those choices must be passed through the entire chain of function calls. Don't hardcode defaults in downstream handlers - accept the selection state from upstream.
 
+15. **Numista API uses non-Gregorian year fields** - Issues from `/types/{id}/issues` return both `year` (era-specific, e.g., Meiji 14) and `gregorian_year` (e.g., 1881). OpenNumismat stores Gregorian years, so any year-based filtering must check BOTH `year` and `gregorian_year` to handle Japanese (Meiji/Taisho/Showa), Islamic (Hijri), Thai Buddhist, and other non-Gregorian dating systems.
+
 ## 6. JSDOC DOCUMENTATION STANDARDS
 
 **When to Add JSDoc:**

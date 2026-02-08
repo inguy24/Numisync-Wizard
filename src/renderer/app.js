@@ -540,6 +540,51 @@ async function showAboutDialog() {
 // =============================================================================
 
 /**
+ * Show the Report an Issue dialog with support links and log download
+ */
+function showReportIssueDialog() {
+  const html = `
+    <div style="text-align: left;">
+      <p>If you're experiencing a problem or have a suggestion, here's how to get help:</p>
+
+      <h4 style="margin: 15px 0 8px;">1. Check the User Manual</h4>
+      <p>The manual covers common issues and FAQs.</p>
+      <a href="#" id="reportManualLink" style="color: var(--accent);">Open User Manual</a>
+
+      <h4 style="margin: 15px 0 8px;">2. Report on GitHub</h4>
+      <p>Search existing issues or create a new one.</p>
+      <a href="#" id="reportGithubLink" style="color: var(--accent);">Open GitHub Issues</a>
+
+      <h4 style="margin: 15px 0 8px;">3. Include Your Log File</h4>
+      <p>For troubleshooting, set the log level to <strong>Debug</strong> in Settings,
+         reproduce the issue, then download and attach the log file.</p>
+      <button id="reportDownloadLogBtn" class="btn btn-secondary" style="margin-top: 8px;">
+        Download Log File
+      </button>
+    </div>
+  `;
+
+  showModal('Report an Issue', html);
+
+  setTimeout(() => {
+    document.getElementById('reportManualLink')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.electronAPI.openManual();
+    });
+    document.getElementById('reportGithubLink')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.electronAPI.openExternal('https://github.com/inguy24/Numisync-Wizard/issues');
+    });
+    document.getElementById('reportDownloadLogBtn')?.addEventListener('click', async () => {
+      const result = await window.electronAPI.exportLogFile();
+      if (result.success) {
+        showModal('Success', 'Log file saved successfully.');
+      }
+    });
+  }, 0);
+}
+
+/**
  * Show a license prompt modal at enrichment thresholds
  * @param {number} totalCoinsEnriched - Total coins enriched so far
  */
@@ -902,6 +947,11 @@ function findMatchingCoins(enrichedCoin, numistaData) {
 
     // Only add if we had populated slots AND all of them matched
     if (hasAnyPopulated && allPopulatedMatch && matchedCatalog) {
+      // If candidate was previously enriched with a DIFFERENT Numista type, skip it.
+      // Catalog numbers like KM# can collide across countries.
+      if (coinMetadata?.numistaId && enrichedNumistaId && coinMetadata.numistaId !== enrichedNumistaId) {
+        continue;
+      }
       matches.push({
         coin,
         matchReason: matchedCatalog
@@ -1461,6 +1511,19 @@ function showEulaModal(isFirstLaunch = true) {
  * @returns {Promise<boolean>} True if EULA is accepted (or was just accepted)
  */
 async function checkEulaOnStartup() {
+  // First check for installer-created marker (NSIS installer accepted EULA)
+  try {
+    const installerMarkerExists = await window.electronAPI.checkInstallerEulaMarker();
+    if (installerMarkerExists) {
+      // EULA was accepted during installation - save to app settings for consistency
+      await saveEulaAcceptance();
+      return true;
+    }
+  } catch (error) {
+    console.error('Error checking installer EULA marker:', error);
+  }
+
+  // Fall back to existing in-app EULA check (portable installs, dev mode)
   const accepted = await isEulaAccepted();
   if (!accepted) {
     const userAccepted = await showEulaModal(true);
@@ -1543,6 +1606,9 @@ async function loadCollectionScreen() {
     // Initialize sticky info bar from saved preference
     const stickyInfoBar = collectionSettings.uiPreferences?.stickyInfoBar || false;
     setStickyInfoBar(stickyInfoBar, false); // Don't persist, just initialize
+
+    // Restore last view state (page, filters, sort) if available
+    restoreViewState(collectionSettings.uiPreferences?.lastViewState);
   } catch (e) {
     console.error('Error loading fetch settings:', e);
     AppState.fetchSettings = { basicData: true, issueData: false, pricingData: false };
@@ -1556,8 +1622,18 @@ async function loadCollectionScreen() {
   // Update statistics
   updateProgressStats();
 
-  // Load coins
+  // Load coins (uses restored filters/sort/page from view state)
   await loadCoins();
+
+  // Restore scroll position if we have a saved view state
+  if (AppState.collectionScrollPosition > 0) {
+    requestAnimationFrame(() => {
+      const mainContent = document.querySelector('.app-main');
+      if (mainContent) {
+        mainContent.scrollTop = AppState.collectionScrollPosition;
+      }
+    });
+  }
 }
 
 function updateProgressStats() {
@@ -2476,11 +2552,12 @@ function renderCoinList() {
 
 /**
  * Generate SVG placeholder image for coins
- * @param {string} type - 'obverse' or 'reverse'
+ * @param {string} type - 'obverse', 'reverse', or 'edge'
  * @returns {string} - Data URI for SVG placeholder
  */
 function getImagePlaceholder(type) {
-  const text = type === 'obverse' ? 'OBV' : 'REV';
+  const textMap = { obverse: 'OBV', reverse: 'REV', edge: 'EDGE' };
+  const text = textMap[type] || type.toUpperCase().slice(0, 4);
   const color = '#6c757d';
   const svg = `
     <svg width="40" height="40" xmlns="http://www.w3.org/2000/svg">
@@ -2759,6 +2836,23 @@ async function renderCurrentCoinInfo() {
  * @param {string} query - Original query string
  * @returns {string} Query with parenthetical content removed
  */
+/**
+ * Normalize a denomination unit for use in Numista search queries.
+ * Corrects spelling variants (e.g., "Kopeks" -> "kopecks") while preserving
+ * plurality, since Numista's search is sensitive to singular vs plural.
+ * @param {string} unit - Raw unit string from coin data
+ * @returns {string} Normalized unit suitable for API search queries
+ */
+function normalizeUnitForSearch(unit) {
+  if (!unit) return unit;
+  const wasPlural = unit.toLowerCase().trim().endsWith('s');
+  const canonical = window.stringSimilarity.normalizeUnit(unit);
+  if (!canonical) return unit;
+  // If original was plural but canonical is singular, re-add 's'
+  if (wasPlural && !canonical.endsWith('s')) return canonical + 's';
+  return canonical;
+}
+
 function stripParenthetical(query) {
   return query.replace(/\s*\([^)]*\)\s*/g, ' ').replace(/\s+/g, ' ').trim();
 }
@@ -2771,10 +2865,10 @@ function stripParenthetical(query) {
 function buildCoreQuery(coin) {
   const parts = [];
 
-  // Add denomination
+  // Add denomination (normalize spelling, preserve plurality for Numista search)
   if (coin.value) {
     if (coin.unit) {
-      parts.push(`${coin.value} ${coin.unit}`);
+      parts.push(`${coin.value} ${normalizeUnitForSearch(coin.unit)}`);
     } else {
       parts.push(coin.value.toString());
     }
@@ -2803,8 +2897,9 @@ function buildMinimalQuery(coin) {
   }
 
   // Add denomination unit only (not number, to broaden search)
+  // Normalize spelling, preserve plurality for Numista search
   if (coin.unit) {
-    parts.push(coin.unit);
+    parts.push(normalizeUnitForSearch(coin.unit));
   } else if (coin.value) {
     parts.push(coin.value.toString());
   }
@@ -2833,24 +2928,7 @@ async function searchForMatches() {
     if (!result.success) throw new Error(result.error);
     AppState.currentMatches = result.results.types || [];
 
-    // Strategy 2: Remove parenthetical content if no results
-    if (AppState.currentMatches.length === 0 && baseParams.q) {
-      const strippedQuery = stripParenthetical(baseParams.q);
-      if (strippedQuery !== baseParams.q) {
-        searchAttempt++;
-        console.log(`Search attempt ${searchAttempt}: Stripped parenthetical -> "${strippedQuery}"`);
-        document.getElementById('searchStatus').textContent = 'Trying simplified search...';
-
-        const params2 = { ...baseParams, q: strippedQuery };
-        result = await window.electronAPI.searchNumista(params2);
-        if (result.success) {
-          AppState.currentMatches = result.results.types || [];
-          if (AppState.currentMatches.length > 0) usedFallback = true;
-        }
-      }
-    }
-
-    // Strategy 3: Core terms only (denomination + year)
+    // Strategy 2: Core terms only (denomination + year)
     if (AppState.currentMatches.length === 0) {
       const coreQuery = buildCoreQuery(coin);
       if (coreQuery && coreQuery !== baseParams.q) {
@@ -2867,7 +2945,7 @@ async function searchForMatches() {
       }
     }
 
-    // Strategy 4: Minimal query (country + denomination unit)
+    // Strategy 3: Minimal query (country + denomination unit)
     if (AppState.currentMatches.length === 0) {
       const minimalQuery = buildMinimalQuery(coin);
       if (minimalQuery) {
@@ -2954,7 +3032,7 @@ async function buildSearchParams(coin) {
   let query = '';
 
   if (coin.title && coin.title.trim()) {
-    query = coin.title.trim();
+    query = stripParenthetical(coin.title.trim());
   }
 
   // Add year to query if it exists and isn't already in the title
@@ -2967,10 +3045,16 @@ async function buildSearchParams(coin) {
   }
 
   // Add denomination (value + unit) to narrow search results
+  // Normalize spelling, preserve plurality for Numista search
   if (coin.value) {
-    const denomination = coin.unit ? `${coin.value} ${coin.unit}` : coin.value.toString();
-    // Only add if not already present in query
-    if (!query.toLowerCase().includes(denomination.toLowerCase())) {
+    const normalizedUnit = coin.unit ? normalizeUnitForSearch(coin.unit) : null;
+    const denomination = normalizedUnit ? `${coin.value} ${normalizedUnit}` : coin.value.toString();
+    // Check both normalized and original forms - prevents appending when normalization
+    // changes spelling but the original denomination is already in the title
+    const originalDenom = coin.unit ? `${coin.value} ${coin.unit}` : null;
+    const alreadyPresent = query.toLowerCase().includes(denomination.toLowerCase()) ||
+      (originalDenom && query.toLowerCase().includes(originalDenom.toLowerCase()));
+    if (!alreadyPresent) {
       query = query ? `${query} ${denomination}` : denomination;
     }
   }
@@ -2992,7 +3076,8 @@ async function buildSearchParams(coin) {
   // Resolve issuer code from country name to narrow search results
   if (coin.country && coin.country.trim()) {
     try {
-      const issuerResult = await window.electronAPI.resolveIssuer(coin.country.trim());
+      const cleanCountry = stripParenthetical(coin.country.trim());
+      const issuerResult = await window.electronAPI.resolveIssuer(cleanCountry);
       if (issuerResult.success && issuerResult.code) {
         params.issuer = issuerResult.code;
         console.log(`Resolved issuer for "${coin.country}": ${issuerResult.code}`);
@@ -3092,6 +3177,12 @@ function renderMatches() {
 }
 
 function calculateConfidence(coin, match) {
+  // Numista ID match is a perfect match (100%) - coin was previously enriched with this exact type
+  const coinNumistaId = coin.metadata?.basicData?.numistaId;
+  if (coinNumistaId && match.id && coinNumistaId === match.id) {
+    return 100;
+  }
+
   let score = 0;
 
   // Title similarity (30 points max) - uses Dice coefficient for graduated scoring
@@ -3128,8 +3219,9 @@ function calculateConfidence(coin, match) {
   // Try value.text first, fallback to extracting from title (e.g., "5 Cents Liberty Nickel")
   let matchDenomination = match.value?.text?.toLowerCase().trim();
   if (!matchDenomination && match.title) {
-    // Extract denomination from start of title: "5 Cents ...", "1 Cent ...", "50 Pfennig ..."
-    const titleMatch = match.title.match(/^([\d.]+\s*[a-zA-Z]+)/i);
+    // Extract denomination from start of title up to first separator (dash, paren, comma)
+    // Captures multi-word units: "2 Euro Cents - Beatrix" -> "2 Euro Cents"
+    const titleMatch = match.title.match(/^([\d.]+\s*[^-–(,]+)/i);
     if (titleMatch) {
       matchDenomination = titleMatch[1].toLowerCase().trim();
     }
@@ -3145,7 +3237,7 @@ function calculateConfidence(coin, match) {
     if (matchValue !== null) {
       // Check if units match (e.g., "cents" vs "cent" should match, "cent" vs "dime" should not)
       const unitsMatch = coinUnit && matchUnit && (
-        matchUnit.includes(coinUnit) || coinUnit.includes(matchUnit) ||
+        window.stringSimilarity.unitsMatch(coinUnit, matchUnit) ||
         window.stringSimilarity.diceCoefficient(coinUnit, matchUnit) > 0.7
       );
 
@@ -3159,6 +3251,21 @@ function calculateConfidence(coin, match) {
         // Either numeric value differs OR units differ (e.g., "1 Cent" vs "1 Dime")
         // This is a denomination mismatch - penalty
         score -= 20;
+      }
+    }
+  } else if (coinUnit && matchDenomination) {
+    // No numeric value from user's coin, but we have a unit to compare
+    // This handles cases like unit="Euro" where value is empty in OpenNumismat
+    const matchUnit = matchDenomination.replace(/^[\d.]+\s*/, '').trim();
+    if (matchUnit) {
+      const unitsMatch = (
+        window.stringSimilarity.unitsMatch(coinUnit, matchUnit) ||
+        window.stringSimilarity.diceCoefficient(coinUnit, matchUnit) > 0.7
+      );
+      if (unitsMatch) {
+        score += 15; // Unit matches but can't verify numeric value
+      } else {
+        score -= 10; // Unit mismatch
       }
     }
   }
@@ -3207,7 +3314,9 @@ async function handleMatchSelection(matchIndex) {
     if (result.basicData) {
       result.basicData.obverse_thumbnail = searchResult.obverse_thumbnail;
       result.basicData.reverse_thumbnail = searchResult.reverse_thumbnail;
-      result.basicData.edge_thumbnail = searchResult.edge_thumbnail;
+      // Keep edge_thumbnail from type data - search results don't include it
+      // Only use searchResult.edge_thumbnail if it exists (for future API compatibility)
+      result.basicData.edge_thumbnail = searchResult.edge_thumbnail || result.basicData.edge_thumbnail;
       AppState.selectedMatch = result.basicData;
     } else {
       // If no basic data was fetched, keep the search result
@@ -3323,7 +3432,7 @@ async function showFieldComparison() {
     result.comparison.fields.forEach(fieldData => {
       // Use formatted display if available (for catalog numbers), otherwise use raw value
       const numistaDisplay = fieldData.numistaValueDisplay || fieldData.numistaValue || '(empty)';
-      
+
       comparisonObj[fieldData.field] = {
         current: {
           value: fieldData.onValue,
@@ -3337,7 +3446,9 @@ async function showFieldComparison() {
         hasCurrentValue: fieldData.onValue !== null && fieldData.onValue !== undefined && fieldData.onValue !== '',
         hasNumistaValue: fieldData.numistaValue !== null && fieldData.numistaValue !== undefined && fieldData.numistaValue !== '',
         priority: fieldData.priority,
-        description: fieldData.description
+        description: fieldData.description,
+        category: fieldData.category || 'main',  // Field category for grouping
+        displayOrder: fieldData.displayOrder || 999  // Display order within category
       };
     });
 
@@ -3496,18 +3607,32 @@ async function handleImageDownload() {
   try {
     showStatus('Downloading images from Numista...');
 
+    // Debug: Log the selectedMatch structure for edge images
+    console.log('=== IMAGE DOWNLOAD DEBUG ===');
+    console.log('selectedMatch keys:', Object.keys(AppState.selectedMatch));
+    console.log('edge_thumbnail:', AppState.selectedMatch.edge_thumbnail);
+    console.log('edge object:', AppState.selectedMatch.edge);
+    console.log('edge.picture:', AppState.selectedMatch.edge?.picture);
+
     // Extract image URLs from the selected match
+    // Note: obverse/reverse use top-level thumbnail fields, but edge uses nested edge.picture
     const imageUrls = {
       obverse: AppState.selectedMatch.obverse_thumbnail?.replace('150x150', '400x400'),
       reverse: AppState.selectedMatch.reverse_thumbnail?.replace('150x150', '400x400'),
+      // edge_thumbnail may not exist - fall back to edge.picture (full-size image URL)
       edge: AppState.selectedMatch.edge_thumbnail?.replace('150x150', '400x400')
+            || AppState.selectedMatch.edge?.picture
     };
+
+    console.log('Final imageUrls to download:', imageUrls);
 
     // Call backend to download and store
     const result = await window.electronAPI.downloadAndStoreImages({
       coinId: AppState.currentCoin.id,
       imageUrls
     });
+
+    console.log('Download result:', result);
 
     if (result.success) {
       showStatus('Images downloaded successfully!', 'success');
@@ -3765,19 +3890,62 @@ async function handleFetchPricingData() {
   }
 }
 
-function renderFieldComparison() {
+async function renderFieldComparison() {
   const container = document.getElementById('fieldComparison');
   container.innerHTML = '';
-
-  // Add image comparison section at the top
-  renderImageComparison(container);
 
   // Add "Fetch More Data" section if additional data types are available
   renderFetchMoreDataSection(container);
 
+  // Fetch user's coin images once for use in image field rows
+  let userImages = { obverse: null, reverse: null, edge: null };
+  try {
+    const result = await window.electronAPI.getCoinImages(AppState.currentCoin.id);
+    if (result.success && result.images) {
+      userImages = result.images;
+    }
+  } catch (error) {
+    console.error('Error loading user images for field comparison:', error);
+  }
+
+  // Map field names to image types
+  const imageFieldMap = {
+    obverseimg: 'obverse',
+    reverseimg: 'reverse',
+    edgeimg: 'edge'
+  };
+
+  // Category display names and tracking
+  const categoryNames = {
+    main: 'Type Data',
+    issue: 'Issue Data',
+    pricing: 'Pricing Data'
+  };
+  let currentCategory = null;
+
+  // Only show category headers if we have more than just 'main' (i.e., issue or pricing data present)
+  const categories = new Set(Object.values(AppState.fieldComparison).map(d => d.category));
+  const showCategoryHeaders = categories.size > 1;
+
   for (const [fieldName, data] of Object.entries(AppState.fieldComparison)) {
+    // Add category header when category changes (only if multiple categories exist)
+    if (data.category !== currentCategory) {
+      currentCategory = data.category;
+      if (showCategoryHeaders && categoryNames[currentCategory]) {
+        const categoryHeader = document.createElement('div');
+        categoryHeader.className = 'field-category-header';
+        categoryHeader.textContent = categoryNames[currentCategory];
+        container.appendChild(categoryHeader);
+      }
+    }
     const row = document.createElement('div');
     row.className = 'field-row';
+
+    const isImageField = imageFieldMap.hasOwnProperty(fieldName);
+    if (isImageField) {
+      row.classList.add('image-field-row');
+    }
+
     if (data.isDifferent) {
       row.classList.add('different');
     }
@@ -3791,7 +3959,7 @@ function renderFieldComparison() {
     checkbox.addEventListener('change', (e) => {
       AppState.selectedFields[fieldName] = e.target.checked;
       console.log(`Checkbox '${fieldName}' changed to: ${e.target.checked}`);
-      
+
       // Count how many are now selected
       const selectedCount = Object.values(AppState.selectedFields).filter(v => v === true).length;
       console.log(`Total selected fields: ${selectedCount}`);
@@ -3809,31 +3977,85 @@ function renderFieldComparison() {
     nameCell.appendChild(nameDiv);
     nameCell.appendChild(descDiv);
 
-    // Current value
+    // Current value cell
     const currentCell = document.createElement('div');
     const currentLabel = document.createElement('div');
     currentLabel.style.fontWeight = '600';
     currentLabel.style.fontSize = '0.75rem';
     currentLabel.style.marginBottom = '0.25rem';
     currentLabel.textContent = 'Current';
-    const currentValue = document.createElement('div');
-    currentValue.className = data.hasCurrentValue ? 'field-value' : 'field-value empty';
-    currentValue.textContent = data.current.display;
     currentCell.appendChild(currentLabel);
-    currentCell.appendChild(currentValue);
 
-    // Numista value
+    // Numista value cell
     const numistaCell = document.createElement('div');
     const numistaLabel = document.createElement('div');
     numistaLabel.style.fontWeight = '600';
     numistaLabel.style.fontSize = '0.75rem';
     numistaLabel.style.marginBottom = '0.25rem';
     numistaLabel.textContent = 'Numista';
-    const numistaValue = document.createElement('div');
-    numistaValue.className = data.hasNumistaValue ? 'field-value' : 'field-value empty';
-    numistaValue.textContent = data.numista.display;
     numistaCell.appendChild(numistaLabel);
-    numistaCell.appendChild(numistaValue);
+
+    if (isImageField) {
+      // Render inline image previews for image fields
+      const imageType = imageFieldMap[fieldName];
+
+      // Current image
+      const currentImgContainer = document.createElement('div');
+      currentImgContainer.className = 'field-image-container';
+      const currentImg = document.createElement('img');
+      currentImg.className = 'field-image-preview';
+      currentImg.alt = `Current ${imageType}`;
+
+      if (userImages[imageType]) {
+        currentImg.src = userImages[imageType];
+        attachLightbox(currentImg, `Your ${imageType}`);
+      } else {
+        currentImg.src = getImagePlaceholder(imageType);
+        currentImg.classList.add('placeholder');
+      }
+      currentImgContainer.appendChild(currentImg);
+      currentCell.appendChild(currentImgContainer);
+
+      // Numista image
+      const numistaImgContainer = document.createElement('div');
+      numistaImgContainer.className = 'field-image-container';
+      const numistaImg = document.createElement('img');
+      numistaImg.className = 'field-image-preview';
+      numistaImg.alt = `Numista ${imageType}`;
+
+      // Get Numista image URL from selectedMatch
+      let numistaImgUrl = null;
+      if (AppState.selectedMatch) {
+        if (imageType === 'obverse') {
+          numistaImgUrl = AppState.selectedMatch.obverse_thumbnail;
+        } else if (imageType === 'reverse') {
+          numistaImgUrl = AppState.selectedMatch.reverse_thumbnail;
+        } else if (imageType === 'edge') {
+          numistaImgUrl = AppState.selectedMatch.edge_thumbnail || AppState.selectedMatch.edge?.picture;
+        }
+      }
+
+      if (numistaImgUrl) {
+        numistaImg.src = numistaImgUrl;
+        attachLightbox(numistaImg, `Numista ${imageType}`);
+      } else {
+        numistaImg.src = getImagePlaceholder(imageType);
+        numistaImg.classList.add('placeholder');
+      }
+      numistaImgContainer.appendChild(numistaImg);
+      numistaCell.appendChild(numistaImgContainer);
+    } else {
+      // Regular text field rendering
+      const currentValue = document.createElement('div');
+      currentValue.className = data.hasCurrentValue ? 'field-value' : 'field-value empty';
+      currentValue.textContent = data.current.display;
+      currentCell.appendChild(currentValue);
+
+      const numistaValue = document.createElement('div');
+      numistaValue.className = data.hasNumistaValue ? 'field-value' : 'field-value empty';
+      numistaValue.textContent = data.numista.display;
+      numistaCell.appendChild(numistaValue);
+    }
 
     row.appendChild(checkboxCell);
     row.appendChild(nameCell);
@@ -3929,6 +4151,7 @@ async function showIssuePicker(issueOptions, coin, typeId) {
 
   // Store selected issue
   let selectedIssue = null;
+  const previousIssueId = coin.metadata?.issueData?.issueId || null;
 
   // Calculate match scores for sorting
   // Higher score = better match
@@ -3991,6 +4214,7 @@ async function showIssuePicker(issueOptions, coin, typeId) {
           ${issue.comment ? `(${issue.comment})` : ''}
           ${isFullMatch ? '<span class="issue-option-match-badge">EXACT MATCH</span>' : ''}
           ${isPartialMatch && !isFullMatch ? '<span class="issue-option-partial-badge">PARTIAL MATCH</span>' : ''}
+          ${previousIssueId && issue.id === previousIssueId ? '<span class="issue-option-previous-badge">PREVIOUS SELECTION</span>' : ''}
         </div>
       </div>
       <div class="issue-option-details">
@@ -4042,6 +4266,15 @@ async function showIssuePicker(issueOptions, coin, typeId) {
     });
 
     optionsList.appendChild(optionDiv);
+
+    // Pre-select previously chosen issue
+    if (previousIssueId && issue.id === previousIssueId) {
+      optionDiv.classList.add('selected');
+      const radioEl = optionDiv.querySelector('.issue-option-radio');
+      radioEl.checked = true;
+      selectedIssue = issue;
+      applyBtn.disabled = false;
+    }
   });
 
   // Show modal
@@ -4406,18 +4639,21 @@ document.getElementById('statusFilter').addEventListener('change', (e) => {
   AppState.filterSort.statusFilter = e.target.value;
   AppState.pagination.currentPage = 1; // Reset to first page
   loadCoins();
+  saveViewState();
 });
 
 document.getElementById('freshnessFilter').addEventListener('change', (e) => {
   AppState.filterSort.freshnessFilter = e.target.value;
   AppState.pagination.currentPage = 1; // Reset to first page
   loadCoins();
+  saveViewState();
 });
 
 document.getElementById('sortBy').addEventListener('change', (e) => {
   AppState.filterSort.sortBy = e.target.value;
   AppState.pagination.currentPage = 1; // Reset to first page
   loadCoins();
+  saveViewState();
 });
 
 // Click handlers for stat card error/skipped counts
@@ -4430,6 +4666,7 @@ document.querySelectorAll('.stat-clickable').forEach(el => {
       AppState.filterSort.statusFilter = filterValue;
       AppState.pagination.currentPage = 1;
       loadCoins();
+      saveViewState();
     }
   });
 });
@@ -4449,6 +4686,7 @@ document.getElementById('resetFiltersBtn').addEventListener('click', () => {
 
   // Reload coins with reset filters
   loadCoins();
+  saveViewState();
 });
 
 // =============================================================================
@@ -4522,18 +4760,114 @@ document.getElementById('infoBarPinBtn').addEventListener('click', () => {
 });
 
 // =============================================================================
+// View State Persistence (Remember page/filters/sort on close)
+// =============================================================================
+
+/**
+ * Save current view state (page, scroll, filters, sort) to collection settings.
+ * Called on state changes (page, filter, sort) so the saved state is always current.
+ * Uses a debounce to avoid excessive writes during rapid changes.
+ */
+let _saveViewStateTimer = null;
+function saveViewState() {
+  if (!AppState.collectionPath) return;
+
+  clearTimeout(_saveViewStateTimer);
+  _saveViewStateTimer = setTimeout(() => {
+    const mainContent = document.querySelector('.app-main');
+    const scrollTop = mainContent ? mainContent.scrollTop : 0;
+
+    const viewState = {
+      currentPage: AppState.pagination.currentPage,
+      scrollTop: scrollTop,
+      statusFilter: AppState.filterSort.statusFilter,
+      freshnessFilter: AppState.filterSort.freshnessFilter,
+      sortBy: AppState.filterSort.sortBy,
+      sortOrder: AppState.filterSort.sortOrder
+    };
+
+    window.api.saveUiPreference('lastViewState', viewState).catch(err => {
+      console.error('Error saving view state:', err);
+    });
+  }, 500);
+}
+
+/**
+ * Restore view state (filters, sort, page) from saved preferences.
+ * Applied during collection load before loadCoins() so the first render uses saved state.
+ * @param {Object|null} lastViewState - Saved view state from uiPreferences
+ */
+function restoreViewState(lastViewState) {
+  if (!lastViewState) return;
+
+  // Restore filters
+  if (lastViewState.statusFilter) {
+    AppState.filterSort.statusFilter = lastViewState.statusFilter;
+    const statusEl = document.getElementById('statusFilter');
+    if (statusEl) statusEl.value = lastViewState.statusFilter;
+  }
+  if (lastViewState.freshnessFilter) {
+    AppState.filterSort.freshnessFilter = lastViewState.freshnessFilter;
+    const freshnessEl = document.getElementById('freshnessFilter');
+    if (freshnessEl) freshnessEl.value = lastViewState.freshnessFilter;
+  }
+
+  // Restore sort
+  if (lastViewState.sortBy) {
+    AppState.filterSort.sortBy = lastViewState.sortBy;
+    const sortEl = document.getElementById('sortBy');
+    if (sortEl) sortEl.value = lastViewState.sortBy;
+  }
+  if (lastViewState.sortOrder) {
+    AppState.filterSort.sortOrder = lastViewState.sortOrder;
+  }
+
+  // Restore page (will be clamped in loadCoins if out of range)
+  if (lastViewState.currentPage && lastViewState.currentPage > 0) {
+    AppState.pagination.currentPage = lastViewState.currentPage;
+  }
+
+  // Restore scroll position after coins render
+  if (lastViewState.scrollTop && lastViewState.scrollTop > 0) {
+    AppState.collectionScrollPosition = lastViewState.scrollTop;
+  }
+}
+
+// Save view state immediately when the app is closing (bypass debounce)
+window.addEventListener('beforeunload', () => {
+  if (!AppState.collectionPath) return;
+
+  const mainContent = document.querySelector('.app-main');
+  const scrollTop = mainContent ? mainContent.scrollTop : 0;
+
+  const viewState = {
+    currentPage: AppState.pagination.currentPage,
+    scrollTop: scrollTop,
+    statusFilter: AppState.filterSort.statusFilter,
+    freshnessFilter: AppState.filterSort.freshnessFilter,
+    sortBy: AppState.filterSort.sortBy,
+    sortOrder: AppState.filterSort.sortOrder
+  };
+
+  // Use sendSync-style fire-and-forget to maximize chance of delivery before close
+  window.api.saveUiPreference('lastViewState', viewState).catch(() => {});
+});
+
+// =============================================================================
 // Pagination
 // =============================================================================
 
 document.getElementById('firstPageBtn').addEventListener('click', () => {
   AppState.pagination.currentPage = 1;
   loadCoins();
+  saveViewState();
 });
 
 document.getElementById('prevPageBtn').addEventListener('click', () => {
   if (AppState.pagination.currentPage > 1) {
     AppState.pagination.currentPage--;
     loadCoins();
+    saveViewState();
   }
 });
 
@@ -4541,12 +4875,14 @@ document.getElementById('nextPageBtn').addEventListener('click', () => {
   if (AppState.pagination.currentPage < AppState.pagination.totalPages) {
     AppState.pagination.currentPage++;
     loadCoins();
+    saveViewState();
   }
 });
 
 document.getElementById('lastPageBtn').addEventListener('click', () => {
   AppState.pagination.currentPage = AppState.pagination.totalPages;
   loadCoins();
+  saveViewState();
 });
 
 // =============================================================================
@@ -4594,11 +4930,46 @@ function loadSettingsScreen() {
   document.getElementById('unlimitedBackupsCheckbox').checked = isUnlimited;
   updateBackupControlsState();
 
+  // Load cache TTL settings
+  const cacheTtlIssuers = document.getElementById('cacheTtlIssuers');
+  const cacheTtlTypes = document.getElementById('cacheTtlTypes');
+  const cacheTtlIssues = document.getElementById('cacheTtlIssues');
+  const monthlyApiLimit = document.getElementById('monthlyApiLimit');
+  if (cacheTtlIssuers) cacheTtlIssuers.value = AppState.settings.cacheTtlIssuers != null ? AppState.settings.cacheTtlIssuers : 90;
+  if (cacheTtlTypes) cacheTtlTypes.value = AppState.settings.cacheTtlTypes != null ? AppState.settings.cacheTtlTypes : 30;
+  if (cacheTtlIssues) cacheTtlIssues.value = AppState.settings.cacheTtlIssues != null ? AppState.settings.cacheTtlIssues : 30;
+  if (monthlyApiLimit) monthlyApiLimit.value = AppState.settings.monthlyApiLimit || 2000;
+
+  // Load log level setting
+  const logLevelSelect = document.getElementById('logLevelSelect');
+  if (logLevelSelect) logLevelSelect.value = AppState.settings.logLevel || 'info';
+
+  // Load current monthly usage for manual adjustment field
+  loadMonthlyUsageForSettings();
+
   // Load default collection path
   loadDefaultCollectionDisplay();
 
   // Load license management display
   loadLicenseManagementDisplay();
+}
+
+/**
+ * Load current monthly usage into the manual adjustment field in settings
+ * @async
+ */
+async function loadMonthlyUsageForSettings() {
+  try {
+    const result = await window.electronAPI.getMonthlyUsage();
+    if (result.success) {
+      const usageInput = document.getElementById('currentMonthUsage');
+      if (usageInput) {
+        usageInput.value = result.usage.total || 0;
+      }
+    }
+  } catch (error) {
+    console.warn('Error loading monthly usage for settings:', error.message);
+  }
 }
 
 /**
@@ -4721,14 +5092,37 @@ document.getElementById('saveSettingsBtn').addEventListener('click', async () =>
     imageHandling: document.querySelector('input[name="imageHandling"]:checked').value,
     autoBackup: document.getElementById('autoBackupCheckbox').checked,
     maxBackups: unlimited ? 0 : Math.max(0, parseInt(document.getElementById('maxBackupsInput').value) || 5),
-    fieldMapping: AppState.settings?.fieldMapping
+    fieldMapping: AppState.settings?.fieldMapping,
+    cacheTtlIssuers: parseInt(document.getElementById('cacheTtlIssuers').value) || 0,
+    cacheTtlTypes: parseInt(document.getElementById('cacheTtlTypes').value) || 0,
+    cacheTtlIssues: parseInt(document.getElementById('cacheTtlIssues').value) || 0,
+    monthlyApiLimit: parseInt(document.getElementById('monthlyApiLimit').value) || 2000,
+    logLevel: document.getElementById('logLevelSelect').value
   };
 
+  // Save monthly limit to cache as well
+  try {
+    await window.electronAPI.setMonthlyUsage(parseInt(document.getElementById('monthlyApiLimit').value) || 2000);
+  } catch (e) { /* non-fatal */ }
+
+  // If manual usage was adjusted, update it
+  const manualUsageInput = document.getElementById('currentMonthUsage');
+  if (manualUsageInput) {
+    const manualTotal = parseInt(manualUsageInput.value);
+    if (!isNaN(manualTotal) && manualTotal >= 0) {
+      try {
+        await window.electronAPI.setMonthlyUsageTotal(manualTotal);
+      } catch (e) { /* non-fatal */ }
+    }
+  }
+
   const result = await window.electronAPI.saveAppSettings(settings);
-  
+
   if (result.success) {
     showModal('Success', 'Settings saved successfully!');
     AppState.settings = settings;
+    // Refresh footer monthly display
+    refreshSessionCounter();
   } else {
     showModal('Error', 'Failed to save settings');
   }
@@ -4744,7 +5138,12 @@ document.getElementById('resetSettingsBtn').addEventListener('click', async () =
     searchDelay: 2000,
     imageHandling: 'url',
     autoBackup: true,
-    maxBackups: 5
+    maxBackups: 5,
+    cacheTtlIssuers: 90,
+    cacheTtlTypes: 30,
+    cacheTtlIssues: 30,
+    monthlyApiLimit: 2000,
+    logLevel: 'info'
   };
 
   const result = await window.electronAPI.saveAppSettings(defaultSettings);
@@ -4755,6 +5154,38 @@ document.getElementById('resetSettingsBtn').addEventListener('click', async () =
   } else {
     showModal('Error', 'Failed to reset settings');
   }
+});
+
+// Clear API Cache button handler
+document.getElementById('clearApiCacheBtn').addEventListener('click', async () => {
+  try {
+    const result = await window.electronAPI.clearApiCache();
+    if (result.success) {
+      showModal('Success', 'API cache cleared. Monthly usage tracking is preserved.');
+    } else {
+      showModal('Error', 'Failed to clear API cache');
+    }
+  } catch (error) {
+    showModal('Error', 'Failed to clear API cache: ' + error.message);
+  }
+});
+
+// Download Log File button handler
+document.getElementById('downloadLogBtn').addEventListener('click', async () => {
+  try {
+    const result = await window.electronAPI.exportLogFile();
+    if (result.success) {
+      showModal('Success', 'Log file saved successfully.');
+    }
+  } catch (error) {
+    showModal('Error', 'Failed to save log file: ' + error.message);
+  }
+});
+
+// Numista Dashboard link handler
+document.getElementById('numistaDashboardLink').addEventListener('click', (e) => {
+  e.preventDefault();
+  window.electronAPI.openExternal('https://en.numista.com/api/dashboard.php');
 });
 
 // =============================================================================
@@ -5900,6 +6331,31 @@ async function refreshSessionCounter() {
   } catch (error) {
     console.error('Error refreshing session counter:', error);
   }
+
+  // Update monthly usage display in footer
+  try {
+    const usageResult = await window.electronAPI.getMonthlyUsage();
+    if (usageResult.success) {
+      const total = usageResult.usage.total || 0;
+      const limit = usageResult.limit || 2000;
+      const monthlyEl = document.getElementById('monthlyUsageText');
+      if (monthlyEl) {
+        monthlyEl.textContent = `Month: ${total.toLocaleString()}/${limit.toLocaleString()}`;
+        // Color based on usage percentage
+        const pct = total / limit;
+        if (pct > 0.9) {
+          monthlyEl.style.color = '#d9534f'; // red
+        } else if (pct >= 0.75) {
+          monthlyEl.style.color = '#f0ad4e'; // orange
+        } else {
+          monthlyEl.style.color = '';
+        }
+      }
+    }
+  } catch (error) {
+    // Non-fatal — monthly usage display is informational
+    console.warn('Error refreshing monthly usage:', error.message);
+  }
 }
 
 // =============================================================================
@@ -6136,6 +6592,10 @@ async function handleMenuAction(action, data) {
 
     case 'about':
       showAboutDialog();
+      break;
+
+    case 'report-issue':
+      showReportIssueDialog();
       break;
 
     case 'view-eula':

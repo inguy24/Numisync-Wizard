@@ -432,6 +432,103 @@
           </div>
 
           <div class="setting-group">
+            <h3>API Cache</h3>
+            <p class="setting-help">
+              Cache Numista API responses locally to reduce API calls against your monthly quota.
+              Longer durations use fewer API calls but may show slightly stale data.
+            </p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; align-items: center;">
+              <label for="cacheTtlIssuers">Issuers (countries):</label>
+              <select id="cacheTtlIssuers">
+                <option value="0">No caching</option>
+                <option value="30">30 days</option>
+                <option value="60">60 days</option>
+                <option value="90" selected>90 days (recommended)</option>
+                <option value="120">120 days</option>
+                <option value="150">150 days</option>
+                <option value="180">180 days</option>
+                <option value="210">210 days</option>
+                <option value="240">240 days</option>
+                <option value="270">270 days</option>
+                <option value="300">300 days</option>
+                <option value="330">330 days</option>
+                <option value="360">360 days</option>
+              </select>
+              <label for="cacheTtlTypes">Type data (coin specs):</label>
+              <select id="cacheTtlTypes">
+                <option value="0">No caching</option>
+                <option value="30" selected>30 days (recommended)</option>
+                <option value="60">60 days</option>
+                <option value="90">90 days</option>
+                <option value="120">120 days</option>
+                <option value="150">150 days</option>
+                <option value="180">180 days</option>
+                <option value="210">210 days</option>
+                <option value="240">240 days</option>
+                <option value="270">270 days</option>
+                <option value="300">300 days</option>
+                <option value="330">330 days</option>
+                <option value="360">360 days</option>
+              </select>
+              <label for="cacheTtlIssues">Issue data (mintage, mintmarks):</label>
+              <select id="cacheTtlIssues">
+                <option value="0">No caching</option>
+                <option value="30" selected>30 days (recommended)</option>
+                <option value="60">60 days</option>
+                <option value="90">90 days</option>
+                <option value="120">120 days</option>
+                <option value="150">150 days</option>
+                <option value="180">180 days</option>
+                <option value="210">210 days</option>
+                <option value="240">240 days</option>
+                <option value="270">270 days</option>
+                <option value="300">300 days</option>
+                <option value="330">330 days</option>
+                <option value="360">360 days</option>
+              </select>
+            </div>
+            <div style="margin-top: 15px;">
+              <label for="monthlyApiLimit">Monthly API call limit:</label>
+              <input type="number" id="monthlyApiLimit" value="2000" min="100" max="100000" step="100" style="width: 100px; margin-left: 8px;">
+              <p class="setting-help">
+                Free Numista accounts have a 2,000 call/month limit. Change this if you have a premium API plan.
+              </p>
+            </div>
+            <div style="margin-top: 10px;">
+              <label for="currentMonthUsage">Current month usage:</label>
+              <input type="number" id="currentMonthUsage" value="0" min="0" max="100000" step="1" style="width: 100px; margin-left: 8px;">
+              <p class="setting-help">
+                Usage is tracked locally and may not reflect API calls made by other applications using the same key.
+                Visit the <a href="#" id="numistaDashboardLink">Numista API dashboard</a> to verify your actual usage and update this number if needed.
+              </p>
+            </div>
+            <button id="clearApiCacheBtn" class="btn btn-secondary" style="margin-top: 10px;">
+              Clear API Cache
+            </button>
+          </div>
+
+          <div class="setting-group">
+            <h3>Logging</h3>
+            <label for="logLevelSelect">Log detail level:</label>
+            <select id="logLevelSelect">
+              <option value="error">Error - Errors only</option>
+              <option value="warn">Warning - Errors + warnings</option>
+              <option value="info" selected>Info - Standard (recommended)</option>
+              <option value="debug">Debug - Verbose (for troubleshooting)</option>
+            </select>
+            <p class="setting-help">
+              Controls how much detail is written to the log file. Use <strong>Debug</strong> when
+              troubleshooting an issue, then switch back to <strong>Info</strong> for normal use.
+            </p>
+            <button id="downloadLogBtn" class="btn btn-secondary" style="margin-top: 10px;">
+              Download Log File
+            </button>
+            <p class="setting-help">
+              Save a copy of the application log to share when reporting an issue.
+            </p>
+          </div>
+
+          <div class="setting-group">
             <h3>Safety</h3>
             <label>
               <input type="checkbox" id="autoBackupCheckbox" checked>
@@ -531,6 +628,8 @@
         <span id="fetchSettingsText">Fetch: Basic (2 calls)</span>
         <span class="separator">•</span>
         <span id="sessionCallsText">Session: 0 calls</span>
+        <span class="separator">•</span>
+        <span id="monthlyUsageText">Month: 0/2,000</span>
       </div>
       <div id="progressBar" class="footer-progress-bar" style="display: none;">
         <div class="progress-fill" id="progressFill"></div>
