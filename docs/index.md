@@ -150,9 +150,10 @@ Shane (your fellow collector)
 
 ---
 
-**Additional Links:**
-[Report an Issue](https://github.com/inguy24/numismat-enrichment/issues) •
-[Discussions](https://github.com/inguy24/numismat-enrichment/discussions) •
-[Numista.com](https://www.numista.com/)
+## Required Software
 
-*Powered by Numista API • OpenNumismat Integration*
+### OpenNumismat
+**[Download OpenNumismat](https://opennumismat.github.io/)** - Free, open-source coin collection management software for Windows, macOS, and Linux. OpenNumismat provides a powerful database for cataloging your coins, and NumiSync Wizard enhances it by automatically populating catalog data and pricing.
+
+### Numista
+**[Visit Numista.com](https://www.numista.com/)** - The world's largest online numismatic catalog with detailed information on coins from around the world. NumiSync Wizard uses the Numista API to fetch catalog data, pricing, and images. You'll need a free Numista account to get an API key.
