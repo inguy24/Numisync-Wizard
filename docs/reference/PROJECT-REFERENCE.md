@@ -1,7 +1,7 @@
 # NumiSync Wizard for OpenNumismat - Project Reference
 
 **Purpose:** Architecture reference for implementation. Read when building features.
-**Last Updated:** February 8, 2026 (Denomination Plural/Singular Support)
+**Last Updated:** February 10, 2026 (Cross-Platform Distribution Implementation)
 
 ---
 
@@ -41,16 +41,24 @@ numismat-enrichment/
 │       ├── denomination-normalizer.js # Denomination alias normalization
 │       └── api-cache.js              # Persistent API cache + monthly usage
 ├── build/                    # Build resources (icons, installer scripts)
-│   ├── icon.png              # App icon for dev/Linux (512x512)
-│   ├── icon.ico              # App icon for Windows builds (256x256)
+│   ├── icon.png              # App icon source (512x512)
+│   ├── icon.ico              # Windows app icon (256x256)
+│   ├── icon.icns             # macOS app icon (all resolutions)
+│   ├── icons/                # Linux multi-resolution PNGs (16x16-512x512)
 │   ├── logo_no_text.svg      # Vector source for app icon
 │   ├── ICONS-README.txt      # Icon conversion instructions
-│   ├── installer.nsh         # NSIS custom script
+│   ├── installer.nsh         # NSIS custom script (EULA marker, cache deletion prompt)
 │   └── eula/
 │       └── eula-windows.rtf  # RTF EULA for NSIS installer
 ├── scripts/                  # Build/version scripts
-│   ├── validate-version.js
-│   └── post-version.js
+│   ├── validate-version.js   # Pre-version validation
+│   ├── post-version.js       # Post-version reminders
+│   ├── generate-linux-icons.ps1   # PowerShell icon generator (Linux)
+│   └── generate-macos-icon.js     # Node.js icon generator (macOS)
+├── .github/
+│   └── workflows/            # GitHub Actions CI/CD
+│       ├── build.yml         # Multi-platform release builds
+│       └── pr-check.yml      # PR validation
 ├── docs/                     # GitHub Pages + Project documentation
 │   ├── index.html            # GitHub Pages homepage (to be created)
 │   ├── _config.yml           # Jekyll configuration (optional, to be created)
