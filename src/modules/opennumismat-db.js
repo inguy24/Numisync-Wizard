@@ -356,21 +356,29 @@ class OpenNumismatDB {
 
   /**
    * Create a backup of the database
-   * 
+   *
    * @returns {string} Path to the backup file
    */
   createBackup() {
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const backupDir = path.join(path.dirname(this.filePath), 'backups');
-    
-    // Create backups directory if it doesn't exist
+    // Create readable timestamp (YYYY-MM-DD_HHMMSS)
+    const now = new Date();
+    const dateStr = now.toISOString().split('T')[0];  // YYYY-MM-DD
+    const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '');  // HHMMSS
+    const timestamp = `${dateStr}_${timeStr}`;
+
+    // Use .NumiSync/backups/ directory
+    const dir = path.dirname(this.filePath);
+    const numiSyncDir = path.join(dir, '.NumiSync');
+    const backupDir = path.join(numiSyncDir, 'backups');
+
+    // Create directories if they don't exist
     if (!fs.existsSync(backupDir)) {
       fs.mkdirSync(backupDir, { recursive: true });
     }
 
     const backupPath = path.join(
       backupDir,
-      `${path.basename(this.filePath, '.db')}_backup_${timestamp}.db`
+      `${path.basename(this.filePath, '.db')}_${timestamp}.db`
     );
 
     // Copy the database file
@@ -381,6 +389,7 @@ class OpenNumismatDB {
 
   /**
    * Remove old backups that exceed the maximum count.
+   * Handles both old and new backup locations/formats during migration.
    *
    * @param {number} maxCount - Maximum backups to keep. 0 = unlimited (no pruning).
    * @returns {string[]} - Paths of deleted backup files
@@ -388,32 +397,50 @@ class OpenNumismatDB {
   pruneOldBackups(maxCount) {
     if (maxCount <= 0) return []; // 0 = unlimited
 
-    const backupDir = path.join(path.dirname(this.filePath), 'backups');
-    if (!fs.existsSync(backupDir)) return [];
-
+    const dir = path.dirname(this.filePath);
     const dbBasename = path.basename(this.filePath, '.db');
-    const pattern = `${dbBasename}_backup_`;
+    const deleted = [];
 
-    // List matching backup files and sort alphabetically (timestamp in name = chronological)
-    const backups = fs.readdirSync(backupDir)
-      .filter(f => f.startsWith(pattern) && f.endsWith('.db'))
-      .sort();
+    // Collect backups from both old and new locations
+    const allBackups = [];
 
-    if (backups.length <= maxCount) return [];
+    // Old location: {dir}/backups/
+    const oldBackupDir = path.join(dir, 'backups');
+    if (fs.existsSync(oldBackupDir)) {
+      const oldPattern = `${dbBasename}_backup_`;
+      const oldBackups = fs.readdirSync(oldBackupDir)
+        .filter(f => f.startsWith(oldPattern) && f.endsWith('.db'))
+        .map(f => ({ path: path.join(oldBackupDir, f), name: f }));
+      allBackups.push(...oldBackups);
+    }
+
+    // New location: {dir}/.NumiSync/backups/
+    const newBackupDir = path.join(dir, '.NumiSync', 'backups');
+    if (fs.existsSync(newBackupDir)) {
+      const newPattern = `${dbBasename}_`;
+      const newBackups = fs.readdirSync(newBackupDir)
+        .filter(f => f.startsWith(newPattern) && f.endsWith('.db'))
+        .map(f => ({ path: path.join(newBackupDir, f), name: f }));
+      allBackups.push(...newBackups);
+    }
+
+    // Sort all backups by name (timestamp in name = chronological)
+    allBackups.sort((a, b) => a.name.localeCompare(b.name));
+
+    if (allBackups.length <= maxCount) return [];
 
     // Delete oldest files (beginning of sorted list)
-    const toDelete = backups.slice(0, backups.length - maxCount);
-    const deleted = [];
-    for (const filename of toDelete) {
-      const fullPath = path.join(backupDir, filename);
+    const toDelete = allBackups.slice(0, allBackups.length - maxCount);
+    for (const backup of toDelete) {
       try {
-        fs.unlinkSync(fullPath);
-        deleted.push(fullPath);
-        log.info('Pruned old backup: %s', filename);
+        fs.unlinkSync(backup.path);
+        deleted.push(backup.path);
+        log.info('Pruned old backup: %s', backup.name);
       } catch (err) {
-        log.warn('Failed to delete backup %s: %s', filename, err.message);
+        log.warn('Failed to delete backup %s: %s', backup.name, err.message);
       }
     }
+
     return deleted;
   }
 

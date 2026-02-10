@@ -508,6 +508,46 @@
           </div>
 
           <div class="setting-group">
+            <h3>Cache Location</h3>
+            <p class="setting-help">
+              Choose where to store the API cache. Use a custom location on a shared network drive if you use NumiSync Wizard on multiple computers.
+            </p>
+
+            <label style="display: block; margin-bottom: 8px;">
+              <input type="radio" name="cacheLocation" value="default" checked>
+              Default Location (Recommended)
+            </label>
+            <p class="setting-help" style="margin-left: 24px; margin-top: -4px; margin-bottom: 12px;">
+              <span id="defaultCacheLocationPath" style="font-family: monospace; font-size: 0.9em;"></span>
+            </p>
+
+            <label style="display: block; margin-bottom: 8px;">
+              <input type="radio" name="cacheLocation" value="custom">
+              Custom Location (Advanced)
+            </label>
+            <div id="customCacheLocationControls" style="margin-left: 24px; display: none;">
+              <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
+                <input type="text" id="customCacheLocationInput" placeholder="Select cache directory..." style="flex: 1;" readonly>
+                <button id="browseCacheLocationBtn" class="btn btn-secondary">Browse...</button>
+              </div>
+              <p class="setting-help">
+                ℹ️ <strong>Multi-Machine Setup:</strong> Select a folder on a network drive accessible from all computers.
+              </p>
+              <p class="setting-help" style="color: #d97706;">
+                ⚠️ <strong>Requirements:</strong> The folder must be accessible with read/write permissions. Network shares and modern cloud sync services (Dropbox, OneDrive, etc.) work fine.
+              </p>
+            </div>
+
+            <div style="margin-top: 15px;">
+              <label for="cacheLockTimeout">Lock Timeout (seconds):</label>
+              <input type="number" id="cacheLockTimeout" value="30" min="10" max="300" step="5" style="width: 80px; margin-left: 8px;">
+              <p class="setting-help">
+                How long to wait for cache file access before timing out. Increase if using a slow network connection.
+              </p>
+            </div>
+          </div>
+
+          <div class="setting-group">
             <h3>Logging</h3>
             <label for="logLevelSelect">Log detail level:</label>
             <select id="logLevelSelect">
@@ -1031,6 +1071,84 @@
       </div>
       <div class="modal-footer">
         <button id="fpCompleteOk" class="btn btn-primary">OK</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Cache Collision Detection Modal -->
+  <div id="cacheCollisionModal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>⚠️ Existing Cache Detected</h3>
+        <button id="cacheCollisionCloseBtn" class="modal-close">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="info-box">
+          <p>An API cache already exists at the selected location:</p>
+          <p style="font-family: monospace; margin-top: 10px;" id="collisionCachePath"></p>
+
+          <div id="collisionCacheDetails" style="margin-top: 15px;">
+            <!-- Populated by JS with cache metadata -->
+          </div>
+        </div>
+
+        <div id="collisionLockWarning" class="warning-box" style="display: none; margin-top: 15px;">
+          <strong>🔒 Cache In Use</strong>
+          <p id="lockWarningText"></p>
+        </div>
+
+        <p style="margin-top: 20px;">What would you like to do?</p>
+
+        <div class="info-box" style="margin-top: 15px;">
+          <strong>💡 Multi-Machine Tip:</strong> If you're setting up NumiSync Wizard on a second computer,
+          choose "Use Existing Cache" to share cached API data between machines and save API quota.
+        </div>
+      </div>
+      <div class="modal-footer" style="flex-direction: column; gap: 10px;">
+        <button id="useExistingCacheBtn" class="btn btn-primary" style="width: 100%;">
+          ✅ Use Existing Cache (Recommended)
+        </button>
+        <button id="selectDifferentLocationBtn" class="btn btn-secondary" style="width: 100%;">
+          📁 Select Different Location
+        </button>
+        <button id="cancelCollisionBtn" class="btn btn-secondary" style="width: 100%;">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cache Locked Error Modal -->
+  <div id="cacheLockedModal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>🔒 Cache Locked</h3>
+        <button id="cacheLockedCloseBtn" class="modal-close">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="warning-box">
+          <p>The selected cache location is currently in use by another NumiSync Wizard instance:</p>
+          <div id="lockOwnerInfo" style="margin-top: 10px; font-family: monospace; font-size: 0.9em;">
+            <!-- Populated with hostname, timestamp -->
+          </div>
+        </div>
+
+        <p style="margin-top: 20px;">To use this cache location:</p>
+        <ol style="text-align: left; margin-left: 20px;">
+          <li>Close the other NumiSync Wizard instance</li>
+          <li>Wait a few seconds for the lock to release</li>
+          <li>Click "Retry" below</li>
+        </ol>
+
+        <p style="font-size: 0.9em; color: #666; margin-top: 15px;">
+          Or select a different cache location to use a separate cache.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button id="retryLockedCacheBtn" class="btn btn-primary">🔄 Retry</button>
+        <button id="selectDifferentFromLockedBtn" class="btn btn-secondary">📁 Select Different Location</button>
+        <button id="cancelLockedBtn" class="btn btn-secondary">Cancel</button>
       </div>
     </div>
   </div>

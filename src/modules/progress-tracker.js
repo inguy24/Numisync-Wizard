@@ -42,14 +42,34 @@ class ProgressTracker {
   }
 
   /**
-   * Get the path for the progress file
+   * Get the path for the progress file (in .NumiSync subdirectory)
    * @param {string} collectionPath - Path to the collection .db file
    * @returns {string} Path to the progress JSON file
    */
   getProgressFilePath(collectionPath) {
     const dir = path.dirname(collectionPath);
     const basename = path.basename(collectionPath, '.db');
-    return path.join(dir, `${basename}_enrichment_progress.json`);
+    const numiSyncDir = path.join(dir, '.NumiSync');
+
+    // Create directory if needed
+    if (!fs.existsSync(numiSyncDir)) {
+      fs.mkdirSync(numiSyncDir, { recursive: true });
+    }
+
+    const newPath = path.join(numiSyncDir, `${basename}_progress.json`);
+
+    // Migration: Check old location
+    const oldPath = path.join(dir, `${basename}_enrichment_progress.json`);
+    if (!fs.existsSync(newPath) && fs.existsSync(oldPath)) {
+      try {
+        fs.renameSync(oldPath, newPath);
+        log.info('Migrated progress file to .NumiSync directory');
+      } catch (error) {
+        log.warn('Failed to migrate progress file:', error.message);
+      }
+    }
+
+    return newPath;
   }
 
   /**

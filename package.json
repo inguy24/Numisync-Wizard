@@ -2,6 +2,7 @@
   "name": "numisync-wizard",
   "version": "1.0.0",
   "description": "NumiSync Wizard - Enrich your OpenNumismat collection with data from Numista",
+  "homepage": "https://numisync.com",
   "main": "src/main/index.js",
   "scripts": {
     "start": "electron .",
@@ -43,7 +44,8 @@
     "electron": "^28.3.3",
     "electron-log": "^5.4.3",
     "electron-updater": "^6.7.3",
-    "sql.js": "^1.10.3"
+    "sql.js": "^1.10.3",
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
     "electron-builder": "^24.9.1"

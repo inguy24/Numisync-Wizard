@@ -219,6 +219,15 @@ const apiMethods = {
   setMonthlyUsageTotal: (total) => ipcRenderer.invoke('set-monthly-usage-total', total),
   clearApiCache: () => ipcRenderer.invoke('clear-api-cache'),
 
+  // Cache Location Settings
+  cacheSettings: {
+    get: () => ipcRenderer.invoke('get-cache-settings'),
+    set: (settings) => ipcRenderer.invoke('set-cache-settings', settings),
+    browseDirectory: () => ipcRenderer.invoke('browse-cache-directory'),
+    validatePath: (path) => ipcRenderer.invoke('validate-cache-path', path),
+    migrate: (newLocation, newCustomPath, useExisting = false) => ipcRenderer.invoke('migrate-cache', newLocation, newCustomPath, useExisting)
+  },
+
   // Logging
   exportLogFile: () => ipcRenderer.invoke('export-log-file')
 };

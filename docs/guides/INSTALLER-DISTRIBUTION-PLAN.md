@@ -49,6 +49,159 @@ Transform NumiSync Wizard from Windows-only to full cross-platform distribution 
 
 ---
 
+## Phase 0: GitHub Pages Homepage
+
+**Created:** February 10, 2026
+**Status:** Complete
+**URL:** [https://numisync.com](https://numisync.com)
+
+### Purpose
+
+Professional landing page for the project with downloads, features, screenshots, and documentation links. Provides a welcoming entry point for users discovering NumiSync Wizard.
+
+### Technology
+
+- **GitHub Pages** with Jekyll + Minimal Theme
+- Zero-maintenance deployment (auto-updates on push to main)
+- Markdown-based content for easy updates
+- Custom domain: numisync.com
+
+### Files Created
+
+| File | Purpose |
+|------|---------|
+| `docs/_config.yml` | Jekyll configuration (site metadata, theme, plugins) |
+| `docs/index.md` | Homepage with features, downloads, pricing |
+| `docs/installation.md` | Detailed installation guide for Windows |
+| `docs/quickstart.md` | 5-minute quick start tutorial |
+| `docs/assets/images/logo.svg` | Main logo for homepage |
+| `docs/assets/images/logo-icon.svg` | Logo icon for sidebar |
+| `docs/assets/images/icon.png` | Application icon |
+| `docs/assets/images/favicon.png` | Browser favicon |
+| `README.md` | Project README with homepage link |
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `package.json` | Added `homepage: "https://numisync.com"` |
+| `docs/guides/INSTALLER-DISTRIBUTION-PLAN.md` | Added Phase 0 section |
+
+### Content Sections
+
+**Homepage includes:**
+- Hero section with logo and download buttons
+- "What is NumiSync Wizard?" overview
+- 8 key features with descriptions
+- Screenshots section (placeholder for future additions)
+- Download section with zero-maintenance `/releases/latest` links
+- Quick start (5 steps)
+- Support Development section with pricing/license info
+- Documentation links
+- Footer with credits and links
+
+**Installation Guide includes:**
+- System requirements
+- Step-by-step Windows installation
+- Initial configuration (API key, settings)
+- Troubleshooting section
+- Upgrade instructions
+
+**Quick Start Guide includes:**
+- Prerequisites checklist
+- Walkthrough of basic enrichment workflow
+- Common workflows (enrich collection, update pricing only, fix matches)
+- Tips for best results
+- Keyboard shortcuts
+- FAQ section
+
+### Integration with Other Phases
+
+- **Phase 1-2** (EULA, Code Signing): Add SignPath badge to footer when implemented
+- **Phase 4-6** (Cross-Platform): Update download section when Mac/Linux builds available
+- **Future**: Add testimonials, video demos, comparison table
+
+### Maintenance Strategy
+
+**Zero-Maintenance Downloads:**
+- Primary download button links to `https://github.com/inguy24/numismat-enrichment/releases/latest`
+- GitHub automatically redirects to the latest release
+- No homepage updates needed when releasing new versions
+- Users always get the current version
+
+**Content Updates:**
+- Edit Markdown files in `docs/` directory
+- Push to main branch → GitHub Pages auto-deploys
+- No manual deployment steps required
+
+### Domain Configuration
+
+**Custom Domain Setup:**
+1. Purchase domain: numisync.com (completed)
+2. Add CNAME file to `docs/` directory: `numisync.com`
+3. Configure DNS A records to point to GitHub Pages IPs:
+   - `185.199.108.153`
+   - `185.199.109.153`
+   - `185.199.110.153`
+   - `185.199.111.153`
+4. Wait for DNS propagation (24-48 hours)
+5. Enable HTTPS in GitHub Pages settings
+
+### GitHub Pages Setup
+
+**Steps to Enable:**
+1. Go to https://github.com/inguy24/numismat-enrichment/settings/pages
+2. **Source:** Deploy from a branch
+3. **Branch:** `main`
+4. **Folder:** `/docs`
+5. Click **Save**
+6. Add custom domain: `numisync.com`
+7. Enforce HTTPS (enabled automatically after DNS propagation)
+
+### Verification Checklist
+
+- [x] Directory structure created
+- [x] Logo assets copied to `docs/assets/images/`
+- [x] Favicon created
+- [x] Jekyll `_config.yml` written with custom domain
+- [x] Homepage content (`docs/index.md`) written
+- [x] Installation guide (`docs/installation.md`) written
+- [x] Quick start guide (`docs/quickstart.md`) written
+- [x] README.md created with homepage link
+- [x] package.json updated with homepage field
+- [x] INSTALLER-DISTRIBUTION-PLAN.md updated with Phase 0
+- [ ] GitHub Pages enabled (requires user action)
+- [ ] Custom domain CNAME added (after GitHub Pages enabled)
+- [ ] DNS configured to point to GitHub Pages
+- [ ] Site live at https://numisync.com
+
+### Post-Launch Tasks
+
+**Immediate (after GitHub Pages is enabled):**
+- Add CNAME file with `numisync.com`
+- Configure DNS A records
+- Test site loads at numisync.com
+- Verify all links work
+- Check mobile responsiveness
+
+**Future Enhancements:**
+- Add application screenshots (4-6 images)
+- Create video demo/screencast
+- Add testimonials section
+- Implement blog/news section for updates
+- Add usage statistics (if collected)
+- Create comparison table (manual vs NumiSync workflow)
+
+### Notes
+
+- Screenshots are placeholder text for now - user will add actual screenshots later
+- Favicon uses existing icon.png directly (modern browsers support PNG)
+- All content emphasizes the freemium model and supporter license clearly
+- Pricing messaging matches the in-app nag prompt
+- Download links use `/releases/latest` for zero maintenance
+
+---
+
 ## Phase 1: Foundation (EULA, Version Scripts, Auto-Update)
 
 ### Files to Create
@@ -112,6 +265,255 @@ async function checkEulaOnStartup() {
   }
 }
 ```
+
+---
+
+## Phase 1.5: License Versioning Architecture
+
+**Added:** February 9, 2026
+
+### Business Requirement
+
+Users should only receive features from the app version their license was purchased for. When upgrading to a newer version:
+- **Existing features** unlocked by their license continue to work
+- **New features** added in later versions require purchasing a new license
+
+**Example:**
+| License | App Version | Fast Pricing (v1 feature) | Numista Sync (v2 feature) |
+|---------|-------------|---------------------------|---------------------------|
+| v1.0.0  | v1.0.0      | ✅ Unlocked                | N/A (doesn't exist)       |
+| v1.0.0  | v2.0.0      | ✅ Unlocked                | 🔒 Requires v2 license    |
+| v2.0.0  | v2.0.0      | ✅ Unlocked                | ✅ Unlocked                |
+
+### Implementation Strategy: Polar License Prefixes
+
+Polar.sh allows setting a custom **license prefix** for each product. This is the perfect mechanism for version detection.
+
+#### Product Setup in Polar Dashboard
+
+Create separate products for each major version:
+
+| Product Name | License Prefix | Product ID | Version |
+|--------------|----------------|------------|---------|
+| NumiSync Supporter License v1 | `V1` | `50fd6539-84c3-4ca7-9a1e-9f73033077dd` | 1.x.x |
+| NumiSync Supporter License v2 | `V2` | `[create when v2 launches]` | 2.x.x |
+| NumiSync Supporter License v3 | `V3` | `[create when v3 launches]` | 3.x.x |
+
+**License Key Format Examples:**
+- V1 license: `V1-XXXX-XXXX-XXXX-XXXX`
+- V2 license: `V2-XXXX-XXXX-XXXX-XXXX`
+- V3 license: `V3-XXXX-XXXX-XXXX-XXXX`
+
+#### Code Implementation
+
+**1. Extract License Version from Key**
+
+Add to `src/main/index.js`:
+
+```javascript
+/**
+ * Extract version from license key prefix
+ * @param {string} licenseKey - The full license key (e.g., "V1-XXXX-XXXX-XXXX")
+ * @returns {string|null} Version string (e.g., "1.0.0") or null if invalid
+ */
+function getLicenseVersion(licenseKey) {
+  if (!licenseKey || typeof licenseKey !== 'string') {
+    return null;
+  }
+
+  const prefix = licenseKey.split('-')[0].toUpperCase();
+
+  const versionMap = {
+    'V1': '1.0.0',
+    'V2': '2.0.0',
+    'V3': '3.0.0'
+  };
+
+  return versionMap[prefix] || null;
+}
+```
+
+**2. Define Feature Version Requirements**
+
+Add to `src/main/index.js`:
+
+```javascript
+/**
+ * Feature entitlements by version
+ * Maps feature names to minimum required license version
+ */
+const FEATURE_VERSIONS = {
+  // V1 Features (launched with v1.0.0)
+  'fastPricing': '1.0.0',
+  'batchEnrichment': '1.0.0',
+  'advancedSearch': '1.0.0',
+
+  // V2 Features (planned for v2.0.0)
+  'numismaticSync': '2.0.0',
+  'aiPricing': '2.0.0',
+  'cloudBackup': '2.0.0',
+
+  // V3 Features (future)
+  'marketplaceIntegration': '3.0.0'
+};
+```
+
+**3. Feature Gate Function**
+
+```javascript
+/**
+ * Check if a feature is unlocked by the user's license
+ * @param {string} licenseKey - The user's license key
+ * @param {string} featureName - Feature to check (from FEATURE_VERSIONS)
+ * @returns {boolean} True if feature is unlocked
+ */
+function isFeatureUnlocked(licenseKey, featureName) {
+  const licenseVersion = getLicenseVersion(licenseKey);
+
+  if (!licenseVersion) {
+    return false; // Invalid license
+  }
+
+  const requiredVersion = FEATURE_VERSIONS[featureName];
+
+  if (!requiredVersion) {
+    return false; // Unknown feature
+  }
+
+  // Compare semantic versions
+  return compareVersions(licenseVersion, requiredVersion) >= 0;
+}
+
+/**
+ * Compare semantic versions
+ * @returns {number} -1 if v1 < v2, 0 if equal, 1 if v1 > v2
+ */
+function compareVersions(v1, v2) {
+  const parts1 = v1.split('.').map(Number);
+  const parts2 = v2.split('.').map(Number);
+
+  for (let i = 0; i < 3; i++) {
+    if (parts1[i] > parts2[i]) return 1;
+    if (parts1[i] < parts2[i]) return -1;
+  }
+  return 0;
+}
+```
+
+**4. IPC Handler for Feature Checks**
+
+```javascript
+// Add to src/main/index.js
+ipcMain.handle('check-feature-access', async (event, featureName) => {
+  const licenseKey = getStoredLicenseKey(); // Your existing function
+
+  if (!licenseKey) {
+    return {
+      unlocked: false,
+      reason: 'no_license',
+      upgradeRequired: true
+    };
+  }
+
+  const unlocked = isFeatureUnlocked(licenseKey, featureName);
+
+  if (!unlocked) {
+    return {
+      unlocked: false,
+      reason: 'version_mismatch',
+      licenseVersion: getLicenseVersion(licenseKey),
+      requiredVersion: FEATURE_VERSIONS[featureName],
+      upgradeRequired: true
+    };
+  }
+
+  return {
+    unlocked: true,
+    licenseVersion: getLicenseVersion(licenseKey)
+  };
+});
+```
+
+**5. Renderer-Side Usage**
+
+```javascript
+// Add to src/renderer/app.js
+async function checkFeatureAccess(featureName) {
+  const result = await window.electronAPI.checkFeatureAccess(featureName);
+
+  if (!result.unlocked) {
+    if (result.reason === 'no_license') {
+      showUpgradeModal('This feature requires a license.');
+    } else if (result.reason === 'version_mismatch') {
+      showUpgradeModal(
+        `This feature requires a v${result.requiredVersion} license. ` +
+        `Your license is for v${result.licenseVersion}. ` +
+        `Purchase an upgrade to unlock this feature.`
+      );
+    }
+    return false;
+  }
+
+  return true;
+}
+
+// Example usage
+async function enableNumisticSync() {
+  if (await checkFeatureAccess('numismaticSync')) {
+    // Feature is unlocked - proceed
+    initializeSync();
+  }
+  // Otherwise, upgrade modal was shown
+}
+```
+
+#### Migration Path for Existing V1 License Holders
+
+**Option 1: Grandfather existing users**
+- Before v2 launch, create a special "V1-LIFETIME" prefix product
+- Offer existing v1 license holders a one-time migration to lifetime access
+- This is a goodwill gesture for early supporters
+
+**Option 2: Standard upgrade pricing**
+- V1 licenses continue to work for v1 features
+- V2 features require purchasing new v2 license
+- Optionally offer upgrade discount code
+
+### Polar Dashboard Configuration Checklist
+
+Before v1.0.0 launch:
+- [ ] Set license prefix to `V1` for current product
+- [ ] Update product name to "NumiSync Supporter License v1"
+- [ ] Document product ID in POLAR-PRODUCTION-CONFIG.md
+
+Before v2.0.0 launch:
+- [ ] Create new product "NumiSync Supporter License v2"
+- [ ] Set license prefix to `V2`
+- [ ] Update checkout URLs in app to point to v2 product
+- [ ] Add v2 product ID to POLAR-PRODUCTION-CONFIG.md
+- [ ] Test feature gating with both v1 and v2 test licenses
+
+### Testing Strategy
+
+**Test Cases:**
+
+| License | Feature | Expected Result |
+|---------|---------|-----------------|
+| V1-XXXX | fastPricing | ✅ Unlocked |
+| V1-XXXX | numismaticSync | 🔒 Blocked with upgrade prompt |
+| V2-XXXX | fastPricing | ✅ Unlocked (backwards compatible) |
+| V2-XXXX | numismaticSync | ✅ Unlocked |
+| None | Any feature | 🔒 Blocked with purchase prompt |
+| Invalid | Any feature | 🔒 Blocked |
+
+### Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/main/index.js` | Add `getLicenseVersion()`, `isFeatureUnlocked()`, `compareVersions()`, IPC handler |
+| `src/main/preload.js` | Expose `checkFeatureAccess` to renderer |
+| `src/renderer/app.js` | Add `checkFeatureAccess()`, `showUpgradeModal()`, gate features |
+| `docs/guides/POLAR-PRODUCTION-CONFIG.md` | Document v1 and v2 product IDs |
 
 ---
 
@@ -185,6 +587,8 @@ async function checkEulaOnStartup() {
 - Active maintenance with releases
 - No proprietary components
 - **All builds via GitHub Actions** (no local builds for releases)
+- Uninstaller respects user privacy and provides clear choices about data deletion
+- Custom cache locations are detected via app-settings.json and optionally deleted
 
 ### SignPath Application Process
 
@@ -969,8 +1373,100 @@ module.exports = { initAutoUpdater, checkForUpdatesManually };
 !macro customUnInstall
   ; Remove EULA marker on uninstall
   Delete "$INSTDIR\eula-installer-accepted.marker"
+
+  ; Prompt user about cache deletion
+  MessageBox MB_YESNO|MB_ICONQUESTION \
+    "Do you want to delete the API cache as well?$\r$\n$\r$\n\
+     This will remove all cached Numista data.$\r$\n$\r$\n\
+     If you use a custom cache location or share the cache$\r$\n\
+     with other machines, that cache will also be detected$\r$\n\
+     and removed.$\r$\n$\r$\n\
+     Select No to keep the cache for future use." \
+    IDYES delete_cache IDNO skip_cache
+
+  delete_cache:
+    ; Read app-settings.json to find cache location
+    ; Default location
+    SetShellVarContext current
+    StrCpy $0 "$APPDATA\NumiSync Wizard\api-cache.json"
+    IfFileExists "$0" 0 +3
+      Delete "$0"
+      Delete "$APPDATA\NumiSync Wizard\api-cache.lock"
+
+    ; Check for custom cache location in app-settings.json
+    ; Note: This requires nsJSON plugin - add to installer dependencies
+    ; nsJSON::New
+    ; nsJSON::LoadFile "$APPDATA\NumiSync Wizard\app-settings.json"
+    ; nsJSON::Get "cache" "location" /end
+    ; Pop $1 ; Result: "default" or "custom"
+    ;
+    ; StrCmp $1 "custom" 0 skip_custom_cache
+    ;   nsJSON::Get "cache" "customPath" /end
+    ;   Pop $2 ; Custom cache directory path
+    ;
+    ;   StrCmp $2 "" skip_custom_cache
+    ;     ; Delete custom cache files if they exist
+    ;     IfFileExists "$2\api-cache.json" 0 skip_custom_cache
+    ;       Delete "$2\api-cache.json"
+    ;       Delete "$2\api-cache.lock"
+    ;
+    ; skip_custom_cache:
+    ;   nsJSON::Free
+
+  skip_cache:
 !macroend
 ```
+
+**Note:** The custom cache detection logic above is commented out because it requires the `nsJSON` plugin. To enable it:
+1. Install the nsJSON plugin for NSIS
+2. Add `!include nsJSON.nsh` at the top of installer.nsh
+3. Uncomment the nsJSON code block above
+
+---
+
+## Uninstaller Cache Detection
+
+The NSIS installer includes logic to detect and optionally delete cache files during uninstallation.
+
+### Detection Process
+
+1. Reads `app-settings.json` to determine cache location (`default` or `custom`)
+2. If `default`: Deletes cache from `%APPDATA%\NumiSync Wizard\`
+3. If `custom`: Reads `cache.customPath` and deletes cache from custom location
+4. Prompts user before deletion
+
+### User Prompt
+
+```
+Do you want to delete the API cache as well?
+
+This will remove all cached Numista data.
+
+If you use a custom cache location or share the cache
+with other machines, that cache will also be detected
+and removed.
+
+Select No to keep the cache for future use.
+```
+
+### Files Deleted (if user selects Yes)
+
+- `api-cache.json` (default or custom location)
+- `api-cache.lock` (default or custom location)
+
+### Files Preserved
+
+- `app-settings.json` (can be manually deleted by user)
+- Collection-specific files in `.NumiSync` folders
+- Log files
+
+### Multi-Machine Consideration
+
+If the user has set up a shared cache on a network drive:
+- The uninstaller on Machine A will detect the custom cache location
+- If user selects "Yes" to delete cache, it will be deleted from the shared location
+- This affects Machine B's cache access
+- The prompt warns about shared cache implications
 
 ---
 

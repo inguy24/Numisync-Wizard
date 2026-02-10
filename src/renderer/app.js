@@ -50,7 +50,9 @@ const AppState = {
     errors: []  // [{coinId, title, error}]
   },
   // View Mode
-  viewMode: 'list' // 'list' or 'grid'
+  viewMode: 'list', // 'list' or 'grid'
+  // Current cache location for comparison
+  currentCacheSettings: null
 };
 
 // =============================================================================
@@ -5157,6 +5159,67 @@ function loadSettingsScreen() {
 
   // Load license management display
   loadLicenseManagementDisplay();
+
+  // Load cache location settings
+  loadCacheLocationSettings();
+}
+
+/**
+ * Load and display cache location settings
+ * @async
+ */
+async function loadCacheLocationSettings() {
+  try {
+    const result = await window.electronAPI.cacheSettings.get();
+    if (result) {
+      // Store current cache settings for comparison
+      AppState.currentCacheSettings = {
+        location: result.location || 'default',
+        customPath: result.customPath || '',
+        lockTimeout: result.lockTimeout || 30000
+      };
+
+      // Display default cache path
+      const defaultPathEl = document.getElementById('defaultCacheLocationPath');
+      if (defaultPathEl) {
+        defaultPathEl.textContent = result.defaultPath;
+      }
+
+      // Set cache location radio buttons
+      const locationRadios = document.getElementsByName('cacheLocation');
+      locationRadios.forEach(radio => {
+        radio.checked = radio.value === (result.location || 'default');
+      });
+
+      // Set custom path if available
+      const customPathInput = document.getElementById('customCacheLocationInput');
+      if (customPathInput) {
+        customPathInput.value = result.customPath || '';
+      }
+
+      // Set lock timeout
+      const lockTimeoutInput = document.getElementById('cacheLockTimeout');
+      if (lockTimeoutInput) {
+        lockTimeoutInput.value = (result.lockTimeout || 30000) / 1000; // Convert ms to seconds
+      }
+
+      // Update custom controls visibility
+      updateCacheLocationControlsVisibility();
+    }
+  } catch (error) {
+    console.warn('Error loading cache location settings:', error.message);
+  }
+}
+
+/**
+ * Update visibility of custom cache location controls based on selected radio button
+ */
+function updateCacheLocationControlsVisibility() {
+  const customRadio = document.querySelector('input[name="cacheLocation"][value="custom"]');
+  const customControls = document.getElementById('customCacheLocationControls');
+  if (customControls) {
+    customControls.style.display = customRadio && customRadio.checked ? 'block' : 'none';
+  }
 }
 
 /**
@@ -5321,6 +5384,36 @@ document.getElementById('saveSettingsBtn').addEventListener('click', async () =>
     }
   }
 
+  // Handle cache location settings with collision detection
+  const cacheLocation = document.querySelector('input[name="cacheLocation"]:checked').value;
+  const customCachePath = document.getElementById('customCacheLocationInput').value;
+  const cacheLockTimeout = parseInt(document.getElementById('cacheLockTimeout').value) * 1000; // Convert seconds to ms
+
+  // Validate custom path if selected
+  if (cacheLocation === 'custom' && !customCachePath) {
+    showModal('Error', 'Please select a custom cache location or choose the default location.');
+    return;
+  }
+
+  // Only run collision detection if cache location actually changed
+  const currentSettings = AppState.currentCacheSettings;
+  const locationChanged = !currentSettings ||
+    currentSettings.location !== cacheLocation ||
+    (cacheLocation === 'custom' && currentSettings.customPath !== customCachePath);
+
+  if (locationChanged) {
+    // Cache location changed - run collision detection
+    const cacheSuccess = await handleCacheLocationChange(cacheLocation, customCachePath, cacheLockTimeout);
+    if (!cacheSuccess) {
+      return; // User will handle via modal dialogs
+    }
+  } else {
+    // Cache location unchanged - just save the lock timeout if it changed
+    if (currentSettings && currentSettings.lockTimeout !== cacheLockTimeout) {
+      await saveCacheLocationSettings(cacheLocation, customCachePath, cacheLockTimeout, false);
+    }
+  }
+
   const result = await window.electronAPI.saveAppSettings(settings);
 
   if (result.success) {
@@ -5391,6 +5484,268 @@ document.getElementById('downloadLogBtn').addEventListener('click', async () => 
 document.getElementById('numistaDashboardLink').addEventListener('click', (e) => {
   e.preventDefault();
   window.electronAPI.openExternal('https://en.numista.com/api/dashboard.php');
+});
+
+
+// =============================================================================
+// Cache Collision Detection
+// =============================================================================
+
+// Cache collision detection state
+let pendingCacheLocationChange = null;
+
+/**
+ * Handle cache location change with collision detection
+ * @param {string} cacheLocation - 'default' or 'custom'
+ * @param {string} customCachePath - Custom path if cacheLocation is 'custom'
+ * @param {number} cacheLockTimeout - Lock timeout in milliseconds
+ * @returns {Promise<boolean>} True if successful, false if user needs to handle via modal
+ */
+async function handleCacheLocationChange(cacheLocation, customCachePath, cacheLockTimeout) {
+  // Store pending change
+  pendingCacheLocationChange = { cacheLocation, customCachePath, cacheLockTimeout };
+
+  // Only check collision for custom locations
+  if (cacheLocation === 'custom' && customCachePath) {
+    const validation = await window.electronAPI.cacheSettings.validatePath(customCachePath);
+
+    if (!validation.valid) {
+      showModal('Error', `Invalid cache location: ${validation.reason}\n\nPlease select a different folder.`);
+      return false;
+    }
+
+    // Check for collision
+    if (validation.collision && validation.collision.cacheExists) {
+      const lockStatus = validation.collision.lockStatus;
+
+      if (lockStatus === 'locked') {
+        // Cache is actively locked - show locked modal
+        showCacheLockedModal(validation.collision);
+        return false;
+      } else {
+        // Cache exists but not locked - show collision modal
+        showCacheCollisionModal(validation.collision, customCachePath);
+        return false;
+      }
+    }
+  }
+
+  // No collision, proceed with save
+  return await saveCacheLocationSettings(cacheLocation, customCachePath, cacheLockTimeout, false);
+}
+
+/**
+ * Show cache collision modal
+ * @param {Object} collision - Collision information from validation
+ * @param {string} cachePath - Path to cache directory
+ */
+function showCacheCollisionModal(collision, cachePath) {
+  const modal = document.getElementById('cacheCollisionModal');
+
+  // Populate cache path
+  document.getElementById('collisionCachePath').textContent = cachePath;
+
+  // Populate cache details
+  const detailsDiv = document.getElementById('collisionCacheDetails');
+  const metadata = collision.cacheMetadata;
+
+  if (metadata && metadata.valid) {
+    detailsDiv.innerHTML = `
+      <strong>Cache Information:</strong>
+      <ul style="margin-top: 8px; margin-left: 20px;">
+        <li>Entries: ${metadata.entryCount || 0} cached items</li>
+        <li>Size: ${formatBytes(metadata.size)}</li>
+        <li>Last Modified: ${new Date(metadata.lastModified).toLocaleString()}</li>
+      </ul>
+    `;
+  } else if (metadata) {
+    detailsDiv.innerHTML = '<p style="color: #d97706;">⚠️ Cache file exists but may be corrupted or invalid.</p>';
+  }
+
+  // Show stale lock warning if applicable
+  if (collision.lockStatus === 'stale') {
+    const lockWarning = document.getElementById('collisionLockWarning');
+    const lockText = document.getElementById('lockWarningText');
+    lockText.textContent = 'The cache has a stale lock file (older than 5 minutes), which will be automatically cleaned up when used.';
+    lockWarning.style.display = 'block';
+  } else {
+    document.getElementById('collisionLockWarning').style.display = 'none';
+  }
+
+  modal.style.display = 'block';
+}
+
+/**
+ * Show cache locked modal
+ * @param {Object} collision - Collision information with lock owner details
+ */
+function showCacheLockedModal(collision) {
+  const modal = document.getElementById('cacheLockedModal');
+
+  // Populate lock owner info
+  const lockOwnerDiv = document.getElementById('lockOwnerInfo');
+  const owner = collision.lockOwner;
+
+  if (owner) {
+    const lockAge = formatDuration(collision.lockAge);
+    lockOwnerDiv.innerHTML = `
+      <strong>Locked by:</strong> ${owner.hostname}<br>
+      <strong>Process ID:</strong> ${owner.pid}<br>
+      <strong>Since:</strong> ${owner.acquiredAt.toLocaleString()} (${lockAge} ago)
+    `;
+  }
+
+  modal.style.display = 'block';
+}
+
+/**
+ * Save cache location settings
+ * @param {string} cacheLocation - 'default' or 'custom'
+ * @param {string} customCachePath - Custom path if applicable
+ * @param {number} cacheLockTimeout - Lock timeout in milliseconds
+ * @param {boolean} useExisting - If true, don't migrate, just point to existing cache
+ * @returns {Promise<boolean>} True if successful
+ */
+async function saveCacheLocationSettings(cacheLocation, customCachePath, cacheLockTimeout, useExisting) {
+  try {
+    // Save cache location settings first
+    await window.electronAPI.cacheSettings.set({
+      location: cacheLocation,
+      customPath: customCachePath,
+      lockTimeout: cacheLockTimeout
+    });
+
+    // If not using existing, perform migration
+    if (!useExisting) {
+      const migrationResult = await window.electronAPI.cacheSettings.migrate(cacheLocation, customCachePath);
+      if (!migrationResult.success) {
+        showModal('Warning', `Settings saved, but cache migration failed: ${migrationResult.error}\n\nThe cache will be rebuilt at the new location.`);
+      }
+    }
+
+    showStatus('Cache location settings saved');
+    return true;
+  } catch (error) {
+    console.error('Error saving cache settings:', error);
+    showModal('Error', 'Failed to save cache location settings: ' + error.message);
+    return false;
+  }
+}
+
+// Event handlers for collision modal
+document.getElementById('useExistingCacheBtn').addEventListener('click', async () => {
+  document.getElementById('cacheCollisionModal').style.display = 'none';
+
+  if (pendingCacheLocationChange) {
+    const { cacheLocation, customCachePath, cacheLockTimeout } = pendingCacheLocationChange;
+    const success = await saveCacheLocationSettings(cacheLocation, customCachePath, cacheLockTimeout, true);
+    if (success) {
+      showStatus('Now using existing cache at selected location');
+    }
+    pendingCacheLocationChange = null;
+  }
+});
+
+document.getElementById('selectDifferentLocationBtn').addEventListener('click', () => {
+  document.getElementById('cacheCollisionModal').style.display = 'none';
+  pendingCacheLocationChange = null;
+  // Re-open browse dialog
+  document.getElementById('browseCacheLocationBtn').click();
+});
+
+document.getElementById('cancelCollisionBtn').addEventListener('click', () => {
+  document.getElementById('cacheCollisionModal').style.display = 'none';
+  pendingCacheLocationChange = null;
+});
+
+// Close button for collision modal
+document.getElementById('cacheCollisionCloseBtn').addEventListener('click', () => {
+  document.getElementById('cacheCollisionModal').style.display = 'none';
+  pendingCacheLocationChange = null;
+});
+
+// Event handlers for locked cache modal
+document.getElementById('retryLockedCacheBtn').addEventListener('click', async () => {
+  document.getElementById('cacheLockedModal').style.display = 'none';
+
+  if (pendingCacheLocationChange) {
+    const { cacheLocation, customCachePath, cacheLockTimeout } = pendingCacheLocationChange;
+    // Retry validation - will re-show collision modal or proceed
+    await handleCacheLocationChange(cacheLocation, customCachePath, cacheLockTimeout);
+  }
+});
+
+document.getElementById('selectDifferentFromLockedBtn').addEventListener('click', () => {
+  document.getElementById('cacheLockedModal').style.display = 'none';
+  pendingCacheLocationChange = null;
+  document.getElementById('browseCacheLocationBtn').click();
+});
+
+document.getElementById('cancelLockedBtn').addEventListener('click', () => {
+  document.getElementById('cacheLockedModal').style.display = 'none';
+  pendingCacheLocationChange = null;
+});
+
+// Close button for locked modal
+document.getElementById('cacheLockedCloseBtn').addEventListener('click', () => {
+  document.getElementById('cacheLockedModal').style.display = 'none';
+  pendingCacheLocationChange = null;
+});
+
+// Helper functions
+/**
+ * Format bytes to human-readable size
+ * @param {number} bytes - Size in bytes
+ * @returns {string} Formatted size string
+ */
+function formatBytes(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+/**
+ * Format milliseconds to human-readable duration
+ * @param {number} ms - Duration in milliseconds
+ * @returns {string} Formatted duration string
+ */
+function formatDuration(ms) {
+  const seconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+
+  if (hours > 0) return `${hours}h ${minutes % 60}m`;
+  if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
+  return `${seconds}s`;
+}
+
+// =============================================================================
+// Cache Location Settings
+// =============================================================================
+
+// Cache location radio button change handler
+document.getElementsByName('cacheLocation').forEach(radio => {
+  radio.addEventListener('change', updateCacheLocationControlsVisibility);
+});
+
+// Browse cache location button handler
+document.getElementById('browseCacheLocationBtn').addEventListener('click', async () => {
+  try {
+    const result = await window.electronAPI.cacheSettings.browseDirectory();
+    if (result) {
+      // Validate the selected path
+      const validation = await window.electronAPI.cacheSettings.validatePath(result);
+      if (validation.valid) {
+        document.getElementById('customCacheLocationInput').value = result;
+        showStatus('Cache location selected');
+      } else {
+        showModal('Invalid Location', `Cannot use this location: ${validation.reason}\n\nPlease select a different folder with read/write permissions.`);
+      }
+    }
+  } catch (error) {
+    console.error('Error browsing for cache location:', error);
+    showModal('Error', 'Failed to browse for cache location: ' + error.message);
+  }
 });
 
 // =============================================================================

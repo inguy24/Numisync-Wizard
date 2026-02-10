@@ -1,0 +1,46 @@
+title: NumiSync Wizard
+description: Enrich your OpenNumismat collection with data from Numista
+author: Shane Burkhardt
+baseurl: ""
+url: "https://numisync.com"
+theme: jekyll-theme-minimal
+
+# Logo
+logo: /assets/images/logo-icon.svg
+
+# Navigation links
+navigation:
+  - title: Home
+    url: /
+  - title: Installation
+    url: /installation
+  - title: Quick Start
+    url: /quickstart
+  - title: Documentation
+    url: https://github.com/inguy24/numismat-enrichment/tree/main/docs
+  - title: GitHub
+    url: https://github.com/inguy24/numismat-enrichment
+
+# Plugins
+plugins:
+  - jekyll-seo-tag
+  - jekyll-sitemap
+
+# SEO
+twitter:
+  card: summary
+  username: inguy24
+
+social:
+  name: Shane Burkhardt
+  links:
+    - https://github.com/inguy24
+
+# Exclude from processing
+exclude:
+  - reference/
+  - guides/
+  - planning/
+  - archive/
+  - CHANGELOG.md
+  - README.md

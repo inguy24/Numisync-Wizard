@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const log = require('../main/logger').scope('ApiCache');
+const { CacheLock } = require('./cache-lock');
 
 /**
  * Persistent API Cache with Monthly Usage Tracking
@@ -8,7 +9,7 @@ const log = require('../main/logger').scope('ApiCache');
  * Caches Numista API responses to disk to reduce API calls across sessions.
  * Tracks monthly usage per endpoint for quota management.
  *
- * Cache file location: app.getPath('userData')/numista_api_cache.json
+ * Cache file location: Configurable (default: app.getPath('userData')/api-cache.json)
  * This is app-wide (not per-collection) since issuers/types/issues are
  * global Numista catalog data.
  *
@@ -24,11 +25,14 @@ class ApiCache {
   /**
    * Creates a new ApiCache instance
    * @param {string} cacheFilePath - Absolute path to the cache JSON file
+   * @param {Object} options - Configuration options
+   * @param {number} options.lockTimeout - Lock acquisition timeout in milliseconds (default: 30000)
    */
-  constructor(cacheFilePath) {
+  constructor(cacheFilePath, options = {}) {
     this.cacheFilePath = cacheFilePath;
+    this.lock = new CacheLock(cacheFilePath, options.lockTimeout || 30000);
     this.data = this._load();
-    this._prune();
+    this.pruned = false; // Track if pruning has occurred this session
   }
 
   /**
@@ -68,9 +72,12 @@ class ApiCache {
   }
 
   /**
-   * Save cache data to disk
+   * Save cache data to disk with file locking
+   * @async
+   * @throws {Error} If lock cannot be acquired or write fails
    */
-  _save() {
+  async _save() {
+    await this.lock.acquire();
     try {
       const dir = path.dirname(this.cacheFilePath);
       if (!fs.existsSync(dir)) {
@@ -79,6 +86,9 @@ class ApiCache {
       fs.writeFileSync(this.cacheFilePath, JSON.stringify(this.data, null, 2), 'utf8');
     } catch (error) {
       log.error('ApiCache: Failed to save cache file:', error.message);
+      throw error;
+    } finally {
+      await this.lock.release();
     }
   }
 
@@ -113,19 +123,27 @@ class ApiCache {
 
   /**
    * Store data in the cache with a TTL
+   * @async
    * @param {string} key - Cache key
    * @param {*} data - Data to cache
    * @param {number} ttl - Time to live in milliseconds
+   * @throws {Error} If lock cannot be acquired
    */
-  set(key, data, ttl) {
+  async set(key, data, ttl) {
     if (ttl <= 0) return; // TTL of 0 means "no caching"
+
+    // Prune on first write operation
+    if (!this.pruned) {
+      await this._prune();
+      this.pruned = true;
+    }
 
     this.data.entries[key] = {
       data,
       cachedAt: Date.now(),
       ttl
     };
-    this._save();
+    await this._save();
   }
 
   /**
@@ -139,8 +157,9 @@ class ApiCache {
 
   /**
    * Remove expired entries from the cache
+   * @async
    */
-  _prune() {
+  async _prune() {
     const now = Date.now();
     let pruned = false;
 
@@ -165,16 +184,18 @@ class ApiCache {
     }
 
     if (pruned) {
-      this._save();
+      await this._save();
     }
   }
 
   /**
    * Clear all cached entries (preserves monthly usage and settings)
+   * @async
+   * @throws {Error} If lock cannot be acquired
    */
-  clear() {
+  async clear() {
     this.data.entries = {};
-    this._save();
+    await this._save();
   }
 
   /**
@@ -194,15 +215,23 @@ class ApiCache {
 
   /**
    * Increment usage count for an endpoint in the current month
+   * @async
    * @param {string} endpoint - Endpoint name (searchTypes, getType, getIssues, getPrices, getIssuers)
+   * @throws {Error} If lock cannot be acquired
    */
-  incrementUsage(endpoint) {
+  async incrementUsage(endpoint) {
+    // Prune on first write operation
+    if (!this.pruned) {
+      await this._prune();
+      this.pruned = true;
+    }
+
     const month = this._monthKey();
     if (!this.data.monthlyUsage[month]) {
       this.data.monthlyUsage[month] = {};
     }
     this.data.monthlyUsage[month][endpoint] = (this.data.monthlyUsage[month][endpoint] || 0) + 1;
-    this._save();
+    await this._save();
   }
 
   /**
@@ -226,19 +255,23 @@ class ApiCache {
 
   /**
    * Set the monthly API call limit
+   * @async
    * @param {number} limit - New monthly limit
+   * @throws {Error} If lock cannot be acquired
    */
-  setMonthlyLimit(limit) {
+  async setMonthlyLimit(limit) {
     this.data.monthlyLimit = Math.max(100, Math.floor(limit));
-    this._save();
+    await this._save();
   }
 
   /**
    * Set the total monthly usage to a specific value.
    * Distributes across existing endpoint proportions, or sets as a flat 'manual' entry.
+   * @async
    * @param {number} total - New total usage count
+   * @throws {Error} If lock cannot be acquired
    */
-  setMonthlyUsageTotal(total) {
+  async setMonthlyUsageTotal(total) {
     const month = this._monthKey();
     const currentUsage = this.data.monthlyUsage[month] || {};
     const currentTotal = Object.values(currentUsage).reduce((sum, count) => sum + count, 0);
@@ -255,7 +288,7 @@ class ApiCache {
       }
       this.data.monthlyUsage[month] = adjusted;
     }
-    this._save();
+    await this._save();
   }
 }
 

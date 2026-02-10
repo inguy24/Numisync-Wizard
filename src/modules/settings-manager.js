@@ -28,14 +28,34 @@ class SettingsManager {
   }
 
   /**
-   * Get the path for the settings JSON file (next to the .db file)
+   * Get the path for the settings JSON file (in .NumiSync subdirectory)
    * @param {string} collectionPath - Path to the collection .db file
    * @returns {string} Path to the settings JSON file
    */
   getSettingsFilePath(collectionPath) {
     const dir = path.dirname(collectionPath);
     const basename = path.basename(collectionPath, '.db');
-    return path.join(dir, `${basename}_settings.json`);
+    const numiSyncDir = path.join(dir, '.NumiSync');
+
+    // Create directory if needed
+    if (!fs.existsSync(numiSyncDir)) {
+      fs.mkdirSync(numiSyncDir, { recursive: true });
+    }
+
+    const newPath = path.join(numiSyncDir, `${basename}_settings.json`);
+
+    // Migration: Check old location
+    const oldPath = path.join(dir, `${basename}_settings.json`);
+    if (!fs.existsSync(newPath) && fs.existsSync(oldPath)) {
+      try {
+        fs.renameSync(oldPath, newPath);
+        log.info('Migrated settings to .NumiSync directory');
+      } catch (error) {
+        log.warn('Failed to migrate settings file:', error.message);
+      }
+    }
+
+    return newPath;
   }
 
   /**
@@ -46,12 +66,12 @@ class SettingsManager {
     return {
       version: '1.0',
       collectionPath: this.collectionPath,
-      
+
       apiConfiguration: {
         apiKey: '',
         rateLimit: 2000 // ms between requests
       },
-      
+
       fetchSettings: {
         basicData: true,      // Optional - can be independently fetched
         issueData: false,     // Optional - can be independently fetched
@@ -60,12 +80,12 @@ class SettingsManager {
         emptyMintmarkInterpretation: 'no_mint_mark', // 'no_mint_mark' or 'unknown'
         enableAutoPropagate: true // Auto-detect and offer to propagate type data to matching coins
       },
-      
+
       // Pricing currency preference
       currency: 'USD',
-      
+
       fieldMappings: this.buildDefaultFieldMappings(),
-      
+
       uiPreferences: {
         defaultView: 'list',
         defaultSort: 'title',

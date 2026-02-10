@@ -28,6 +28,7 @@ const ImageHandler = require('../modules/image-handler');
 const { initAutoUpdater, checkForUpdatesManually } = require('./updater');
 const { DENOMINATION_ALIASES, DENOMINATION_PLURALS, ALL_CANONICALS } = require('../modules/denomination-normalizer');
 const ApiCache = require('../modules/api-cache');
+const { CacheLock } = require('../modules/cache-lock');
 const log = require('./logger');
 
 /** @type {BrowserWindow|null} */
@@ -55,14 +56,147 @@ const typeDataCache = new Map();
 let apiCache = null;
 
 /**
- * Get or create the persistent API cache singleton
+ * Get or create the persistent API cache singleton with configurable location
  * @returns {ApiCache} The persistent API cache instance
  */
 function getApiCache() {
   if (!apiCache) {
-    apiCache = new ApiCache(path.join(app.getPath('userData'), 'numista_api_cache.json'));
+    const appSettings = loadAppSettings();
+
+    let cachePath;
+    if (appSettings.cache?.location === 'custom' && appSettings.cache?.customPath) {
+      cachePath = path.join(appSettings.cache.customPath, 'api-cache.json');
+      log.info('Using custom cache location:', cachePath);
+    } else {
+      cachePath = path.join(app.getPath('userData'), 'api-cache.json');
+    }
+
+    try {
+      apiCache = new ApiCache(cachePath, {
+        lockTimeout: appSettings.cache?.lockTimeout || 30000
+      });
+    } catch (error) {
+      log.error('Failed to initialize cache at custom location:', error.message);
+      log.info('Falling back to default cache location');
+
+      // Fallback to default
+      cachePath = path.join(app.getPath('userData'), 'api-cache.json');
+      apiCache = new ApiCache(cachePath);
+
+      // Update settings to reflect fallback
+      appSettings.cache.location = 'default';
+      appSettings.cache.customPath = null;
+      saveAppSettings(appSettings);
+    }
   }
   return apiCache;
+}
+
+/**
+ * Load app-wide settings from disk
+ * @returns {Object} App settings with defaults
+ */
+function loadAppSettings() {
+  try {
+    const settingsPath = path.join(app.getPath('userData'), 'app-settings.json');
+    if (fs.existsSync(settingsPath)) {
+      return JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+    }
+  } catch (error) {
+    log.warn('Failed to load app settings:', error.message);
+  }
+
+  // Return defaults
+  return {
+    version: '3.0',
+    cache: {
+      location: 'default',
+      customPath: null,
+      lockTimeout: 30000
+    },
+    cacheTtl: {
+      issuers: 90,
+      types: 30,
+      issues: 30
+    },
+    windowBounds: null,
+    recentCollections: [],
+    logLevel: 'info',
+    supporter: {},
+    eulaAccepted: false,
+    eulaVersion: null,
+    eulaAcceptedAt: null
+  };
+}
+
+/**
+ * Save app-wide settings to disk
+ * @param {Object} settings - Settings object to save
+ */
+function saveAppSettings(settings) {
+  try {
+    const settingsPath = path.join(app.getPath('userData'), 'app-settings.json');
+    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+  } catch (error) {
+    log.error('Failed to save app settings:', error.message);
+  }
+}
+
+/**
+ * Migrate app settings from old format to new format
+ * Called once on startup to handle backwards compatibility
+ */
+function migrateAppSettings() {
+  const userDataPath = app.getPath('userData');
+  const oldSettingsPath = path.join(userDataPath, 'settings.json');
+  const newSettingsPath = path.join(userDataPath, 'app-settings.json');
+
+  // Migrate settings.json → app-settings.json
+  if (fs.existsSync(oldSettingsPath) && !fs.existsSync(newSettingsPath)) {
+    try {
+      const oldData = JSON.parse(fs.readFileSync(oldSettingsPath, 'utf8'));
+
+      const newData = {
+        version: '3.0',
+        cache: {
+          location: 'default',
+          customPath: null,
+          lockTimeout: 30000
+        },
+        cacheTtl: {
+          issuers: oldData.cacheTtlIssuers || 90,
+          types: oldData.cacheTtlTypes || 30,
+          issues: oldData.cacheTtlIssues || 30
+        },
+        windowBounds: oldData.windowBounds,
+        recentCollections: oldData.recentCollections || [],
+        logLevel: oldData.logLevel || 'info',
+        supporter: oldData.supporter || {},
+        eulaAccepted: oldData.eulaAccepted,
+        eulaVersion: oldData.eulaVersion,
+        eulaAcceptedAt: oldData.eulaAcceptedAt
+      };
+
+      fs.writeFileSync(newSettingsPath, JSON.stringify(newData, null, 2));
+      log.info('Migrated app settings to new format');
+      // Keep old file for safety (can delete in future version)
+    } catch (error) {
+      log.error('Failed to migrate app settings:', error.message);
+    }
+  }
+
+  // Rename cache file
+  const oldCachePath = path.join(userDataPath, 'numista_api_cache.json');
+  const newCachePath = path.join(userDataPath, 'api-cache.json');
+
+  if (fs.existsSync(oldCachePath) && !fs.existsSync(newCachePath)) {
+    try {
+      fs.renameSync(oldCachePath, newCachePath);
+      log.info('Renamed cache file to new name');
+    } catch (error) {
+      log.warn('Failed to rename cache file:', error.message);
+    }
+  }
 }
 
 /**
@@ -70,18 +204,8 @@ function getApiCache() {
  * @returns {Object} TTLs in days: { issuers, types, issues }
  */
 function getCacheTTLs() {
-  try {
-    const settingsPath = path.join(app.getPath('userData'), 'settings.json');
-    if (fs.existsSync(settingsPath)) {
-      const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
-      return {
-        issuers: settings.cacheTtlIssuers != null ? settings.cacheTtlIssuers : 90,
-        types: settings.cacheTtlTypes != null ? settings.cacheTtlTypes : 30,
-        issues: settings.cacheTtlIssues != null ? settings.cacheTtlIssues : 30
-      };
-    }
-  } catch (e) { /* fallback to defaults */ }
-  return { issuers: 90, types: 30, issues: 30 };
+  const settings = loadAppSettings();
+  return settings.cacheTtl || { issuers: 90, types: 30, issues: 30 };
 }
 
 // Menu state - tracks whether items should be enabled/disabled
@@ -108,16 +232,8 @@ let lastNormalBounds = null;
  * @returns {{x: number, y: number, width: number, height: number, isMaximized: boolean}|null}
  */
 function loadWindowState() {
-  try {
-    const settingsPath = path.join(app.getPath('userData'), 'settings.json');
-    if (fs.existsSync(settingsPath)) {
-      const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
-      return settings.windowBounds || null;
-    }
-  } catch (error) {
-    log.warn('Failed to load window state:', error.message);
-  }
-  return null;
+  const settings = loadAppSettings();
+  return settings.windowBounds || null;
 }
 
 /**
@@ -125,29 +241,20 @@ function loadWindowState() {
  * @param {BrowserWindow} win - The window to save state for
  */
 function saveWindowState(win) {
-  try {
-    const settingsPath = path.join(app.getPath('userData'), 'settings.json');
-    const isMaximized = win.isMaximized();
-    // Use the last normal bounds if maximized, otherwise use current bounds
-    const bounds = isMaximized && lastNormalBounds ? lastNormalBounds : win.getBounds();
+  const isMaximized = win.isMaximized();
+  // Use the last normal bounds if maximized, otherwise use current bounds
+  const bounds = isMaximized && lastNormalBounds ? lastNormalBounds : win.getBounds();
 
-    let existingSettings = {};
-    if (fs.existsSync(settingsPath)) {
-      existingSettings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
-    }
+  const settings = loadAppSettings();
+  settings.windowBounds = {
+    x: bounds.x,
+    y: bounds.y,
+    width: bounds.width,
+    height: bounds.height,
+    isMaximized
+  };
 
-    existingSettings.windowBounds = {
-      x: bounds.x,
-      y: bounds.y,
-      width: bounds.width,
-      height: bounds.height,
-      isMaximized
-    };
-
-    fs.writeFileSync(settingsPath, JSON.stringify(existingSettings, null, 2), 'utf8');
-  } catch (error) {
-    log.warn('Failed to save window state:', error.message);
-  }
+  saveAppSettings(settings);
 }
 
 /**
@@ -682,6 +789,9 @@ async function addToRecentCollections(collectionPath) {
 }
 
 app.whenReady().then(async () => {
+  // Migrate app settings from old format (must happen before any other initialization)
+  migrateAppSettings();
+
   createWindow();
 
   // Load recent collections and build menu
@@ -1572,6 +1682,147 @@ ipcMain.handle('save-app-settings', async (event, settings) => {
     return { success: true };
   } catch (error) {
     log.error('Error saving app settings:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Cache Location Settings
+ipcMain.handle('get-cache-settings', async () => {
+  const appSettings = loadAppSettings();
+  return {
+    location: appSettings.cache?.location || 'default',
+    customPath: appSettings.cache?.customPath || null,
+    lockTimeout: appSettings.cache?.lockTimeout || 30000,
+    defaultPath: path.join(app.getPath('userData'), 'api-cache.json')
+  };
+});
+
+ipcMain.handle('set-cache-settings', async (event, settings) => {
+  const appSettings = loadAppSettings();
+  appSettings.cache = {
+    location: settings.location,
+    customPath: settings.customPath,
+    lockTimeout: settings.lockTimeout
+  };
+  saveAppSettings(appSettings);
+  return { success: true };
+});
+
+ipcMain.handle('browse-cache-directory', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openDirectory', 'createDirectory'],
+    title: 'Select Cache Location'
+  });
+  return result.canceled ? null : result.filePaths[0];
+});
+
+ipcMain.handle('validate-cache-path', async (event, customPath) => {
+  try {
+    // Check if path exists
+    if (!fs.existsSync(customPath)) {
+      return { valid: false, reason: 'Path does not exist' };
+    }
+
+    // Check if it's a directory
+    const stats = fs.statSync(customPath);
+    if (!stats.isDirectory()) {
+      return { valid: false, reason: 'Path must be a directory' };
+    }
+
+    // Test write permission
+    const testFile = path.join(customPath, '.write-test-' + Date.now());
+    try {
+      fs.writeFileSync(testFile, 'test');
+      fs.unlinkSync(testFile);
+    } catch (err) {
+      return { valid: false, reason: 'No write permission in this directory' };
+    }
+
+    // Check for existing cache collision
+    const cachePath = path.join(customPath, 'api-cache.json');
+    const lockStatus = await CacheLock.checkCacheLockStatus(cachePath);
+    const cacheMetadata = CacheLock.getCacheMetadata(cachePath);
+
+    return {
+      valid: true,
+      collision: {
+        cacheExists: lockStatus.cacheExists,
+        lockStatus: lockStatus.status, // 'none', 'unlocked', 'stale', 'locked'
+        lockAge: lockStatus.lockAge,
+        cacheMetadata: cacheMetadata,
+        lockOwner: lockStatus.lockOwner || null
+      }
+    };
+  } catch (error) {
+    return {
+      valid: false,
+      reason: error.code === 'EACCES' ? 'Permission denied' :
+              error.code === 'ENOENT' ? 'Path does not exist' :
+              'Unknown error: ' + error.message
+    };
+  }
+});
+
+ipcMain.handle('migrate-cache', async (event, newLocation, newCustomPath, useExisting = false) => {
+  try {
+    const appSettings = loadAppSettings();
+    const oldLocation = appSettings.cache?.location || 'default';
+    const oldCustomPath = appSettings.cache?.customPath;
+
+    // Determine old and new cache paths
+    let oldCachePath, newCachePath;
+
+    if (oldLocation === 'custom' && oldCustomPath) {
+      oldCachePath = path.join(oldCustomPath, 'api-cache.json');
+    } else {
+      oldCachePath = path.join(app.getPath('userData'), 'api-cache.json');
+    }
+
+    if (newLocation === 'custom' && newCustomPath) {
+      newCachePath = path.join(newCustomPath, 'api-cache.json');
+    } else {
+      newCachePath = path.join(app.getPath('userData'), 'api-cache.json');
+    }
+
+    // If paths are the same, no migration needed
+    if (oldCachePath === newCachePath) {
+      return { success: true, migrated: false };
+    }
+
+    // If useExisting is true, don't copy old cache
+    if (useExisting) {
+      log.info(`Using existing cache at new location: ${newCachePath}`);
+      return { success: true, migrated: false, usedExisting: true };
+    }
+
+    // Copy cache files if they exist
+    let migrated = false;
+    if (fs.existsSync(oldCachePath)) {
+      const destDir = path.dirname(newCachePath);
+      if (!fs.existsSync(destDir)) {
+        fs.mkdirSync(destDir, { recursive: true });
+      }
+
+      // Check if destination already has a cache (shouldn't happen if collision detection worked)
+      if (fs.existsSync(newCachePath)) {
+        log.warn(`Overwriting existing cache at ${newCachePath}`);
+      }
+
+      fs.copyFileSync(oldCachePath, newCachePath);
+      migrated = true;
+      log.info(`Cache migrated from ${oldCachePath} to ${newCachePath}`);
+    }
+
+    // Copy lock file if it exists
+    const oldLockPath = oldCachePath.replace(/\.json$/, '.lock');
+    const newLockPath = newCachePath.replace(/\.json$/, '.lock');
+    if (fs.existsSync(oldLockPath)) {
+      fs.copyFileSync(oldLockPath, newLockPath);
+    }
+
+    return { success: true, migrated };
+  } catch (error) {
+    log.error('Cache migration failed:', error);
     return { success: false, error: error.message };
   }
 });

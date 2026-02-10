@@ -432,19 +432,38 @@ Uses `electron-updater` with GitHub Releases (`src/main/updater.js`).
    └─ Per-coin enrichment metadata (HTML comments)
    └─ Survives: App reinstall, device changes
 
-2. Settings File ({database}_settings.json) - PORTABLE
-   └─ API key, fetch settings, field mappings
-   └─ Stored next to .db file
+2. Collection-Specific Files (.NumiSync/ subdirectory) - PORTABLE
+   ├─ {database}_settings.json
+   │  └─ API key, fetch settings, field mappings, UI preferences
+   ├─ {database}_progress.json
+   │  └─ Status lookup cache, session stats (rebuilt from database on startup)
+   └─ backups/
+      └─ {database}_YYYY-MM-DD_HHMMSS.db (timestamped backups)
+   └─ Location: Next to .db file in hidden .NumiSync folder
+   └─ Migration: Auto-migrated from old location (v3.0+)
 
-3. Progress Cache ({database}_enrichment_progress.json) - TEMPORARY
-   └─ Status lookup cache, session stats
-   └─ Rebuilt from database on startup
-
-4. API Cache (numista_api_cache.json in userData) - APP-WIDE
-   └─ Persistent Numista API response cache (issuers, types, issues)
-   └─ Monthly usage tracking per endpoint
+3. App-Wide Files (userData directory) - CROSS-COLLECTION
+   ├─ app-settings.json (v3.0+)
+   │  └─ Window state, recent collections, cache config, EULA
+   ├─ api-cache.json (v3.0+, configurable location)
+   │  └─ Persistent Numista API response cache (issuers, types, issues)
+   │  └─ Monthly usage tracking per endpoint
+   └─ api-cache.lock (v3.0+)
+      └─ File lock for multi-machine cache access
    └─ Survives: App restart, collection switches
+   └─ Cache location: Default (userData) or custom (user-configurable)
 ```
+
+**Key Changes in v3.0:**
+- Collection files now organized in `.NumiSync/` subdirectory (cleaner, less clutter)
+- Backup timestamps now human-readable: `2026-02-09_143522` instead of ISO format
+- Progress file renamed from `_enrichment_progress.json` to `_progress.json` (shorter)
+- App settings renamed from `settings.json` to `app-settings.json` (clarity)
+- API cache renamed from `numista_api_cache.json` to `api-cache.json`
+- API cache location now configurable (supports multi-machine scenarios)
+- File locking prevents cache corruption when shared across machines
+
+**See Also:** [FILE-LOCATIONS.md](FILE-LOCATIONS.md) for complete documentation of all file locations, uninstaller guidance, and migration details.
 
 ---
 

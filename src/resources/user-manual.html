@@ -464,6 +464,8 @@
         <li><a href="#numista-quota">Numista API Quota</a></li>
       </ul>
     </li>
+    <li><a href="#cache-location">22. Cache Location Settings (Advanced)</a></li>
+    <li><a href="#multi-machine">23. Multi-Machine Usage</a></li>
     <li><a href="#appendix-fields">Appendix A: Field Reference</a></li>
     <li><a href="#appendix-statuses">Appendix B: Status Reference</a></li>
   </ul>
@@ -1420,21 +1422,32 @@
 
 <p>
   When the auto-backup setting is enabled (recommended), the tool creates a full copy of your
-  database before making any changes. Backups are stored in a <code>backups</code> folder
-  located in the same directory as your database file.
+  database before making any changes. Backups are stored in the <code>.NumiSync/backups</code> folder
+  located next to your database file.
 </p>
 
+<h4>Backup Location</h4>
+<p>Backups are stored in a hidden <code>.NumiSync</code> subdirectory:</p>
+<pre><code>/path/to/mycollection.db
+/path/to/.NumiSync/backups/
+    └── mycollection_2026-02-09_143522.db</code></pre>
+
+<div class="callout callout-info">
+  <strong>Note:</strong> The <code>.NumiSync</code> folder is hidden on Mac/Linux (dot prefix). On Windows, it's visible.
+  To view hidden files: <strong>Windows:</strong> File Explorer → View → Hidden items | <strong>Mac:</strong> Finder → Cmd+Shift+. | <strong>Linux:</strong> File Manager → Ctrl+H
+</div>
+
 <h4>Backup File Naming</h4>
-<pre><code>&lt;database-name&gt;.db.backup.&lt;timestamp&gt;</code></pre>
-<p>Example: <code>MyCoins.db.backup.2025-06-15T143022</code></p>
+<pre><code>&lt;database-name&gt;_YYYY-MM-DD_HHMMSS.db</code></pre>
+<p>Example: <code>mycollection_2026-02-09_143522.db</code> (created at 2:35:22 PM on Feb 9, 2026)</p>
 
 <h4>Restoring a Backup</h4>
 <ol>
   <li>Close NumiSync Wizard.</li>
-  <li>Navigate to the <code>backups</code> folder next to your database.</li>
-  <li>Find the backup you want to restore (sorted by date).</li>
-  <li>Rename or delete your current <code>.db</code> file.</li>
-  <li>Rename the backup file, removing the <code>.backup.&lt;timestamp&gt;</code> suffix.</li>
+  <li>Navigate to the <code>.NumiSync/backups</code> folder next to your database.</li>
+  <li>Find the backup you want to restore (sorted by date/time).</li>
+  <li>Rename or move your current <code>.db</code> file to a safe location.</li>
+  <li>Copy the backup file and rename it to match your original database name (e.g., <code>mycollection.db</code>).</li>
   <li>Reopen the collection in NumiSync Wizard or OpenNumismat.</li>
 </ol>
 
@@ -1816,6 +1829,243 @@
 <p>A typical enrichment with Basic + Issue + Pricing data costs <strong>4 API calls</strong> per coin (1 search + 1 type + 1 issues + 1 pricing). The persistent cache significantly reduces this for repeated lookups &mdash; if you enrich the same coin type again (or a different coin of the same type), the type and issue data come from cache at zero API cost.</p>
 
 <p>To check your actual server-side usage, visit the <a href="https://en.numista.com/api/dashboard.php" target="_blank">Numista API Dashboard</a>. You can also access this link from <strong>Settings &rarr; API Cache</strong>.</p>
+
+<a href="#introduction" class="back-to-top">Back to top &uarr;</a>
+
+<!-- ──────────────────────────────────────────────────────────────────────── -->
+<h2 id="file-locations">21. Where Files Are Stored</h2>
+
+<p>NumiSync Wizard organizes its files into two categories:</p>
+
+<h3>Collection-Specific Files</h3>
+<p>These files are stored in a <code>.NumiSync</code> subdirectory next to each database file. They travel with your collection if you move the <code>.db</code> file.</p>
+
+<pre><code>/path/to/mycollection.db
+/path/to/.NumiSync/
+    ├── mycollection_settings.json
+    ├── mycollection_progress.json
+    └── backups/
+        └── mycollection_2026-02-09_143522.db</code></pre>
+
+<table>
+  <tr><th>File</th><th>Purpose</th></tr>
+  <tr><td><code>_settings.json</code></td><td>API key, fetch settings, field mappings, UI preferences</td></tr>
+  <tr><td><code>_progress.json</code></td><td>Tracks enrichment status per coin</td></tr>
+  <tr><td><code>backups/</code></td><td>Automatic database backups</td></tr>
+</table>
+
+<h3>App-Wide Files</h3>
+<p>These files apply to all collections and are stored in your operating system's standard application data directory:</p>
+
+<table>
+  <tr><th>Platform</th><th>Location</th></tr>
+  <tr><td>Windows</td><td><code>%APPDATA%\NumiSync Wizard\</code></td></tr>
+  <tr><td>macOS</td><td><code>~/Library/Application Support/NumiSync Wizard/</code></td></tr>
+  <tr><td>Linux</td><td><code>~/.config/NumiSync Wizard/</code></td></tr>
+</table>
+
+<table>
+  <tr><th>File</th><th>Purpose</th></tr>
+  <tr><td><code>app-settings.json</code></td><td>Window state, recent collections, cache configuration</td></tr>
+  <tr><td><code>api-cache.json</code></td><td>Cached Numista API responses (configurable location)</td></tr>
+  <tr><td><code>logs/</code></td><td>Application log files for troubleshooting</td></tr>
+</table>
+
+<div class="callout callout-info">
+  <strong>Tip:</strong> The <code>.NumiSync</code> folder keeps your collection directory clean while keeping settings/progress portable with the database.
+</div>
+
+<a href="#introduction" class="back-to-top">Back to top &uarr;</a>
+
+<!-- ──────────────────────────────────────────────────────────────────────── -->
+<h2 id="cache-location">22. Cache Location Settings (Advanced)</h2>
+
+<p>By default, the API cache is stored in the app-wide directory. For advanced users, you can configure a custom cache location.</p>
+
+<h3>When to Use Custom Cache Location</h3>
+
+<p><strong>Multi-Machine Scenario:</strong> If you access the same collection from multiple computers (e.g., laptop and desktop), you can point both machines to a shared cache location. This prevents duplicate API calls and saves your monthly quota.</p>
+
+<h4>Example Setup</h4>
+<ol>
+  <li>Store your <code>.db</code> file on a network drive or cloud sync folder (e.g., Dropbox, OneDrive)</li>
+  <li>On Machine A: Open Settings → Scroll to Cache Location section → Select Custom Location → Browse to network folder → Save Settings</li>
+  <li>On Machine B: Open Settings → Scroll to Cache Location section → Select Custom Location → Browse to same network folder → Save Settings</li>
+  <li>Both machines now share the same API cache</li>
+</ol>
+
+<h3>Requirements for Shared Cache</h3>
+
+<ul>
+  <li><strong>File locking support:</strong> The location must support file locking (most network drives and cloud services do)</li>
+  <li><strong>Network access:</strong> All machines must have access to the shared location</li>
+  <li><strong>Same path (optional):</strong> Mapping the network drive to the same letter/path on all machines simplifies configuration</li>
+</ul>
+
+<h3>Configuring Cache Location</h3>
+
+<ol>
+  <li>Open <strong>Settings</strong> (gear icon or menu)</li>
+  <li>Scroll down to the <strong>Cache Location</strong> section</li>
+  <li>Choose <strong>Default Location</strong> (local app directory) or <strong>Custom Location</strong> (your choice)</li>
+  <li>If Custom: Click <strong>Browse...</strong> and select a folder</li>
+  <li>The app validates the folder (checks for write permission)</li>
+  <li>Adjust <strong>Lock Timeout</strong> if needed (default: 30 seconds)</li>
+  <li>Click <strong>Save Settings</strong> at the bottom</li>
+</ol>
+
+<p>The cache files will be automatically migrated to the new location when you save. No restart is required - the app will use the new location for the next API call.</p>
+
+<h3>Cache Collision Detection</h3>
+
+<p>When you select a custom cache location that already contains cache files, NumiSync Wizard detects this and shows you options to handle the situation.</p>
+
+<h4>Scenarios</h4>
+
+<p><strong>Existing Unlocked Cache:</strong> If cache files exist but aren't currently in use, you'll see a modal showing:</p>
+<ul>
+  <li>Cache file location</li>
+  <li>Number of cached entries</li>
+  <li>File size and last modified date</li>
+  <li>Lock status</li>
+</ul>
+
+<p>You can choose to:</p>
+<ul>
+  <li><strong>Use Existing Cache</strong> (Recommended for multi-machine setup) - The app will use the existing cache without copying your old cache over it</li>
+  <li><strong>Select Different Location</strong> - Choose a different folder</li>
+  <li><strong>Cancel</strong> - Return to Settings without making changes</li>
+</ul>
+
+<p><strong>Cache Currently In Use (Locked):</strong> If another NumiSync Wizard instance is actively using the cache, you'll see a warning with:</p>
+<ul>
+  <li>Hostname of the computer using the cache</li>
+  <li>Process ID and timestamp</li>
+  <li>Instructions to retry after closing the other instance</li>
+</ul>
+
+<div class="callout callout-info">
+  <strong>💡 Multi-Machine Tip:</strong> When setting up NumiSync Wizard on a second computer, choose "Use Existing Cache" to share cached API data between machines and save API quota.
+</div>
+
+<p><strong>Stale Lock Detected:</strong> If a lock file exists but is older than 5 minutes (typically from a crashed instance), you'll see a warning that the stale lock will be automatically cleaned up when you start using the cache.</p>
+
+<h4>Lock Timeout</h4>
+<p>When multiple machines access the shared cache, file locking prevents corruption. If a lock can't be acquired within the timeout (default: 30 seconds), the operation fails with an error. Increase this value if you're on a slow network.</p>
+
+<div class="callout callout-warning">
+  <strong>Warning:</strong> If the custom path becomes unavailable (network disconnected, cloud service offline), the app will fall back to the default local cache location to avoid blocking your work.
+</div>
+
+<a href="#introduction" class="back-to-top">Back to top &uarr;</a>
+
+<!-- ──────────────────────────────────────────────────────────────────────── -->
+<h2 id="multi-machine">23. Multi-Machine Usage</h2>
+
+<p>NumiSync Wizard is designed to work seamlessly when you access the same collection from multiple computers.</p>
+
+<h3>How It Works</h3>
+
+<p><strong>Portable Settings:</strong> All collection-specific settings (API key, fetch settings, field mappings) are stored in the <code>.NumiSync</code> folder next to your <code>.db</code> file. If you move the database, settings travel with it.</p>
+
+<p><strong>Shared Cache (Optional):</strong> Configure both machines to use the same cache location on a network drive to avoid duplicate API calls. See <a href="#cache-location">Cache Location Settings</a>.</p>
+
+<h3>Best Practices</h3>
+
+<ul>
+  <li><strong>Close collection before switching:</strong> OpenNumismat uses file locking - close the collection on Machine A before opening it on Machine B</li>
+  <li><strong>Use cloud sync carefully:</strong> Services like Dropbox/OneDrive work, but wait for sync to complete before switching machines</li>
+  <li><strong>Shared cache recommended:</strong> Saves API quota and keeps freshness tracking consistent across machines</li>
+  <li><strong>Check API usage:</strong> Each machine tracks API calls independently unless using a shared cache</li>
+</ul>
+
+<h3>Troubleshooting</h3>
+
+<h4>"Database is locked" error</h4>
+<p>The collection is open on another machine or in OpenNumismat. Close all instances and try again.</p>
+
+<h4>"Cache lock timeout"</h4>
+<p>Another machine is accessing the shared cache. Wait a moment and retry. If the error persists, increase the lock timeout in Settings → Cache Location section.</p>
+
+<h4>"Cache is locked by another instance"</h4>
+<p>This occurs when you try to configure a custom cache location that's currently in use by another NumiSync Wizard instance.</p>
+<p><strong>To resolve:</strong></p>
+<ol>
+  <li>Close the other NumiSync Wizard instance</li>
+  <li>Wait a few seconds for the lock to release</li>
+  <li>Click "Retry" in the dialog</li>
+</ol>
+<p><strong>Note:</strong> If the other instance crashed, the lock will become stale after 5 minutes and be automatically cleaned up.</p>
+
+<h4>Different settings on each machine</h4>
+<p>Ensure the <code>.NumiSync</code> folder is syncing along with the <code>.db</code> file. Check your cloud sync service's excluded folders.</p>
+
+<a href="#introduction" class="back-to-top">Back to top &uarr;</a>
+
+<!-- ──────────────────────────────────────────────────────────────────────── -->
+<h2 id="uninstalling">24. Uninstalling NumiSync Wizard</h2>
+
+<p>To completely remove NumiSync Wizard from your system:</p>
+
+<h3>What Gets Deleted Automatically</h3>
+
+<p>When you uninstall via the installer (Windows) or delete the app (Mac/Linux), the following are removed:</p>
+
+<ul>
+  <li>Application executable and program files</li>
+  <li>Application directory</li>
+</ul>
+
+<h3>What Remains After Uninstall</h3>
+
+<p>Your data is preserved by default:</p>
+
+<ul>
+  <li><strong>Collection-specific files:</strong> <code>.NumiSync</code> folders next to your <code>.db</code> files (settings, progress, backups)</li>
+  <li><strong>App-wide files:</strong> Application data directory (cache, recent collections, window state)</li>
+  <li><strong>Database files:</strong> Your OpenNumismat <code>.db</code> files (of course!)</li>
+</ul>
+
+<h3>Complete Cleanup (Optional)</h3>
+
+<p>If you want to remove all traces of NumiSync Wizard:</p>
+
+<h4>Windows</h4>
+<ol>
+  <li>Uninstall via Add/Remove Programs</li>
+  <li>Delete app data folder: <code>%APPDATA%\NumiSync Wizard</code></li>
+  <li>Find and delete <code>.NumiSync</code> folders next to your collections (optional)</li>
+</ol>
+
+<h4>macOS</h4>
+<ol>
+  <li>Drag NumiSync Wizard to Trash</li>
+  <li>Delete app data folder: <code>~/Library/Application Support/NumiSync Wizard</code></li>
+  <li>Find and delete <code>.NumiSync</code> folders next to your collections (optional)</li>
+  <li>To view hidden folders: Finder → Cmd+Shift+.</li>
+</ol>
+
+<h4>Linux</h4>
+<ol>
+  <li>Remove via package manager or delete app directory</li>
+  <li>Delete app data folder: <code>~/.config/NumiSync Wizard</code></li>
+  <li>Find and delete <code>.NumiSync</code> folders next to your collections (optional)</li>
+  <li>To view hidden folders: File Manager → Ctrl+H</li>
+</ol>
+
+<h3>Finding .NumiSync Folders</h3>
+
+<p>To locate all <code>.NumiSync</code> folders for cleanup:</p>
+
+<h4>Windows PowerShell</h4>
+<pre><code>Get-ChildItem -Path C:\ -Filter ".NumiSync" -Recurse -Directory -ErrorAction SilentlyContinue</code></pre>
+
+<h4>Mac/Linux Terminal</h4>
+<pre><code>find ~ -type d -name ".NumiSync"</code></pre>
+
+<div class="callout callout-info">
+  <strong>Recommendation:</strong> Keep the <code>.NumiSync</code> folders - they contain your settings and backups. If you reinstall NumiSync Wizard later, everything will work exactly as before.
+</div>
 
 <a href="#introduction" class="back-to-top">Back to top &uarr;</a>
 

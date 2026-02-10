@@ -5,6 +5,99 @@ When switching from sandbox to production, restore these values.
 
 ---
 
+## License Versioning Strategy
+
+**Added:** February 9, 2026
+
+NumiSync Wizard uses **Polar license prefixes** to manage version-based feature entitlements.
+
+### How It Works
+
+Each major version has its own product in Polar with a unique prefix:
+
+| Version | Product Name | Prefix | Status |
+|---------|--------------|--------|--------|
+| v1.x.x  | NumiSync Supporter License v1 | `V1` | Current |
+| v2.x.x  | NumiSync Supporter License v2 | `V2` | Future |
+| v3.x.x  | NumiSync Supporter License v3 | `V3` | Future |
+
+**License Key Examples:**
+- V1: `V1-ABCD-EFGH-IJKL-MNOP`
+- V2: `V2-QRST-UVWX-YZAB-CDEF`
+
+### Feature Gating Logic
+
+The app extracts the version from the license key prefix and checks feature entitlements:
+
+```javascript
+// V1 license holder upgrades to v2 app
+License: V1-XXXX-XXXX-XXXX
+App Version: 2.0.0
+
+Fast Pricing (v1 feature): ✅ Works
+Numista Sync (v2 feature): 🔒 Requires v2 license
+```
+
+See [INSTALLER-DISTRIBUTION-PLAN.md Phase 1.5](./INSTALLER-DISTRIBUTION-PLAN.md#phase-15-license-versioning-architecture) for full implementation details.
+
+### Polar Dashboard Setup
+
+#### V1 Product (Current)
+- **Name:** NumiSync Supporter License v1
+- **Prefix:** `V1`
+- **Product ID:** `50fd6539-84c3-4ca7-9a1e-9f73033077dd`
+- **Status:** Active
+
+#### V2 Product (Create Before v2.0.0 Launch)
+- **Name:** NumiSync Supporter License v2
+- **Prefix:** `V2`
+- **Product ID:** `[TO BE CREATED]`
+- **Activation Limit:** 3 devices
+- **Checkout URL:** `https://polar.sh/checkout?productId=[V2_PRODUCT_ID]`
+
+### Migration Workflow
+
+When creating v2 product in Polar:
+
+1. **Create New Product:**
+   - Go to https://polar.sh/dashboard/[org-slug]/products
+   - Click "New Product"
+   - Name: "NumiSync Supporter License v2"
+   - Type: License Key
+   - Activation Limit: 3
+   - **License Prefix:** `V2` (CRITICAL - this enables version detection)
+
+2. **Update App Configuration:**
+   ```javascript
+   // src/main/index.js - Add v2 product
+   const POLAR_PRODUCTS = {
+     v1: {
+       productId: '50fd6539-84c3-4ca7-9a1e-9f73033077dd',
+       checkoutUrl: 'https://polar.sh/checkout?productId=50fd6539-84c3-4ca7-9a1e-9f73033077dd'
+     },
+     v2: {
+       productId: '[NEW_V2_PRODUCT_ID]',
+       checkoutUrl: 'https://polar.sh/checkout?productId=[NEW_V2_PRODUCT_ID]'
+     }
+   };
+
+   // Update version map
+   const VERSION_MAP = {
+     'V1': '1.0.0',
+     'V2': '2.0.0'
+   };
+   ```
+
+3. **Update Checkout Links:**
+   - New users purchasing v2: Point to v2 checkout URL
+   - Upgrade modal for v1 users: Point to v2 checkout URL with message
+
+4. **Document Product ID:**
+   - Add v2 product ID to this file under "V2 Product"
+   - Update `FEATURE_VERSIONS` in `src/main/index.js`
+
+---
+
 ## Production Configuration
 
 ### POLAR_CONFIG (src/main/index.js)
@@ -174,4 +267,29 @@ Files modified for sandbox:
 
 ---
 
-**Last Updated:** February 5, 2026
+## Setting Up Sandbox for License Versioning Testing
+
+To test license versioning in sandbox:
+
+1. **Create V1 Sandbox Product:**
+   - Name: "NumiSync v1 Test"
+   - License Prefix: `V1`
+   - Note the product ID
+
+2. **Create V2 Sandbox Product:**
+   - Name: "NumiSync v2 Test"
+   - License Prefix: `V2`
+   - Note the product ID
+
+3. **Make Test Purchases:**
+   - Purchase v1 product → Get `V1-XXXX-XXXX-XXXX` key
+   - Purchase v2 product → Get `V2-XXXX-XXXX-XXXX` key
+
+4. **Test Feature Gating:**
+   - Activate v1 key → Verify only v1 features work
+   - Activate v2 key → Verify all features work
+   - Try accessing v2 features with v1 key → Verify upgrade prompt
+
+---
+
+**Last Updated:** February 9, 2026
