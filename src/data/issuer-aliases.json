@@ -1,0 +1,36 @@
+{
+  "_comment": "Issuer alias families. Key = logical group name. 'aliases' = variant spellings/abbreviations (matched case-insensitively). 'code' = Numista issuer code to resolve to. Keys starting with _ are ignored by the loader.",
+
+  "united-states": {
+    "aliases": ["usa", "us", "u.s.", "u.s.a.", "united states", "united states of america"],
+    "code": "united-states"
+  },
+  "united-kingdom": {
+    "aliases": ["uk", "u.k.", "great britain", "england"],
+    "code": "united-kingdom"
+  },
+  "ussr": {
+    "aliases": ["ussr", "soviet union"],
+    "code": "ussr"
+  },
+  "west-germany": {
+    "aliases": ["west germany"],
+    "code": "germany-federal-republic"
+  },
+  "east-germany": {
+    "aliases": ["east germany"],
+    "code": "germany-democratic-republic"
+  },
+  "south-korea": {
+    "aliases": ["south korea"],
+    "code": "korea-south"
+  },
+  "north-korea": {
+    "aliases": ["north korea"],
+    "code": "korea-north"
+  },
+  "bohemia-and-moravia": {
+    "aliases": ["bohemia and moravia", "protectorate of bohemia and moravia", "böhmen und mähren"],
+    "code": "boheme_moravie"
+  }
+}

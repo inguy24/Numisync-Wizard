@@ -100,9 +100,73 @@ function mintmarksMatch(userMintmark, apiMintLetter) {
   return normalizedUser === normalizedApi;
 }
 
+/**
+ * Resolve a mint_letter to the correct mint name from a type's mints array.
+ *
+ * Uses multiple strategies: direct letter field match, reverse city-name
+ * lookup via US_MINT_MAP/WORLD_MINT_MAP, and parenthetical letter match.
+ *
+ * @param {string} mintLetter - mint_letter from issue data or coin mintmark (e.g., "D")
+ * @param {Array<{id: number, name: string, letter?: string}>} mintsArray - mints from type data
+ * @returns {string|null} - Matched mint name, or null if no confident match
+ */
+function resolveMintName(mintLetter, mintsArray) {
+  if (!mintLetter || typeof mintLetter !== 'string') return null;
+  if (!mintsArray || !Array.isArray(mintsArray) || mintsArray.length === 0) return null;
+
+  // Single mint — no ambiguity
+  if (mintsArray.length === 1) {
+    return mintsArray[0].name || null;
+  }
+
+  const normalizedLetter = normalizeMintmark(mintLetter);
+  if (!normalizedLetter) return null;
+
+  // Strategy 1: Check if API included a 'letter' field on mint objects
+  for (const mint of mintsArray) {
+    if (mint.letter && normalizeMintmark(mint.letter) === normalizedLetter) {
+      return mint.name || null;
+    }
+  }
+
+  // Strategy 2: Reverse-lookup through city-name maps
+  // For each city whose mapped letter matches, check if any mint name contains that city
+  const allMaps = { ...US_MINT_MAP, ...WORLD_MINT_MAP };
+  const candidates = [];
+
+  for (const mint of mintsArray) {
+    if (!mint.name) continue;
+    const lowerName = mint.name.toLowerCase();
+
+    for (const [city, letter] of Object.entries(allMaps)) {
+      if (normalizeMintmark(letter) === normalizedLetter && lowerName.includes(city)) {
+        candidates.push(mint);
+        break; // Don't double-count same mint from multiple city keywords
+      }
+    }
+  }
+
+  if (candidates.length === 1) {
+    return candidates[0].name;
+  }
+
+  // Strategy 3: Check for letter in parentheses, e.g., "Monnaie de Paris (A)"
+  for (const mint of mintsArray) {
+    if (!mint.name) continue;
+    const parenMatch = mint.name.match(/\(([^)]+)\)/);
+    if (parenMatch && normalizeMintmark(parenMatch[1]) === normalizedLetter) {
+      return mint.name;
+    }
+  }
+
+  // No confident match
+  return null;
+}
+
 module.exports = {
   normalizeMintmark,
   mintmarksMatch,
+  resolveMintName,
   US_MINT_MAP,
   WORLD_MINT_MAP
 };

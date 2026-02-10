@@ -1,4 +1,5 @@
 const { DEFAULT_FIELD_MAPPING, getCatalogNumber, getNestedValue, formatCatalogForDisplay } = require('./default-field-mapping');
+const { resolveMintName } = require('./mintmark-normalizer');
 const log = require('../main/logger').scope('FieldMapper');
 
 /**
@@ -21,11 +22,13 @@ class FieldMapper {
    * Map Numista data to OpenNumismat fields
    * 
    * @param {Object} numistaData - Full Numista type data from API
-   * @param {Object} issueData - Optional issue data for year-specific fields
+   * @param {Object|null} issueData - Optional issue data for year-specific fields
+   * @param {Object|null} pricingData - Optional pricing data for price fields
    * @param {Object} userSettings - Optional user preferences for mapping
+   * @param {Object|null} coinData - Optional coin data from .db (e.g., {mintmark}) for fallback resolution
    * @returns {Object} - Mapped data ready for OpenNumismat
    */
-  mapToOpenNumismat(numistaData, issueData = null, pricingData = null, userSettings = {}) {
+  mapToOpenNumismat(numistaData, issueData = null, pricingData = null, userSettings = {}, coinData = null) {
     log.debug('=== mapToOpenNumismat called ===');
     log.debug('numistaData keys:', Object.keys(numistaData || {}));
     log.debug('issueData:', issueData ? 'provided' : 'null');
@@ -90,6 +93,28 @@ class FieldMapper {
         } else if (onField === 'mintmark' && issueData) {
           // Get mint mark from issue data
           value = issueData.mint_letter;
+        } else if (onField === 'mint') {
+          // Resolve mint name using mint letter from issue data or coin's own mintmark
+          const mintsArray = numistaData.mints;
+          const mintLetter = issueData?.mint_letter || coinData?.mintmark;
+          if (mintLetter && Array.isArray(mintsArray) && mintsArray.length > 0) {
+            const resolved = resolveMintName(mintLetter, mintsArray);
+            if (resolved) {
+              value = resolved;
+              mapped._recommendUpdate = mapped._recommendUpdate || new Set();
+              mapped._recommendUpdate.add('mint');
+              log.debug(`  Mint resolved: letter '${mintLetter}' -> '${resolved}'`);
+            } else {
+              log.debug(`  Mint letter '${mintLetter}' could not be resolved, falling back to first mint`);
+            }
+          }
+          // Fallback: standard path + transform (picks first mint)
+          if (!value) {
+            value = getNestedValue(numistaData, config.numistaPath);
+            if (value !== null && config.transform && typeof config.transform === 'function') {
+              value = config.transform(value, numistaData);
+            }
+          }
         } else if (onField.match(/^price[1-4]$/) && pricingData) {
           // Get pricing from pricing data
           // Map price1=UNC, price2=XF, price3=VF, price4=F
@@ -115,8 +140,8 @@ class FieldMapper {
           }
         }
 
-        // Apply transformation if defined
-        if (value !== null && config.transform && typeof config.transform === 'function') {
+        // Apply transformation if defined (skip for 'mint' — handled in special case above)
+        if (value !== null && config.transform && typeof config.transform === 'function' && onField !== 'mint') {
           const originalValue = value;
           value = config.transform(value, numistaData);
           log.debug(`    Transformed '${onField}': ${JSON.stringify(originalValue).substring(0, 30)} -> ${value}`);
@@ -162,8 +187,8 @@ class FieldMapper {
       hasChanges: false
     };
 
-    // Map Numista data to OpenNumismat format (pass issueData and pricingData)
-    const mapped = this.mapToOpenNumismat(numistaData, issueData, pricingData);
+    // Map Numista data to OpenNumismat format (pass issueData, pricingData, and coin data)
+    const mapped = this.mapToOpenNumismat(numistaData, issueData, pricingData, {}, { mintmark: coin?.mintmark });
 
     // Compare each mapped field
     for (const [field, config] of Object.entries(this.fieldMapping)) {
@@ -193,6 +218,7 @@ class FieldMapper {
         numistaValue,  // Raw value for database (just the number)
         numistaValueDisplay,  // Formatted for UI display
         isDifferent,
+        recommendUpdate: mapped._recommendUpdate?.has(field) || false,
         priority: config.priority,
         description: config.description,
         catalogCode: config.catalogCode || null,  // Include catalog code for reference
@@ -260,20 +286,23 @@ class FieldMapper {
    * @param {Object} selectedFields - Object mapping field names to selected source
    *                                  { fieldName: 'numista' | 'keep' }
    * @param {Object} numistaData - Numista type data
+   * @param {Object|null} issueData - Optional issue data for year-specific fields
+   * @param {Object|null} pricingData - Optional pricing data for price fields
+   * @param {Object|null} coinData - Optional coin data from .db (e.g., {mintmark}) for fallback resolution
    * @returns {Object} - Data to update in database
    */
-  mergeFields(selectedFields, numistaData, issueData = null, pricingData = null) {
+  mergeFields(selectedFields, numistaData, issueData = null, pricingData = null, coinData = null) {
     log.debug('=== mergeFields called ===');
     log.debug('selectedFields:', JSON.stringify(selectedFields, null, 2));
     log.debug('numistaData.id:', numistaData?.id);
     log.debug('numistaData.title:', numistaData?.title);
     log.debug('issueData:', issueData ? 'provided' : 'null');
     log.debug('pricingData:', pricingData ? 'provided' : 'null');
-    
+
     const updates = {};
 
-    // Map Numista data (pass issueData and pricingData)
-    const mapped = this.mapToOpenNumismat(numistaData, issueData, pricingData);
+    // Map Numista data (pass issueData, pricingData, and coin data)
+    const mapped = this.mapToOpenNumismat(numistaData, issueData, pricingData, {}, coinData);
     log.debug('Mapped data:', JSON.stringify(mapped, null, 2));
 
     for (const [field, value] of Object.entries(selectedFields)) {

@@ -8,11 +8,11 @@ const { contextBridge, ipcRenderer } = require('electron');
  */
 
 /**
- * Denomination alias lookup map (variant -> canonical form).
+ * Denomination alias and plural lookup maps.
  * Loaded from main process via synchronous IPC at startup.
  * Source of truth: src/data/denomination-aliases.json
  */
-const DENOMINATION_ALIASES = ipcRenderer.sendSync('get-denomination-aliases');
+const { aliasMap: DENOMINATION_ALIASES, pluralMap: DENOMINATION_PLURALS, allCanonicalsMap: ALL_CANONICALS } = ipcRenderer.sendSync('get-denomination-aliases');
 
 /**
  * Normalize a denomination unit string to its canonical form.
@@ -21,14 +21,20 @@ const DENOMINATION_ALIASES = ipcRenderer.sendSync('get-denomination-aliases');
  */
 function normalizeUnit(raw) {
   if (!raw || typeof raw !== 'string') return '';
-  const unit = raw.toLowerCase().trim().replace(/[.]/g, '');
+  const unit = raw.normalize('NFC').toLowerCase().trim().replace(/[.]/g, '');
   if (unit === '') return '';
   if (DENOMINATION_ALIASES[unit]) return DENOMINATION_ALIASES[unit];
+  // Strip diacritics (ö→o, é→e, ř→r, etc.) and retry alias lookup
+  const stripped = unit.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (stripped !== unit && DENOMINATION_ALIASES[stripped]) return DENOMINATION_ALIASES[stripped];
   if (unit.endsWith('s') && unit.length > 2) {
     const singular = unit.slice(0, -1);
     if (DENOMINATION_ALIASES[singular]) return DENOMINATION_ALIASES[singular];
+    const strippedSingular = singular.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (strippedSingular !== singular && DENOMINATION_ALIASES[strippedSingular]) return DENOMINATION_ALIASES[strippedSingular];
   }
-  return unit;
+  // Return accent-stripped form for fallback dice comparison
+  return stripped;
 }
 
 /**
@@ -45,6 +51,34 @@ function denominationUnitsMatch(unitA, unitB) {
 }
 
 /**
+ * Get the correct singular or plural form of a denomination for Numista search.
+ * @param {string} canonical - Canonical (singular) denomination form
+ * @param {number} numericValue - The numeric value (1 = singular, otherwise plural)
+ * @returns {string} The correct form for the given value
+ */
+function getSearchForm(canonical, numericValue) {
+  if (!canonical) return canonical;
+  if (numericValue === 1) return canonical;
+  return DENOMINATION_PLURALS[canonical] || canonical;
+}
+
+/**
+ * Get all alternate search forms for a denomination unit.
+ * When a denomination appears in multiple canonical entries (cross-referenced),
+ * returns the plural forms of ALL those canonicals for search retries.
+ * @param {string} unit - Raw denomination unit string
+ * @param {number} numericValue - Numeric value (for singular/plural selection)
+ * @returns {string[]} All search forms (empty if no alternates)
+ */
+function getAlternateSearchForms(unit, numericValue) {
+  if (!unit) return [];
+  const key = unit.toLowerCase().trim().replace(/[.]/g, '');
+  const canonicals = ALL_CANONICALS[key];
+  if (!canonicals || canonicals.length <= 1) return [];
+  return canonicals.map(c => getSearchForm(c, numericValue));
+}
+
+/**
  * Calculate Dice's coefficient string similarity
  * Defined directly in preload to avoid importing heavy modules (axios, etc.)
  * into the renderer preload context.
@@ -53,8 +87,8 @@ function denominationUnitsMatch(unitA, unitB) {
  * @returns {number} Similarity score from 0.0 to 1.0
  */
 function diceCoefficient(a, b) {
-  a = a.toLowerCase().trim();
-  b = b.toLowerCase().trim();
+  a = a.normalize('NFC').toLowerCase().trim();
+  b = b.normalize('NFC').toLowerCase().trim();
 
   if (a === b) return 1.0;
   if (a.length < 2 || b.length < 2) return 0.0;
@@ -197,6 +231,8 @@ contextBridge.exposeInMainWorld('api', apiMethods);
 contextBridge.exposeInMainWorld('stringSimilarity', {
   diceCoefficient,
   normalizeUnit,
+  getSearchForm,
+  getAlternateSearchForms,
   unitsMatch: denominationUnitsMatch
 });
 

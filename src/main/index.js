@@ -9,7 +9,7 @@
  * - Settings management via SettingsManager
  * - Progress tracking via ProgressTracker
  */
-const { app, BrowserWindow, ipcMain, dialog, shell, Menu } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, Menu, screen } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -26,7 +26,7 @@ const SettingsManager = require('../modules/settings-manager');
 const metadataManager = require('../modules/metadata-manager');
 const ImageHandler = require('../modules/image-handler');
 const { initAutoUpdater, checkForUpdatesManually } = require('./updater');
-const { DENOMINATION_ALIASES } = require('../modules/denomination-normalizer');
+const { DENOMINATION_ALIASES, DENOMINATION_PLURALS, ALL_CANONICALS } = require('../modules/denomination-normalizer');
 const ApiCache = require('../modules/api-cache');
 const log = require('./logger');
 
@@ -96,12 +96,85 @@ let menuState = {
   viewMode: 'list' // 'list' or 'grid'
 };
 
+// ============================================================================
+// Window State Persistence
+// ============================================================================
+
+/** @type {{x: number, y: number, width: number, height: number}|null} */
+let lastNormalBounds = null;
+
+/**
+ * Load saved window state from app settings
+ * @returns {{x: number, y: number, width: number, height: number, isMaximized: boolean}|null}
+ */
+function loadWindowState() {
+  try {
+    const settingsPath = path.join(app.getPath('userData'), 'settings.json');
+    if (fs.existsSync(settingsPath)) {
+      const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+      return settings.windowBounds || null;
+    }
+  } catch (error) {
+    log.warn('Failed to load window state:', error.message);
+  }
+  return null;
+}
+
+/**
+ * Save current window state to app settings
+ * @param {BrowserWindow} win - The window to save state for
+ */
+function saveWindowState(win) {
+  try {
+    const settingsPath = path.join(app.getPath('userData'), 'settings.json');
+    const isMaximized = win.isMaximized();
+    // Use the last normal bounds if maximized, otherwise use current bounds
+    const bounds = isMaximized && lastNormalBounds ? lastNormalBounds : win.getBounds();
+
+    let existingSettings = {};
+    if (fs.existsSync(settingsPath)) {
+      existingSettings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+    }
+
+    existingSettings.windowBounds = {
+      x: bounds.x,
+      y: bounds.y,
+      width: bounds.width,
+      height: bounds.height,
+      isMaximized
+    };
+
+    fs.writeFileSync(settingsPath, JSON.stringify(existingSettings, null, 2), 'utf8');
+  } catch (error) {
+    log.warn('Failed to save window state:', error.message);
+  }
+}
+
+/**
+ * Check if a window position would be visible on any connected display
+ * @param {number} x - Window x position
+ * @param {number} y - Window y position
+ * @param {number} width - Window width
+ * @param {number} height - Window height
+ * @returns {boolean} True if at least part of the window is on a visible display
+ */
+function isPositionOnScreen(x, y, width, height) {
+  const displays = screen.getAllDisplays();
+  // Check if any portion of the window overlaps with any display
+  return displays.some(display => {
+    const { x: dx, y: dy, width: dw, height: dh } = display.bounds;
+    return x < dx + dw && x + width > dx && y < dy + dh && y + height > dy;
+  });
+}
+
 /**
  * Create the main application window
  * @returns {void}
  */
 function createWindow() {
-  mainWindow = new BrowserWindow({
+  const savedState = loadWindowState();
+
+  const windowOptions = {
     width: 1400,
     height: 900,
     webPreferences: {
@@ -110,7 +183,34 @@ function createWindow() {
       contextIsolation: true
     },
     icon: path.join(__dirname, '../../build/icon.png')
+  };
+
+  if (savedState && isPositionOnScreen(savedState.x, savedState.y, savedState.width, savedState.height)) {
+    windowOptions.x = savedState.x;
+    windowOptions.y = savedState.y;
+    windowOptions.width = savedState.width;
+    windowOptions.height = savedState.height;
+  }
+
+  mainWindow = new BrowserWindow(windowOptions);
+
+  // Track normal (non-maximized) bounds for save-on-close
+  lastNormalBounds = mainWindow.getBounds();
+  mainWindow.on('resize', () => {
+    if (!mainWindow.isMaximized()) {
+      lastNormalBounds = mainWindow.getBounds();
+    }
   });
+  mainWindow.on('move', () => {
+    if (!mainWindow.isMaximized()) {
+      lastNormalBounds = mainWindow.getBounds();
+    }
+  });
+
+  // Restore maximized state after window is ready
+  if (savedState && savedState.isMaximized) {
+    mainWindow.maximize();
+  }
 
   mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
 
@@ -118,6 +218,11 @@ function createWindow() {
   if (process.argv.includes('--dev')) {
     mainWindow.webContents.openDevTools();
   }
+
+  // Save window state before closing
+  mainWindow.on('close', () => {
+    saveWindowState(mainWindow);
+  });
 
   mainWindow.on('closed', () => {
     mainWindow = null;
@@ -162,7 +267,7 @@ function openUserManual() {
   }
 
   manualWindow = new BrowserWindow(windowOptions);
-  manualWindow.loadFile(path.join(__dirname, '../../docs/user-manual.html'));
+  manualWindow.loadFile(path.join(__dirname, '../resources/user-manual.html'));
   manualWindow.setMenuBarVisibility(false);
 
   manualWindow.on('closed', () => {
@@ -661,7 +766,7 @@ function checkDatabaseInUse(filePath) {
 // ============================================================================
 
 ipcMain.on('get-denomination-aliases', (event) => {
-  event.returnValue = DENOMINATION_ALIASES;
+  event.returnValue = { aliasMap: DENOMINATION_ALIASES, pluralMap: DENOMINATION_PLURALS, allCanonicalsMap: ALL_CANONICALS };
 });
 
 // ============================================================================
@@ -825,6 +930,11 @@ ipcMain.handle('get-coin-details', async (event, coinId) => {
     }
 
     const coin = db.getCoinById(coinId);
+    // Parse metadata from note field so coin.metadata is available (matches get-coins behavior)
+    if (coin) {
+      const { metadata } = metadataManager.readEnrichmentMetadata(coin.note);
+      coin.metadata = metadata;
+    }
     return { success: true, coin };
   } catch (error) {
     log.error('Error getting coin details:', error);
@@ -915,17 +1025,23 @@ ipcMain.handle('search-numista', async (event, searchParams) => {
   }
 });
 
-ipcMain.handle('manual-search-numista', async (event, { query, coinId, category }) => {
+ipcMain.handle('manual-search-numista', async (event, { query, coinId, category, issuer, page }) => {
   try {
-    log.info('Manual search requested:', query, 'for coin:', coinId, 'category:', category);
+    log.info('Manual search requested:', query, 'for coin:', coinId, 'category:', category, 'issuer:', issuer, 'page:', page || 1);
 
     const apiKey = getApiKey();
     const api = new NumistaAPI(apiKey, getApiCache(), getCacheTTLs());
 
-    // Use the query directly as provided by user
+    // Use the query directly as provided by user, with optional issuer filter
     const searchParams = { q: query };
     if (category) {
       searchParams.category = category;
+    }
+    if (issuer) {
+      searchParams.issuer = issuer;
+    }
+    if (page && page > 1) {
+      searchParams.page = page;
     }
 
     const results = await api.searchTypes(searchParams);
@@ -1166,10 +1282,11 @@ ipcMain.handle('merge-data', async (event, { coinId, selectedFields, numistaData
       log.info('Auto-backup disabled, skipping backup creation');
     }
     
-    // Perform the merge (pass issueData and pricingData)
+    // Perform the merge (pass issueData, pricingData, and coin mintmark for mint resolution)
     const customMapping = settingsManager ? settingsManager.buildFieldMapperConfig() : null;
     const mapper = new FieldMapper(customMapping);
-    const updatedData = mapper.mergeFields(selectedFields, numistaData, issueData, pricingData);
+    const mergeCoin = db.getCoinById(coinId);
+    const updatedData = mapper.mergeFields(selectedFields, numistaData, issueData, pricingData, { mintmark: mergeCoin?.mintmark });
     log.debug('Data to update:', updatedData);
 
     // Handle image fields specially - download and store in photos table
@@ -2672,11 +2789,12 @@ ipcMain.handle('fast-pricing-update', async (event, { coinId, numistaId, issueId
     const grades = {};
     pricingData.prices.forEach(p => grades[p.grade.toLowerCase()] = p.price);
 
+    // Map price1=UNC, price2=XF, price3=VF, price4=F (must match field-mapper.js)
     const priceFields = {};
-    if (grades.f !== undefined) priceFields.price1 = grades.f;
-    if (grades.vf !== undefined) priceFields.price2 = grades.vf;
-    if (grades.xf !== undefined) priceFields.price3 = grades.xf;
-    if (grades.unc !== undefined) priceFields.price4 = grades.unc;
+    if (grades.unc !== undefined) priceFields.price1 = grades.unc;
+    if (grades.xf !== undefined) priceFields.price2 = grades.xf;
+    if (grades.vf !== undefined) priceFields.price3 = grades.vf;
+    if (grades.f !== undefined) priceFields.price4 = grades.f;
 
     // Update metadata
     const coin = db.getCoinById(coinId);
@@ -2736,7 +2854,7 @@ ipcMain.handle('propagate-type-data', async (event, { coinId, numistaData, issue
     const typeLevelFields = [
       'title', 'category', 'country', 'ruler', 'period', 'value', 'unit',
       'material', 'weight', 'diameter', 'thickness', 'shape', 'edge', 'edgelabel',
-      'obversedesign', 'reversedesign', 'catalognum1', 'catalognum2', 'catalognum3', 'catalognum4'
+      'obversedesign', 'reversedesign', 'mint', 'catalognum1', 'catalognum2', 'catalognum3', 'catalognum4'
     ];
 
     const typeFields = {};
@@ -2766,8 +2884,8 @@ ipcMain.handle('propagate-type-data', async (event, { coinId, numistaData, issue
       return { success: true, skipped: true };
     }
 
-    // Merge fields using the existing mapper
-    const updatedData = mapper.mergeFields(typeFields, numistaData, issueData, pricingData);
+    // Merge fields using the existing mapper (pass coinData for mint resolution fallback)
+    const updatedData = mapper.mergeFields(typeFields, numistaData, issueData, pricingData, { mintmark: currentCoin?.mintmark });
 
     // Read existing metadata and update it
     const currentNote = currentCoin.note || '';

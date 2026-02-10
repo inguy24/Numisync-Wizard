@@ -1,8 +1,5 @@
 State or territory[2],Currency[2][3],Symbol[D] or,ISO code[3],Fractional,Number
-,,Abbrev.[4],,unit,to basic
 Abkhazia,Abkhazian apsar[E],??,(none),(none),(none)
-,Russian ruble,?,RUB,Kopeck,100
-Afghanistan,Afghan afghani,??,AFN,Pul,100
 Akrotiri and Dhekelia,Euro,€,EUR,Cent,100
 Albania,Albanian lek,L,ALL,Qintar,100
 Algeria,Algerian dinar,DA,DZD,Centime,100
@@ -27,7 +24,6 @@ Belize,Belize dollar,$,BZD,Cent,100
 Benin,West African CFA franc,F.CFA,XOF,Centime,100
 Bermuda,Bermudian dollar,$,BMD,Cent,100
 Bhutan,Bhutanese ngultrum[F],Nu,BTN,Chetrum,100
-,Indian rupee,?,INR,Paisa,100
 Bolivia,Bolivian boliviano,Bs,BOB,Centavo,100
 Bonaire,United States dollar[G],$,USD,Cent,100
 Bosnia and Herzegovina,Bosnia and Herzegovina convertible mark,KM,BAM,Fening,100
@@ -35,7 +31,6 @@ Botswana,Botswana pula,P,BWP,Thebe,100
 Brazil,Brazilian real,R$,BRL,Centavo,100
 British Virgin Islands,United States dollar,$,USD,Cent,100
 Brunei[H],Brunei dollar,$,BND,Sen,100
-,Singapore dollar,$,SGD,Cent,100
 Bulgaria,Euro,€,EUR,Cent,100
 Burkina Faso,West African CFA franc,F.CFA,XOF,Centime,100
 Burundi,Burundian franc,FBu,BIF,Centime,100
@@ -53,7 +48,6 @@ Comoros,Comorian franc,FC,KMF,Centime,100
 "Congo, Democratic Republic of the",Congolese franc,FC,CDF,Centime,100
 "Congo, Republic of the",Central African CFA franc,F.CFA,XAF,Centime,100
 Cook Islands,Cook Islands dollar,$,(none),Cent,100
-,New Zealand dollar,$,NZD,Cent,100
 Costa Rica,Costa Rican colón,?,CRC,Céntimo,100
 Côte d'Ivoire,West African CFA franc,F.CFA,XOF,Centime,100
 Croatia,Euro,€,EUR,Cent,100
@@ -72,12 +66,9 @@ Equatorial Guinea,Central African CFA franc,F.CFA,XAF,Centime,100
 Eritrea,Eritrean nakfa,Nkf,ERN,Cent,100
 Estonia,Euro,€,EUR,Cent,100
 Eswatini,Swazi lilangeni,L or E (pl.),SZL,Cent,100
-,South African rand,R,ZAR,Cent,100
 Ethiopia,Ethiopian birr,Br,ETB,Santim,100
 Falkland Islands,Falkland Islands pound,£,FKP,Penny,100
-,Sterling,£,GBP,Penny,100
 Faroe Islands,Danish krone,kr,DKK,Øre,100
-,Faroese króna,kr,(none),Oyra,100
 Fiji,Fijian dollar,$,FJD,Cent,100
 Finland,Euro,€,EUR,Cent,100
 France,Euro,€,EUR,Cent,100
@@ -88,13 +79,11 @@ Georgia,Georgian lari,?,GEL,Tetri,100
 Germany,Euro,€,EUR,Cent,100
 Ghana,Ghanaian cedi,?,GHS,Pesewa,100
 Gibraltar,Gibraltar pound,£,GIP,Penny,100
-,Sterling,£,GBP,Penny,100
 Greece,Euro,€,EUR,Cent,100
 Greenland,Danish krone,kr,DKK,Øre,100
 Grenada,Eastern Caribbean dollar,EC$,XCD,Cent,100
 Guatemala,Guatemalan quetzal,Q,GTQ,Centavo,100
 Bailiwick of Guernsey,Guernsey pound,£,(none),Penny,100
-,Sterling,£,GBP,Penny,100
 Guinea,Guinean franc,Fr,GNF,Centime,100
 Guinea-Bissau,West African CFA franc,F.CFA,XOF,Centime,100
 Guyana,Guyanese dollar,$,GYD,Cent,100
@@ -109,18 +98,15 @@ Iran,Iranian rial,Rl or Rls (pl.),IRR,Dinar,100
 Iraq,Iraqi dinar,ID,IQD,Fils,1000
 Ireland,Euro,€,EUR,Cent,100
 Isle of Man,Manx pound,£,(none),Penny,100
-,Sterling,£,GBP,Penny,100
 Israel,Israeli new shekel,?,ILS,Agora,100
 Italy,Euro,€,EUR,Cent,100
 Jamaica,Jamaican dollar,$,JMD,Cent,100
 Japan,Japanese yen,¥,JPY,Sen[C],100
 Jersey,Jersey pound,£,(none),Penny,100
-,Sterling,£,GBP,Penny,100
 Jordan,Jordanian dinar,JD,JOD,Piastre[K],100
 Kazakhstan,Kazakhstani tenge,?,KZT,T?yn,100
 Kenya,Kenyan shilling,Sh or Shs (pl.),KES,Cent,100
 Kiribati,Kiribati dollar[E],$,(none),Cent,100
-,Australian dollar,$,AUD,Cent,100
 "Korea, North",North Korean won,?,KPW,Chon,100
 "Korea, South",South Korean won,?,KRW,Jeon,100
 Kosovo,Euro,€,EUR,Cent,100
@@ -130,11 +116,8 @@ Laos,Lao kip,?,LAK,Att,100
 Latvia,Euro,€,EUR,Cent,100
 Lebanon,Lebanese pound,LL,LBP,Piastre,100
 Lesotho,Lesotho loti,L or M (pl.),LSL,Sente,100
-,South African rand,R,ZAR,Cent,100
 South Georgia and the South Sandwich Islands,Falkland Islands pound,£,FKP,Penny,100
-,Sterling,£,GBP,Penny,100
 Liberia,Liberian dollar,$,LRD,Cent,100
-,United States dollar,$,USD,Cent,100
 Libya,Libyan dinar,LD,LYD,Dirham,1000
 Liechtenstein,Swiss franc,Fr,CHF,Rappen,100
 Lithuania,Euro,€,EUR,Cent,100
@@ -160,7 +143,6 @@ Morocco,Moroccan dirham,DH,MAD,Centime,100
 Mozambique,Mozambican metical,Mt,MZN,Centavo,100
 Myanmar,Burmese kyat,K or Ks (pl.),MMK,Pya,100
 Namibia,Namibian dollar,$,NAD,Cent,100
-,South African rand,R,ZAR,Cent,100
 Nauru,Australian dollar,$,AUD,Cent,100
   Nepal,Nepalese rupee,??,NPR,Paisa,100
 Netherlands[G],Euro,€,EUR,Cent,100
@@ -170,7 +152,6 @@ Nicaragua,Nicaraguan córdoba,C$,NIO,Centavo,100
 Niger,West African CFA franc,F.CFA,XOF,Centime,100
 Nigeria,Nigerian naira,?,NGN,Kobo,100
 Niue,New Zealand dollar,$,NZD,Cent,100
-,Niue dollar[E],$,(none),Cent,100
 North Macedonia,Macedonian denar,DEN,MKD,Deni,100
 Northern Cyprus,Turkish lira,?,TRY,Kuru?,100
 Norway,Norwegian krone,kr,NOK,Øre,100
@@ -178,16 +159,12 @@ Oman,Omani rial,RO,OMR,Baisa,1000
 Pakistan,Pakistani rupee,Re or Rs (pl.),PKR,Paisa,100
 Palau,United States dollar,$,USD,Cent,100
 Palestine[L],Israeli new shekel,?,ILS,Agora,100
-,Egyptian pound,LE,EGP,Piastre[B],100
-,Jordanian dinar,JD,JOD,Piastre[K],100
 Panama,Panamanian balboa,B/,PAB,Centésimo,100
-,United States dollar,$,USD,Cent,100
 Papua New Guinea,Papua New Guinean kina,K,PGK,Toea,100
 Paraguay,Paraguayan guaraní,?,PYG,Céntimo,100
 Peru,Peruvian sol,S/,PEN,Céntimo,100
 Philippines,Philippine peso,?,PHP,Sentimo,100
 Pitcairn Islands,New Zealand dollar,$,NZD,Cent,100
-,Pitcairn Islands dollar[E],$,(none),Cent,100
 Poland,Polish z?oty,z?,PLN,Grosz,100
 Portugal,Euro,€,EUR,Cent,100
 Qatar,Qatari riyal,QR,QAR,Dirham,100
@@ -196,9 +173,7 @@ Russia,Russian ruble,?,RUB,Kopeck,100
 Rwanda,Rwandan franc,FRw,RWF,Centime,100
 Saba,United States dollar[G],$,USD,Cent,100
 Sahrawi Republic[M],Moroccan dirham,DH,MAD,Centime,100
-,Sahrawi peseta,Pta or Pts (pl.),(none),Centime,100
 Saint Helena,Saint Helena pound,£,SHP,Penny,100
-,Sterling,£,GBP,Penny,100
 Saint Kitts and Nevis,Eastern Caribbean dollar,EC$,XCD,Cent,100
 Saint Lucia,Eastern Caribbean dollar,EC$,XCD,Cent,100
 Saint Vincent and the Grenadines,Eastern Caribbean dollar,EC$,XCD,Cent,100
@@ -211,7 +186,6 @@ Serbia,Serbian dinar,DIN,RSD,Para,100
 Seychelles,Seychellois rupee,Re or Rs (pl.),SCR,Cent,100
 Sierra Leone,Sierra Leonean leone,Le,SLE,Cent,100
 Singapore[N],Singapore dollar,$,SGD,Cent,100
-,Brunei dollar,$,BND,Sen,100
 Sint Eustatius,United States dollar[G],$,USD,Cent,100
 Sint Maarten,Caribbean guilder,Cg,XCG,Cent,100
 Slovakia,Euro,€,EUR,Cent,100
@@ -243,7 +217,6 @@ Turkey,Turkish lira,?,TRY,Kuru?,100
 Turkmenistan,Turkmenistani manat,m,TMT,Tenge,100
 Turks and Caicos Islands,United States dollar,$,USD,Cent,100
 Tuvalu,Tuvaluan dollar,$,(none),Cent,100
-,Australian dollar,$,AUD,Cent,100
 Uganda,Ugandan shilling,Sh or Shs (pl.),UGX,(none),(none)
 Ukraine,Ukrainian hryvnia,?,UAH,Kopeck,100
 United Arab Emirates,United Arab Emirates dirham,Picture,AED,Fils,100
@@ -254,7 +227,6 @@ Uzbekistan,Uzbekistani sum,S?,UZS,Tiyin,100
 Vanuatu,Vanuatu vatu,VT,VUV,Cent,100
 Vatican City,Euro,€,EUR,Cent,100
 Venezuela,Venezuelan sovereign bolívar,Bs.S,VES,Céntimo,100
-,Venezuelan digital bolívar,Bs.D,VED,Céntimo,100
 Vietnam,Vietnamese ??ng,?,VND,Hào[Q],10
 Wallis and Futuna,CFP franc,?,XPF,Centime,100
 Yemen,Yemeni rial,Rl or Rls (pl.),YER,Fils,100

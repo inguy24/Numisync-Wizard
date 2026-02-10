@@ -1,4 +1,4 @@
-/**
+﻿/**
  * NumiSync Wizard - Main Application
  * Handles all UI interactions and coordinates with backend
  */
@@ -865,8 +865,25 @@ function getCatalogSlotMapping() {
 }
 
 /**
+ * Check if two country/issuer names refer to the same country.
+ * Uses case-insensitive bi-directional includes to handle variations
+ * (e.g., "United States" vs "United States of America").
+ * @param {string} country1 - First country name
+ * @param {string} country2 - Second country name
+ * @returns {boolean} True if countries match
+ */
+function countriesMatch(country1, country2) {
+  if (!country1 || !country2) return false;
+  const a = country1.toLowerCase().trim();
+  const b = country2.toLowerCase().trim();
+  if (!a || !b) return false;
+  return a === b || a.includes(b) || b.includes(a);
+}
+
+/**
  * Find coins in collection that match the enriched coin's type.
  * Uses strict matching: numistaId is gold standard, catalog numbers require ALL populated slots to match.
+ * Non-Numista catalog matches (KM, Schon, Y) also require country match since these catalogs reuse numbers across countries.
  * @param {Object} enrichedCoin - The coin that was just enriched
  * @param {Object} numistaData - The Numista type data that was fetched
  * @returns {Array<{coin: Object, matchReason: string}>} Matching coins with reason
@@ -910,6 +927,7 @@ function findMatchingCoins(enrichedCoin, numistaData) {
     let hasAnyPopulated = false;
     let allPopulatedMatch = true;
     let matchedCatalog = null;
+    let hasNonNumistaMatch = false;
 
     for (const slot of catalogSlots) {
       const coinValue = coin[slot];
@@ -942,15 +960,28 @@ function findMatchingCoins(enrichedCoin, numistaData) {
         break;
       } else {
         matchedCatalog = `${catalogType}# ${numistaNumber}`;
+        // Track if any matched slot uses a non-Numista catalog
+        // Non-Numista catalogs (KM, Schon, Y, etc.) reuse numbers across countries
+        if (catalogKey !== 'numista') {
+          hasNonNumistaMatch = true;
+        }
       }
     }
 
     // Only add if we had populated slots AND all of them matched
     if (hasAnyPopulated && allPopulatedMatch && matchedCatalog) {
       // If candidate was previously enriched with a DIFFERENT Numista type, skip it.
-      // Catalog numbers like KM# can collide across countries.
       if (coinMetadata?.numistaId && enrichedNumistaId && coinMetadata.numistaId !== enrichedNumistaId) {
         continue;
+      }
+      // Country validation for non-Numista catalog matches.
+      // Non-Numista catalogs (KM, Schon, Y) reuse numbers across countries,
+      // so we must verify the candidate coin is from the same issuing country.
+      if (hasNonNumistaMatch) {
+        const enrichedCountry = numistaData?.issuer?.name;
+        if (!enrichedCountry || !countriesMatch(enrichedCountry, coin.country)) {
+          continue;
+        }
       }
       matches.push({
         coin,
@@ -1190,6 +1221,7 @@ async function showBatchTypePropagationPrompt(enrichedCoin, numistaData, issueDa
       // Proceed with batch propagation - include previously enriched if checkbox was checked
       resolve({
         action: 'apply_all',
+        enrichedCoin,
         duplicates,
         sameType,
         previouslyEnriched: includeEnriched ? previouslyEnriched : [],
@@ -1221,7 +1253,7 @@ async function applyBatchTypePropagation(result) {
     return { success: true, applied: 0, skipped: 0 };
   }
 
-  const { duplicates, sameType, previouslyEnriched = [], numistaData, issueData, pricingData, selectedFields } = result;
+  const { enrichedCoin, duplicates, sameType, previouslyEnriched = [], numistaData, issueData, pricingData, selectedFields } = result;
   const allCoins = [...duplicates, ...sameType, ...previouslyEnriched];
 
   // Show progress modal
@@ -1269,14 +1301,15 @@ async function applyBatchTypePropagation(result) {
       let issueSkipReason = null;
       if (!isDuplicate) {
         // Track why issue data was skipped for same-type coins
+        // Use the enriched source coin (not duplicates[0]) for comparison
         const coinYear = coin.year ? parseInt(coin.year) : null;
         const coinMintmark = (coin.mintmark || '').trim().toLowerCase();
-        const enrichedYear = duplicates.length > 0 ? parseInt(duplicates[0].coin.year) || null : null;
-        const enrichedMintmark = duplicates.length > 0 ? (duplicates[0].coin.mintmark || '').trim().toLowerCase() : '';
+        const refYear = enrichedCoin ? parseInt(enrichedCoin.year) || null : null;
+        const refMintmark = enrichedCoin ? (enrichedCoin.mintmark || '').trim().toLowerCase() : '';
 
-        if (coinYear !== enrichedYear) {
+        if (coinYear !== refYear) {
           issueSkipReason = 'Different year';
-        } else if (coinMintmark !== enrichedMintmark) {
+        } else if (coinMintmark !== refMintmark) {
           issueSkipReason = 'Different mintmark';
         } else {
           issueSkipReason = 'Different issue variant';
@@ -2424,6 +2457,15 @@ async function startFastPricingUpdate() {
   renderCoinList();
 }
 
+// Build a display label from structured fields when coin.title is empty
+function buildCoinDisplayLabel(coin) {
+  if (!coin.value && !coin.unit) return null;
+  const parts = [];
+  if (coin.value) parts.push(coin.value);
+  if (coin.unit) parts.push(coin.unit);
+  return parts.join(' ') || null;
+}
+
 function renderCoinList() {
   const coinList = document.getElementById('coinList');
   coinList.innerHTML = '';
@@ -2520,7 +2562,7 @@ function renderCoinList() {
 
     const title = document.createElement('div');
     title.className = 'coin-title';
-    title.textContent = coin.title || '(Untitled)';
+    title.textContent = coin.title || buildCoinDisplayLabel(coin) || '(Untitled)';
 
     const details = document.createElement('div');
     details.className = 'coin-details';
@@ -2838,19 +2880,41 @@ async function renderCurrentCoinInfo() {
  */
 /**
  * Normalize a denomination unit for use in Numista search queries.
- * Corrects spelling variants (e.g., "Kopeks" -> "kopecks") while preserving
- * plurality, since Numista's search is sensitive to singular vs plural.
+ * Uses the numeric value to determine correct singular/plural form,
+ * since Numista is strict about "1 Centavo" vs "50 Centavos".
  * @param {string} unit - Raw unit string from coin data
+ * @param {number|null} value - Numeric denomination value (1 = singular, >1 = plural)
  * @returns {string} Normalized unit suitable for API search queries
  */
-function normalizeUnitForSearch(unit) {
+function normalizeUnitForSearch(unit, value) {
   if (!unit) return unit;
-  const wasPlural = unit.toLowerCase().trim().endsWith('s');
   const canonical = window.stringSimilarity.normalizeUnit(unit);
   if (!canonical) return unit;
-  // If original was plural but canonical is singular, re-add 's'
-  if (wasPlural && !canonical.endsWith('s')) return canonical + 's';
+  // Use numeric value to pick correct singular/plural form
+  const numValue = parseFloat(value);
+  if (!isNaN(numValue)) {
+    return window.stringSimilarity.getSearchForm(canonical, numValue);
+  }
+  // No numeric value available - return canonical (singular) as safest default
   return canonical;
+}
+
+/**
+ * Normalize denomination terms in a free-text search query.
+ * Finds patterns like "1 centavos" or "50 centavo" and corrects the plurality.
+ * @param {string} queryText - Raw search query
+ * @returns {string} Query with corrected denomination singular/plural forms
+ */
+function normalizeDenominationInQuery(queryText) {
+  if (!queryText) return queryText;
+  return queryText.replace(/(\d+\.?\d*)\s+([\p{L}]+)/gu, (match, numStr, word) => {
+    const canonical = window.stringSimilarity.normalizeUnit(word);
+    if (!canonical) return match;
+    // getSearchForm returns canonical as-is for unknown denominations (no plural in map)
+    const numValue = parseFloat(numStr);
+    const correctedUnit = window.stringSimilarity.getSearchForm(canonical, numValue);
+    return `${numStr} ${correctedUnit}`;
+  });
 }
 
 function stripParenthetical(query) {
@@ -2865,10 +2929,10 @@ function stripParenthetical(query) {
 function buildCoreQuery(coin) {
   const parts = [];
 
-  // Add denomination (normalize spelling, preserve plurality for Numista search)
+  // Add denomination (normalize spelling, use correct singular/plural for Numista search)
   if (coin.value) {
     if (coin.unit) {
-      parts.push(`${coin.value} ${normalizeUnitForSearch(coin.unit)}`);
+      parts.push(`${coin.value} ${normalizeUnitForSearch(coin.unit, coin.value)}`);
     } else {
       parts.push(coin.value.toString());
     }
@@ -2897,9 +2961,9 @@ function buildMinimalQuery(coin) {
   }
 
   // Add denomination unit only (not number, to broaden search)
-  // Normalize spelling, preserve plurality for Numista search
+  // Use singular canonical form for broadest match
   if (coin.unit) {
-    parts.push(normalizeUnitForSearch(coin.unit));
+    parts.push(normalizeUnitForSearch(coin.unit, null));
   } else if (coin.value) {
     parts.push(coin.value.toString());
   }
@@ -2907,10 +2971,38 @@ function buildMinimalQuery(coin) {
   return parts.join(' ');
 }
 
+// Fetch all pages for a search query, updating status as pages load.
+// Returns the complete array of types across all pages.
+async function fetchAllSearchPages(searchFn, firstResult, statusPrefix) {
+  const allTypes = [...(firstResult.results.types || [])];
+  const totalCount = firstResult.results.count || allTypes.length;
+
+  if (allTypes.length >= totalCount) return allTypes;
+
+  // Calculate remaining pages (API max is 50 per page)
+  const perPage = allTypes.length; // first page size
+  const totalPages = Math.ceil(totalCount / perPage);
+
+  for (let page = 2; page <= totalPages; page++) {
+    document.getElementById('searchStatus').textContent =
+      `${statusPrefix} (loading page ${page} of ${totalPages}...)`;
+
+    const pageResult = await searchFn(page);
+    if (pageResult.success && pageResult.results.types?.length > 0) {
+      allTypes.push(...pageResult.results.types);
+    } else {
+      break; // No more results or error
+    }
+  }
+
+  return allTypes;
+}
+
 async function searchForMatches() {
   try {
     showStatus('Searching Numista...');
     document.getElementById('searchStatus').textContent = 'Searching...';
+    AppState.currentMatches = [];
 
     const coin = AppState.currentCoin;
     let searchAttempt = 1;
@@ -2926,7 +3018,12 @@ async function searchForMatches() {
     // Strategy 1: Full query as-is
     result = await window.electronAPI.searchNumista(baseParams);
     if (!result.success) throw new Error(result.error);
-    AppState.currentMatches = result.results.types || [];
+    if ((result.results.types || []).length > 0) {
+      AppState.currentMatches = await fetchAllSearchPages(
+        (page) => window.electronAPI.searchNumista({ ...baseParams, page }),
+        result, 'Searching'
+      );
+    }
 
     // Strategy 2: Core terms only (denomination + year)
     if (AppState.currentMatches.length === 0) {
@@ -2938,9 +3035,12 @@ async function searchForMatches() {
 
         const params3 = { ...baseParams, q: coreQuery };
         result = await window.electronAPI.searchNumista(params3);
-        if (result.success) {
-          AppState.currentMatches = result.results.types || [];
-          if (AppState.currentMatches.length > 0) usedFallback = true;
+        if (result.success && (result.results.types || []).length > 0) {
+          AppState.currentMatches = await fetchAllSearchPages(
+            (page) => window.electronAPI.searchNumista({ ...params3, page }),
+            result, 'Trying core terms'
+          );
+          usedFallback = true;
         }
       }
     }
@@ -2955,9 +3055,41 @@ async function searchForMatches() {
 
         const params4 = { ...baseParams, q: minimalQuery };
         result = await window.electronAPI.searchNumista(params4);
-        if (result.success) {
-          AppState.currentMatches = result.results.types || [];
-          if (AppState.currentMatches.length > 0) usedFallback = true;
+        if (result.success && (result.results.types || []).length > 0) {
+          AppState.currentMatches = await fetchAllSearchPages(
+            (page) => window.electronAPI.searchNumista({ ...params4, page }),
+            result, 'Trying broader search'
+          );
+          usedFallback = true;
+        }
+      }
+    }
+
+    // Strategy 4: Alternate denomination forms (e.g., "heller" vs "haléřů")
+    // When a denomination has cross-referenced entries, try each alternate search form
+    if (AppState.currentMatches.length === 0 && coin.unit) {
+      const altForms = window.stringSimilarity.getAlternateSearchForms(coin.unit, parseFloat(coin.value) || 0);
+      if (altForms.length > 0) {
+        // The primary form was already tried; filter it out
+        const primaryForm = normalizeUnitForSearch(coin.unit, coin.value);
+        const newForms = altForms.filter(f => f !== primaryForm);
+        for (const altForm of newForms) {
+          if (AppState.currentMatches.length > 0) break;
+          const altCoreQuery = coin.value ? `${coin.value} ${altForm}` : altForm;
+          const altQuery = coin.year ? `${altCoreQuery} ${coin.year}` : altCoreQuery;
+          searchAttempt++;
+          console.log(`Search attempt ${searchAttempt}: Alternate denomination -> "${altQuery}"`);
+          document.getElementById('searchStatus').textContent = `Trying alternate denomination (${altForm})...`;
+
+          const altParams = { ...baseParams, q: altQuery };
+          result = await window.electronAPI.searchNumista(altParams);
+          if (result.success && (result.results.types || []).length > 0) {
+            AppState.currentMatches = await fetchAllSearchPages(
+              (page) => window.electronAPI.searchNumista({ ...altParams, page }),
+              result, `Trying alternate (${altForm})`
+            );
+            usedFallback = true;
+          }
         }
       }
     }
@@ -3028,34 +3160,47 @@ function resolveSearchCategory(settingValue, coin) {
 async function buildSearchParams(coin) {
   const params = {};
 
-  // Build search query from coin data
+  // Build search query preferring structured fields over raw title.
+  // Structured fields (value, unit) produce normalized denomination forms
+  // that match Numista's expected singular/plural (e.g., "1 crown" not "1 Crowns").
+  // Country name is NOT included in query text — the issuer parameter handles filtering.
   let query = '';
+  let usedStructuredDenom = false;
 
-  if (coin.title && coin.title.trim()) {
-    query = stripParenthetical(coin.title.trim());
+  // Prefer structured denomination fields
+  if (coin.value) {
+    const normalizedUnit = coin.unit ? normalizeUnitForSearch(coin.unit, coin.value) : null;
+    query = normalizedUnit ? `${coin.value} ${normalizedUnit}` : coin.value.toString();
+    usedStructuredDenom = true;
   }
 
-  // Add year to query if it exists and isn't already in the title
+  // Add year if available
   if (coin.year && !isNaN(coin.year)) {
     const year = coin.year.toString();
-    // Check if year is already in the title
     if (!query.includes(year)) {
       query = query ? `${query} ${year}` : year;
     }
   }
 
-  // Add denomination (value + unit) to narrow search results
-  // Normalize spelling, preserve plurality for Numista search
-  if (coin.value) {
-    const normalizedUnit = coin.unit ? normalizeUnitForSearch(coin.unit) : null;
-    const denomination = normalizedUnit ? `${coin.value} ${normalizedUnit}` : coin.value.toString();
-    // Check both normalized and original forms - prevents appending when normalization
-    // changes spelling but the original denomination is already in the title
-    const originalDenom = coin.unit ? `${coin.value} ${coin.unit}` : null;
-    const alreadyPresent = query.toLowerCase().includes(denomination.toLowerCase()) ||
-      (originalDenom && query.toLowerCase().includes(originalDenom.toLowerCase()));
-    if (!alreadyPresent) {
-      query = query ? `${query} ${denomination}` : denomination;
+  // Fallback to title only when no structured denomination available
+  if (!usedStructuredDenom && coin.title && coin.title.trim()) {
+    let titleQuery = stripParenthetical(coin.title.trim());
+    // Strip country name from title (issuer parameter handles country filtering)
+    if (coin.country) {
+      const country = stripParenthetical(coin.country.trim());
+      titleQuery = titleQuery.replace(new RegExp(country, 'i'), '').replace(/\s+/g, ' ').trim();
+    }
+    // Normalize denomination plurals (e.g., "Crowns" -> "Crown")
+    titleQuery = normalizeDenominationInQuery(titleQuery);
+    if (titleQuery) {
+      query = query ? `${query} ${titleQuery}` : titleQuery;
+    }
+    // Append year if not already present
+    if (coin.year && !isNaN(coin.year)) {
+      const year = coin.year.toString();
+      if (!query.includes(year)) {
+        query = query ? `${query} ${year}` : year;
+      }
     }
   }
 
@@ -3063,8 +3208,8 @@ async function buildSearchParams(coin) {
     params.q = query.trim();
   }
 
-  params.count = 20;
   params.page = 1;
+  // count omitted — searchTypes() defaults to 50 to maximize result coverage
 
   // Add category filter from settings
   const categorySetting = AppState.fetchSettings?.searchCategory || 'all';
@@ -3176,6 +3321,31 @@ function renderMatches() {
   });
 }
 
+// Unicode fraction to numeric value mapping for Numista title parsing
+const UNICODE_FRACTIONS = {
+  '½': 0.5, '¼': 0.25, '¾': 0.75,
+  '⅓': 1/3, '⅔': 2/3,
+  '⅕': 0.2, '⅖': 0.4, '⅗': 0.6, '⅘': 0.8,
+  '⅙': 1/6, '⅚': 5/6,
+  '⅛': 0.125, '⅜': 0.375, '⅝': 0.625, '⅞': 0.875
+};
+
+// Character class matching digits, dots, and Unicode fractions — used in denomination extraction
+const DENOM_NUM_CHARS = '[\\d.½¼¾⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]';
+
+function parseNumericValue(str) {
+  if (!str) return null;
+  for (const [frac, val] of Object.entries(UNICODE_FRACTIONS)) {
+    if (str.includes(frac)) {
+      const prefix = str.replace(frac, '').trim();
+      const result = (prefix ? parseFloat(prefix) : 0) + val;
+      return isNaN(result) ? null : result;
+    }
+  }
+  const result = parseFloat(str);
+  return isNaN(result) ? null : result;
+}
+
 function calculateConfidence(coin, match) {
   // Numista ID match is a perfect match (100%) - coin was previously enriched with this exact type
   const coinNumistaId = coin.metadata?.basicData?.numistaId;
@@ -3219,20 +3389,23 @@ function calculateConfidence(coin, match) {
   // Try value.text first, fallback to extracting from title (e.g., "5 Cents Liberty Nickel")
   let matchDenomination = match.value?.text?.toLowerCase().trim();
   if (!matchDenomination && match.title) {
-    // Extract denomination from start of title up to first separator (dash, paren, comma)
+    // Extract denomination from start of title up to first separator (dash, paren, comma, quote)
+    // Handles Unicode fractions: "½ Dime" -> "½ Dime", "1 Cent" -> "1 Cent"
     // Captures multi-word units: "2 Euro Cents - Beatrix" -> "2 Euro Cents"
-    const titleMatch = match.title.match(/^([\d.]+\s*[^-–(,]+)/i);
+    const denomNumRe = new RegExp(`^(${DENOM_NUM_CHARS}+\\s*[^-–(,"]+)`, 'i');
+    const titleMatch = match.title.match(denomNumRe);
     if (titleMatch) {
       matchDenomination = titleMatch[1].toLowerCase().trim();
     }
   }
 
   if (coinValue && matchDenomination) {
-    // Extract numeric value from denomination text (e.g., "5 Cents" -> 5)
-    const matchValueMatch = matchDenomination.match(/^([\d.]+)/);
-    const matchValue = matchValueMatch ? parseFloat(matchValueMatch[1]) : null;
-    // Extract unit from denomination text (e.g., "5 Cents" -> "cents")
-    const matchUnit = matchDenomination.replace(/^[\d.]+\s*/, '').trim();
+    // Extract numeric value from denomination text (e.g., "5 Cents" -> 5, "½ Dime" -> 0.5)
+    const denomNumStripRe = new RegExp(`^${DENOM_NUM_CHARS}+\\s*`);
+    const matchValueMatch = matchDenomination.match(new RegExp(`^(${DENOM_NUM_CHARS}+)`));
+    const matchValue = matchValueMatch ? parseNumericValue(matchValueMatch[1]) : null;
+    // Extract unit from denomination text (e.g., "5 Cents" -> "cents", "½ Dime" -> "dime")
+    const matchUnit = matchDenomination.replace(denomNumStripRe, '').trim();
 
     if (matchValue !== null) {
       // Check if units match (e.g., "cents" vs "cent" should match, "cent" vs "dime" should not)
@@ -3256,7 +3429,7 @@ function calculateConfidence(coin, match) {
   } else if (coinUnit && matchDenomination) {
     // No numeric value from user's coin, but we have a unit to compare
     // This handles cases like unit="Euro" where value is empty in OpenNumismat
-    const matchUnit = matchDenomination.replace(/^[\d.]+\s*/, '').trim();
+    const matchUnit = matchDenomination.replace(new RegExp(`^${DENOM_NUM_CHARS}+\\s*`), '').trim();
     if (matchUnit) {
       const unitsMatch = (
         window.stringSimilarity.unitsMatch(coinUnit, matchUnit) ||
@@ -3443,6 +3616,7 @@ async function showFieldComparison() {
           display: numistaDisplay  // Formatted for display (e.g., "Krause# 13")
         },
         isDifferent: fieldData.isDifferent,
+        recommendUpdate: fieldData.recommendUpdate || false,
         hasCurrentValue: fieldData.onValue !== null && fieldData.onValue !== undefined && fieldData.onValue !== '',
         hasNumistaValue: fieldData.numistaValue !== null && fieldData.numistaValue !== undefined && fieldData.numistaValue !== '',
         priority: fieldData.priority,
@@ -3471,8 +3645,9 @@ function createDefaultSelection(comparison) {
 
   console.log('Creating default selection:');
   for (const [fieldName, data] of Object.entries(comparison)) {
-    // Auto-select if current field is empty and Numista has data
-    const autoSelect = !data.hasCurrentValue && data.hasNumistaValue;
+    // Auto-select if: current empty + Numista has data, OR field is recommended for update
+    const autoSelect = (!data.hasCurrentValue && data.hasNumistaValue) ||
+                       (data.recommendUpdate && data.isDifferent);
     selection[fieldName] = autoSelect;
     
     if (autoSelect) {
@@ -4571,33 +4746,63 @@ document.getElementById('cancelManualSearchBtn').addEventListener('click', () =>
 });
 
 document.getElementById('performManualSearchBtn').addEventListener('click', async () => {
-  const searchTerm = document.getElementById('manualSearchInput').value.trim();
-  
-  if (!searchTerm) {
+  const rawSearchTerm = document.getElementById('manualSearchInput').value.trim();
+
+  if (!rawSearchTerm) {
     showStatus('Please enter a search term', 'error');
     return;
   }
-  
+
+  // Normalize denomination singular/plural in the query
+  const searchTerm = normalizeDenominationInQuery(rawSearchTerm);
+
   try {
-    showStatus('Searching Numista with custom term...');
-    document.getElementById('searchStatus').textContent = `Searching for "${searchTerm}"...`;
-    
+    if (searchTerm !== rawSearchTerm) {
+      showStatus(`Searching Numista for "${searchTerm}" (corrected)...`);
+      document.getElementById('searchStatus').textContent = `Searching for "${searchTerm}" (corrected from "${rawSearchTerm}")...`;
+    } else {
+      showStatus('Searching Numista with custom term...');
+      document.getElementById('searchStatus').textContent = `Searching for "${searchTerm}"...`;
+    }
+
     // Resolve category from manual search dropdown
     const manualCategorySelect = document.getElementById('manualSearchCategory');
     const categorySetting = manualCategorySelect ? manualCategorySelect.value : 'all';
     const category = resolveSearchCategory(categorySetting, AppState.currentCoin);
 
+    // Resolve issuer from current coin's country to narrow results
+    let issuer = null;
+    if (AppState.currentCoin?.country) {
+      try {
+        const cleanCountry = stripParenthetical(AppState.currentCoin.country.trim());
+        const issuerResult = await window.electronAPI.resolveIssuer(cleanCountry);
+        if (issuerResult.success && issuerResult.code) {
+          issuer = issuerResult.code;
+        }
+      } catch (e) { console.warn('Issuer resolution failed (non-fatal):', e.message); }
+    }
+
     const result = await window.electronAPI.manualSearchNumista({
       query: searchTerm,
       coinId: AppState.currentCoin.id,
-      category: category
+      category: category,
+      issuer: issuer
     });
 
     if (!result.success) {
       throw new Error(result.error);
     }
 
-    AppState.currentMatches = result.results.types || [];
+    // Fetch all pages if results span multiple pages
+    if (result.success && (result.results.types || []).length > 0) {
+      const manualParams = { query: searchTerm, coinId: AppState.currentCoin.id, category, issuer };
+      AppState.currentMatches = await fetchAllSearchPages(
+        (page) => window.electronAPI.manualSearchNumista({ ...manualParams, page }),
+        result, `Searching for "${searchTerm}"`
+      );
+    } else {
+      AppState.currentMatches = [];
+    }
 
     // Hide manual search panel
     document.getElementById('manualSearchPanel').style.display = 'none';

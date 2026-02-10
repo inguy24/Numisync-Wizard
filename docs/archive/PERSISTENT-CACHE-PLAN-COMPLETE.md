@@ -1,6 +1,6 @@
 # Persistent API Cache, Search Simplification, and Monthly Usage Tracking
 
-**Status:** IMPLEMENTED — All changes applied Feb 8, 2026.
+**Status:** IMPLEMENTED AND VERIFIED — All changes applied Feb 8, 2026. Code audit completed Feb 9, 2026.
 
 ## Context
 
@@ -12,25 +12,25 @@ Users need visibility into their monthly quota usage and control over cache dura
 
 ---
 
-## Change 1: Strip Parentheticals Upfront
+## Change 1: Strip Parentheticals Upfront — VERIFIED
 
 **File: `src/renderer/app.js`**
 
-### 1a. Modify `buildSearchParams()` (~line 3000)
-- At line 3007: Apply `stripParenthetical()` to `coin.title` before adding to query
-- At line 3049: Apply `stripParenthetical()` to `coin.country` before passing to `resolveIssuer`
+### 1a. Modify `buildSearchParams()` (~line 3000) — VERIFIED
+- ~~At line 3007: Apply `stripParenthetical()` to `coin.title` before adding to query~~ Done at line 3187
+- ~~At line 3049: Apply `stripParenthetical()` to `coin.country` before passing to `resolveIssuer`~~ Done at lines 3190, 3224
 
-### 1b. Remove Strategy 2 from `searchForMatches()` (lines 2886-2901)
-- Delete the entire "Strategy 2: Remove parenthetical content if no results" block
-- Renumber Strategy 3 → 2, Strategy 4 → 3 in comments
+### 1b. Remove Strategy 2 from `searchForMatches()` (lines 2886-2901) — VERIFIED
+- ~~Delete the entire "Strategy 2: Remove parenthetical content if no results" block~~ Done
+- ~~Renumber Strategy 3 → 2, Strategy 4 → 3 in comments~~ Done — now 4 strategies: 1 (full), 2 (core), 3 (minimal), 4 (alt forms)
 
 **Result:** Worst-case search drops from 4 API calls to 3. Parenthetical cases (e.g., "Germany (Nazi)") resolve on the first search attempt.
 
 ---
 
-## Change 2: Persistent Disk Cache
+## Change 2: Persistent Disk Cache — VERIFIED
 
-### 2a. Create `src/modules/api-cache.js` (new file)
+### 2a. Create `src/modules/api-cache.js` (new file) — VERIFIED
 
 **Location:** App-wide cache at `app.getPath('userData')/numista_api_cache.json` — issuers/types/issues are global Numista catalog data, not collection-specific.
 
@@ -60,7 +60,7 @@ Users need visibility into their monthly quota usage and control over cache dura
 
 **Null handling:** Do NOT persist `null` issuer code resolutions — the issuers list itself is cached, so re-resolving only costs local fuzzy matching, not an API call.
 
-### 2b. Modify `src/modules/numista-api.js`
+### 2b. Modify `src/modules/numista-api.js` — VERIFIED
 
 **Constructor** (~line 78): Add optional `persistentCache = null` second parameter.
 
@@ -93,7 +93,7 @@ These defaults are overridden by user settings (see Change 4). The constructor s
 
 **Also:** Modify `request()` method (~line 119) to return response metadata (the endpoint called) so index.js can track which endpoint was called for monthly usage counting. Alternatively, have each method that calls `request()` report what was called — simplest approach is to have the `request()` method call a callback/emit when a real API call is made.
 
-### 2c. Modify `src/main/index.js`
+### 2c. Modify `src/main/index.js` — VERIFIED
 
 **Import** `ApiCache` from `../modules/api-cache` (~line 29)
 
@@ -119,15 +119,15 @@ Lazy because `app.getPath()` requires `app.whenReady()`.
 - Line 1039 (`fetch-issue-data`)
 - Line 2537 (`fast-pricing-update`)
 
-### 2d. Keep existing `typeDataCache` as-is
+### 2d. Keep existing `typeDataCache` as-is — VERIFIED
 
 The `typeDataCache` Map in index.js serves session-level silent reuse in `fetch-coin-data` (skips the entire orchestration call). The persistent cache handles `getType()` level caching. Both are needed — different purposes.
 
 ---
 
-## Change 3: Monthly Usage Tracking
+## Change 3: Monthly Usage Tracking — VERIFIED
 
-### 3a. Add monthly usage tracking to `ApiCache`
+### 3a. Add monthly usage tracking to `ApiCache` — VERIFIED
 
 The `monthlyUsage` section of the cache file tracks calls per endpoint per calendar month:
 ```json
@@ -142,7 +142,7 @@ The `monthlyUsage` section of the cache file tracks calls per endpoint per calen
 - `getMonthlyLimit()` — returns stored monthly limit (default 2000, user-configurable)
 - `setMonthlyLimit(limit)` — stores user's monthly limit
 
-### 3b. Track actual API calls in IPC handlers (index.js)
+### 3b. Track actual API calls in IPC handlers (index.js) — VERIFIED
 
 Each IPC handler that makes Numista API calls already calls `progressTracker.incrementSessionCalls(count)`. Add corresponding `getApiCache().incrementUsage(endpointName)` calls at the same points:
 
@@ -161,7 +161,7 @@ Each IPC handler that makes Numista API calls already calls `progressTracker.inc
 
 **Cleanest approach:** Have `request()` in numista-api.js call `this.persistentCache.incrementUsage(endpointName)` whenever it makes a real HTTP call. This way usage tracking is automatic and accurate — it only counts when the network is actually hit. The `endpoint` parameter is already passed to `request()`, so we can derive the endpoint name from it (`/types` → searchTypes, `/types/{id}` → getType, etc.).
 
-### 3c. Add IPC handler for getting monthly usage
+### 3c. Add IPC handler for getting monthly usage — VERIFIED
 
 New IPC handler in index.js:
 ```js
@@ -173,7 +173,7 @@ ipcMain.handle('get-monthly-usage', async () => {
 
 Add to preload.js bridge.
 
-### 3d. Add monthly usage display to footer (index.html + app.js)
+### 3d. Add monthly usage display to footer (index.html + app.js) — VERIFIED
 
 **Current footer-right** (index.html line 530-534):
 ```html
@@ -202,9 +202,9 @@ Add to preload.js bridge.
 
 ---
 
-## Change 4: User-Configurable Cache TTLs in App Settings
+## Change 4: User-Configurable Cache TTLs in App Settings — VERIFIED
 
-### 4a. Add cache settings section to App Settings (index.html)
+### 4a. Add cache settings section to App Settings (index.html) — VERIFIED
 
 New `setting-group` after "Search Settings" (line 416), before "Image Handling" (line 418):
 
@@ -254,7 +254,7 @@ New `setting-group` after "Search Settings" (line 416), before "Image Handling" 
 </div>
 ```
 
-### 4b. Persist cache settings in App Settings (app.js + index.js)
+### 4b. Persist cache settings in App Settings (app.js + index.js) — VERIFIED
 
 Cache TTL settings are stored in App Settings (Phase 1 settings, `get-app-settings`/`save-app-settings`) because they're app-wide, not collection-specific.
 
@@ -270,7 +270,7 @@ settings.monthlyApiLimit = parseInt(document.getElementById('monthlyApiLimit').v
 
 **In index.js:** When creating NumistaAPI instances, read cache TTLs from app settings and pass to constructor. When `cacheTtl*` is 0, that data type is not cached (equivalent to "No caching" option).
 
-### 4c. Clear API Cache button
+### 4c. Clear API Cache button — VERIFIED
 
 Wire `clearApiCacheBtn` to a new IPC handler:
 ```js
@@ -280,7 +280,7 @@ ipcMain.handle('clear-api-cache', async () => {
 });
 ```
 
-### 4d. Manual usage adjustment + Numista dashboard link
+### 4d. Manual usage adjustment + Numista dashboard link — VERIFIED
 
 Add to the API Cache settings group (below the monthly limit input):
 
@@ -301,7 +301,7 @@ Add `setMonthlyUsageTotal(total)` method to ApiCache that distributes the total 
 
 ---
 
-## Change 5: User Manual Update
+## Change 5: User Manual Update — VERIFIED
 
 **File: `docs/user-manual.html`**
 
@@ -345,3 +345,27 @@ Add new section documenting:
 11. **Manual usage adjustment:** Change the usage number in settings, verify footer updates to new value
 12. **Dashboard link:** Click the Numista dashboard link, verify it opens in external browser
 13. **User manual:** Open Help > User Manual, verify new cache/usage section is present and accurate
+
+---
+
+## Code Audit — Feb 9, 2026
+
+All 5 changes across 8 files verified against actual codebase. No missing items found.
+
+| Change | Status | Key Locations |
+|--------|--------|---------------|
+| 1: Strip parentheticals upfront | VERIFIED | app.js:3187, 3190, 3224; Strategy 2 removed, renumbered |
+| 2a: api-cache.js | VERIFIED | 262 lines, all methods present, null handling correct |
+| 2b: numista-api.js persistent cache | VERIFIED | Constructor line 102, DEFAULT_CACHE_TTL lines 64-69, 4 methods use persistent cache, 2 do not |
+| 2c: index.js integration | VERIFIED | Import line 30, getApiCache() lines 61-66, getCacheTTLs() lines 72-85, all 8 instantiation points pass cache |
+| 2d: typeDataCache preserved | VERIFIED | Line 49, still used in fetch-coin-data |
+| 3a: Monthly usage methods | VERIFIED | api-cache.js lines 199-259 |
+| 3b: Usage tracking in request() | VERIFIED | numista-api.js lines 172-177, getEndpointName() lines 71-86 |
+| 3c: IPC handlers | VERIFIED | index.js lines 2657-2712 (get-monthly-usage, set-monthly-usage, set-monthly-usage-total, clear-api-cache) |
+| 3d: Footer display | VERIFIED | index.html line 632, app.js refreshSessionCounter() lines 6530-6564 with color warnings |
+| 4a: HTML settings group | VERIFIED | index.html lines 434-508 |
+| 4b: Settings load/save | VERIFIED | app.js load lines 5138-5146, save lines 5301-5304 |
+| 4c: Clear cache button | VERIFIED | app.js lines 5365-5376 |
+| 4d: Manual usage + dashboard link | VERIFIED | index.html lines 498-503, app.js lines 5166-5178, 5314-5321, 5391-5394 |
+| 5: User manual | VERIFIED | user-manual.html lines 1742-1818, TOC lines 459-466 |
+| 5: CHANGELOG | VERIFIED | CHANGELOG.md Feb 8 entry |

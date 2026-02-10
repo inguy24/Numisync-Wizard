@@ -1,3 +1,5 @@
+const fs = require('fs');
+const path = require('path');
 const axios = require('axios');
 const { mintmarksMatch } = require('./mintmark-normalizer');
 const { unitsMatch: denominationUnitsMatch } = require('./denomination-normalizer');
@@ -13,25 +15,17 @@ const log = require('../main/logger').scope('NumistaAPI');
  * Base URL: https://api.numista.com/v3/
  */
 
-// Common country name aliases to Numista issuer codes
-const ISSUER_ALIASES = {
-  'usa': 'united-states',
-  'us': 'united-states',
-  'u.s.': 'united-states',
-  'u.s.a.': 'united-states',
-  'united states': 'united-states',
-  'united states of america': 'united-states',
-  'uk': 'united-kingdom',
-  'u.k.': 'united-kingdom',
-  'great britain': 'united-kingdom',
-  'england': 'united-kingdom',
-  'ussr': 'ussr',
-  'soviet union': 'ussr',
-  'west germany': 'germany-federal-republic',
-  'east germany': 'germany-democratic-republic',
-  'south korea': 'korea-south',
-  'north korea': 'korea-north',
-};
+// Load country name aliases from JSON data file
+const ISSUER_DATA = JSON.parse(fs.readFileSync(
+  path.join(__dirname, '..', 'data', 'issuer-aliases.json'), 'utf8'
+));
+const ISSUER_ALIASES = {};
+for (const [key, value] of Object.entries(ISSUER_DATA)) {
+  if (key.startsWith('_')) continue;
+  for (const alias of value.aliases) {
+    ISSUER_ALIASES[alias.toLowerCase()] = value.code;
+  }
+}
 
 /**
  * Dice's coefficient string similarity (0.0 to 1.0).
@@ -42,8 +36,8 @@ const ISSUER_ALIASES = {
  * @returns {number} - Similarity score between 0 and 1
  */
 function diceCoefficient(a, b) {
-  a = a.toLowerCase().trim();
-  b = b.toLowerCase().trim();
+  a = a.normalize('NFC').toLowerCase().trim();
+  b = b.normalize('NFC').toLowerCase().trim();
 
   if (a === b) return 1.0;
   if (a.length < 2 || b.length < 2) return 0.0;
@@ -549,41 +543,6 @@ class NumistaAPI {
   }
 
   /**
-   * Build search query parameters from OpenNumismat coin data
-   * @param {Object} coin - OpenNumismat coin object
-   * @param {string} [coin.title] - Coin title/name
-   * @param {number|string} [coin.year] - Year of issue
-   * @param {string} [coin.value] - Denomination value
-   * @param {string} [coin.country] - Country/issuer name
-   * @returns {Object} Search parameters suitable for searchTypes()
-   */
-  buildSearchQuery(coin) {
-    const params = {};
-
-    if (coin.title && coin.title.trim()) {
-      params.q = coin.title.trim();
-    }
-
-    if (coin.year) {
-      const year = parseInt(coin.year);
-      if (!isNaN(year)) {
-        params.min_year = year;
-        params.max_year = year;
-      }
-    }
-
-    if (coin.value) {
-      params.q = params.q ? `${params.q} ${coin.value}` : coin.value;
-    }
-
-    if (coin.country) {
-      params.q = params.q ? `${params.q} ${coin.country}` : coin.country;
-    }
-
-    return params;
-  }
-
-  /**
    * Calculate confidence score (0-100) indicating how well a Numista type matches the user's coin
    * @param {Object} coin - OpenNumismat coin object
    * @param {Object} numistaType - Numista type data from search results
@@ -768,20 +727,34 @@ class NumistaAPI {
       const issuers = await this.getIssuers();
 
       // Exact name match (case-insensitive)
-      const exactMatch = issuers.find(i => i.name.toLowerCase() === normalized);
-      if (exactMatch) {
-        this.issuerCodeCache.set(normalized, exactMatch.code);
-        return exactMatch.code;
+      // Numista issuers have a parent/child hierarchy (level 1 = section/group,
+      // level 2+ = specific country). Multiple issuers can share the same name
+      // (e.g., "United Kingdom" exists as a section AND a specific country).
+      // Always prefer the most specific (highest level) match to avoid searching
+      // across an entire group of territories.
+      const exactMatches = issuers.filter(i => i.name.toLowerCase() === normalized);
+      if (exactMatches.length > 0) {
+        // Pick the most specific match (highest level number)
+        const bestExact = exactMatches.reduce((best, curr) =>
+          (curr.level || 1) > (best.level || 1) ? curr : best
+        );
+        log.info(`Resolved issuer: "${countryName}" -> "${bestExact.code}" (exact match, level ${bestExact.level || 1})`);
+        this.issuerCodeCache.set(normalized, bestExact.code);
+        return bestExact.code;
       }
 
       // Fuzzy match — find the issuer with the highest Dice similarity
+      // Prefer more specific (higher level) issuers when scores are close
       let bestScore = 0;
       let bestCode = null;
+      let bestLevel = 0;
       for (const issuer of issuers) {
         const score = diceCoefficient(normalized, issuer.name.toLowerCase());
-        if (score > bestScore) {
+        const level = issuer.level || 1;
+        if (score > bestScore || (score === bestScore && level > bestLevel)) {
           bestScore = score;
           bestCode = issuer.code;
+          bestLevel = level;
         }
       }
 

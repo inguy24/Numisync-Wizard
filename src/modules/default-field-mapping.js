@@ -36,8 +36,9 @@ function transformRulerNames(value) {
 
 function transformRulerPeriod(value) {
   if (!value || !Array.isArray(value) || value.length === 0) return null;
-  if (!value[0].group || !value[0].group.name) return null;
-  return value[0].group.name;
+  const groups = value.map(r => r.group?.name).filter(Boolean);
+  if (groups.length === 0) return null;
+  return [...new Set(groups)].join(' / ');
 }
 
 function transformValueNumber(value) {
@@ -48,7 +49,7 @@ function transformValueNumber(value) {
 
 function transformValueUnit(value) {
   if (!value) return null;
-  const match = value.match(/[A-Za-z]+$/);
+  const match = value.match(/[\p{L}]+$/u);
   return match ? match[0] : null;
 }
 
@@ -258,7 +259,7 @@ const DEFAULT_FIELD_MAPPING = {
     priority: 'MEDIUM',
     enabled: true,
     requiresIssueData: false,
-    description: 'Mint name (from array)',
+    description: 'Mint name (resolved from mint letter when available)',
     defaultSourceKey: 'mint_name',
     category: 'main',
     displayOrder: 8

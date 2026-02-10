@@ -818,6 +818,9 @@
   <li>Fields where your data <strong>differs</strong> from Numista are shown in <strong>bold</strong>.</li>
   <li>Fields where your data is <strong>empty</strong> and Numista has a value are highlighted &mdash; these are prime candidates for import.</li>
   <li>Fields are grouped by data type: Basic Data, Issue Data, and Pricing Data (depending on your settings).</li>
+  <li>The <strong>Mint</strong> field is automatically resolved to the correct mint facility based on the mint letter
+    (from issue data or your coin's mintmark). When this differs from your current value, it is
+    <strong>pre-checked</strong> for your convenience &mdash; you can uncheck it if you disagree.</li>
 </ul>
 
 <h3 id="selection-tools">Selection Tools</h3>
@@ -923,6 +926,23 @@
   <li>Mintmark variations (e.g., "D" vs "Denver") are normalized for accurate matching.</li>
   <li>Issues from other mints are still shown as "Other options" in case you need to select one.</li>
 </ul>
+
+<h4>Mint Name Resolution</h4>
+<p>
+  The Numista API returns <em>all</em> mints that ever produced a coin type (e.g., Philadelphia, Denver,
+  San Francisco, West Point for a US cent). Rather than blindly picking the first mint in the list,
+  NumiSync resolves the correct mint using the mint letter:
+</p>
+<ol>
+  <li><strong>Issue data</strong> &mdash; If issue data is available, the <code>mint_letter</code> from the selected issue is used (most accurate).</li>
+  <li><strong>Coin mintmark</strong> &mdash; If issue data is not available, your coin's mintmark from the database is used as a fallback.</li>
+</ol>
+<p>
+  The resolution uses multiple strategies: direct letter matching, city-name map lookups (e.g., "D" &rarr; Denver),
+  and parenthetical letter matching (e.g., "Monnaie de Paris (A)"). When the mint is successfully resolved and
+  differs from your current value, it is <strong>pre-checked</strong> in the comparison screen. If no confident
+  match can be made, the first mint in the list is used as a fallback.
+</p>
 
 <h4>Denomination Matching</h4>
 <p>Denomination units are normalized for both search and scoring:</p>

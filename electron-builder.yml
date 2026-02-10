@@ -22,8 +22,6 @@ files:
 
 # Extra resources (accessible via process.resourcesPath)
 extraResources:
-  - from: swagger.yaml
-    to: swagger.yaml
   - from: EULA.txt
     to: EULA.txt
 

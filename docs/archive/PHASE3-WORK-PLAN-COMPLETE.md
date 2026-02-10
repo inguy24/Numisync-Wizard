@@ -4,6 +4,8 @@
 **Phase:** Phase 3 - Numista Collection Management
 **Created:** February 1, 2026
 **Last Updated:** February 4, 2026
+**Archived:** February 9, 2026
+**Status:** ARCHIVED - Incomplete tasks moved to VERSION2-WORK-PLAN.md
 
 ---
 
@@ -19,23 +21,22 @@ Phase 3 adds one-way sync from OpenNumismat → Numista, enabling users to push 
 |----|------|--------|----------|--------------|
 | **COMPLETED** |
 | 3.0 | Application Menu Bar | ✅ Complete | HIGH | None |
-| 3.8 | About Page & Licensing System | ✅ Complete | MEDIUM | None |
-| **CORE IMPLEMENTATION** |
-| 3.1 | OAuth 2.0 Integration | ⏳ Pending | CRITICAL | None |
-| 3.2 | Data Mapper (Reverse Direction) | ⏳ Pending | HIGH | 3.1 |
-| 3.3 | Collection Selection UI | ⏳ Pending | MEDIUM | 3.1 |
-| 3.4 | Add Coin UI & Flow | ⏳ Pending | HIGH | 3.1, 3.2, 3.3 |
-| 3.5 | Sync Status Display | ⏳ Pending | MEDIUM | 3.4 |
-| **ENHANCEMENTS (Optional)** |
-| 3.6 | Batch Add Feature | ⏳ Pending | LOW | 3.4 |
-| 3.7 | Update Existing Coin | ⏳ Pending | LOW | 3.4 |
+| 3.8 | About Page & Licensing System | ✅ Complete (partial) | MEDIUM | None |
 | 3.9 | Fast Pricing Update 💎 PREMIUM | ✅ Complete | MEDIUM | 3.8 |
 | 3.12 | Batch Type Data Propagation (Auto-Propagate) 💎 PREMIUM | ✅ Complete | MEDIUM | 3.8 |
-| **DEFERRED TO FUTURE PHASE** |
-| 3.10 | Multi-Source Data Fetching | 🔮 Future | — | Phase 4+ |
-| 3.11 | OpenNumismat Plugin Integration | 🔮 Future | — | After packaging |
+| **MOVED TO VERSION 2** |
+| 3.1 | OAuth 2.0 Integration | 📦 Moved to V2 (2.1) | CRITICAL | None |
+| 3.2 | Data Mapper (Reverse Direction) | 📦 Moved to V2 (2.2) | HIGH | 3.1 |
+| 3.3 | Collection Selection UI | 📦 Moved to V2 (2.3) | MEDIUM | 3.1 |
+| 3.4 | Add Coin UI & Flow | 📦 Moved to V2 (2.4) | HIGH | 3.1, 3.2, 3.3 |
+| 3.5 | Sync Status Display | 📦 Moved to V2 (2.5) | MEDIUM | 3.4 |
+| 3.6 | Batch Add Feature | 📦 Moved to V2 (2.6) | LOW | 3.4 |
+| 3.7 | Update Existing Coin | 📦 Moved to V2 (2.7) | LOW | 3.4 |
+| 3.8.3 | Check for Updates (sub-task) | 📦 Moved to V2 (2.8) | LOW | None |
+| 3.10 | Multi-Source Data Fetching | 📦 Moved to V2 (2.9) | — | Future |
+| 3.11 | OpenNumismat Plugin Integration | 📦 Moved to V2 (2.10) | — | Future |
 
-**Legend:** ✅ Complete | 🔄 In Progress | ⏳ Pending | 🔮 Future/Deferred
+**Legend:** ✅ Complete | 📦 Moved to Version 2 | 🔮 Future/Deferred
 
 **Critical Path:** 3.1 → 3.2 → 3.4 (OAuth → Data Mapper → Add Coin UI)
 
@@ -116,13 +117,16 @@ Implemented a fully customized Electron menu bar with cross-platform support (Wi
 
 ---
 
-# PENDING TASKS - Core Implementation
+# MOVED TASKS - Migrated to Version 2
 
-## 3.1 - OAuth 2.0 Integration ⏳
+> **Note:** All tasks below have been moved to [VERSION2-WORK-PLAN.md](VERSION2-WORK-PLAN.md) for implementation. This document is archived for reference.
+
+## 3.1 - OAuth 2.0 Integration 📦 MOVED TO V2 (Task 2.1)
 
 **Priority:** CRITICAL - Required for all other features
 **Dependencies:** None
 **Blocks:** 3.2, 3.3, 3.4
+**Moved To:** VERSION2-WORK-PLAN.md Task 2.1
 
 ### Objective
 Implement OAuth 2.0 Client Credentials flow to authenticate users with the Numista API for write operations.
@@ -180,11 +184,12 @@ Implement OAuth 2.0 Client Credentials flow to authenticate users with the Numis
 
 ---
 
-## 3.2 - Data Mapper (Reverse Direction) ⏳
+## 3.2 - Data Mapper (Reverse Direction) 📦 MOVED TO V2 (Task 2.2)
 
 **Priority:** HIGH
 **Dependencies:** 3.1
 **Blocks:** 3.4
+**Moved To:** VERSION2-WORK-PLAN.md Task 2.2
 
 ### Objective
 Map OpenNumismat coin data to Numista API format for uploading coins.
@@ -231,11 +236,12 @@ Map OpenNumismat coin data to Numista API format for uploading coins.
 
 ---
 
-## 3.3 - Collection Selection UI ⏳
+## 3.3 - Collection Selection UI 📦 MOVED TO V2 (Task 2.3)
 
 **Priority:** MEDIUM
 **Dependencies:** 3.1
 **Blocks:** 3.4
+**Moved To:** VERSION2-WORK-PLAN.md Task 2.3
 
 ### Objective
 Allow users to select which Numista collection to add coins to.
@@ -275,11 +281,12 @@ Allow users to select which Numista collection to add coins to.
 
 ---
 
-## 3.4 - Add Coin UI & Flow ⏳
+## 3.4 - Add Coin UI & Flow 📦 MOVED TO V2 (Task 2.4)
 
 **Priority:** HIGH
 **Dependencies:** 3.1, 3.2, 3.3
 **Blocks:** 3.5, 3.6, 3.7
+**Moved To:** VERSION2-WORK-PLAN.md Task 2.4
 
 ### Objective
 Implement the main user interface and flow for adding coins to Numista.
@@ -356,10 +363,11 @@ Implement the main user interface and flow for adding coins to Numista.
 
 ---
 
-## 3.5 - Sync Status Display ⏳
+## 3.5 - Sync Status Display 📦 MOVED TO V2 (Task 2.5)
 
 **Priority:** MEDIUM
 **Dependencies:** 3.4
+**Moved To:** VERSION2-WORK-PLAN.md Task 2.5
 
 ### Objective
 Show visual indicators of Numista sync status throughout the UI.
@@ -401,12 +409,13 @@ Show visual indicators of Numista sync status throughout the UI.
 
 ---
 
-# PENDING TASKS - Enhancements (Optional)
+# MOVED TASKS - Enhancements (Optional)
 
-## 3.6 - Batch Add Feature ⏳
+## 3.6 - Batch Add Feature 📦 MOVED TO V2 (Task 2.6)
 
 **Priority:** LOW - Nice to have
 **Dependencies:** 3.4
+**Moved To:** VERSION2-WORK-PLAN.md Task 2.6
 
 ### Objective
 Allow users to add multiple coins to Numista at once with rate limiting.
@@ -443,10 +452,11 @@ Allow users to add multiple coins to Numista at once with rate limiting.
 
 ---
 
-## 3.7 - Update Existing Coin Feature ⏳
+## 3.7 - Update Existing Coin Feature 📦 MOVED TO V2 (Task 2.7)
 
 **Priority:** LOW - Future enhancement
 **Dependencies:** 3.4
+**Moved To:** VERSION2-WORK-PLAN.md Task 2.7
 
 ### Objective
 Allow users to update coins that have already been synced to Numista.
@@ -490,7 +500,7 @@ Implement About window with version info, update checking, and licensing system 
 - [X] Display app name, version (from package.json), author
 - [X] Add GitHub repository link
 - [X] Add "View EULA" link
-- [ ] Add "Check for Updates" button (DEFERRED)
+- [ ] 📦 Add "Check for Updates" button (MOVED TO V2 - Task 2.8)
   - [ ] Call GitHub Releases API
   - [ ] Show current vs latest version
   - [ ] Show download link if update available
@@ -540,7 +550,7 @@ Implement About window with version info, update checking, and licensing system 
 ### Verification Checklist
 - [X] About dialog opens from Help menu
 - [X] Version displays correctly from package.json
-- [ ] Update check calls GitHub API (DEFERRED)
+- [ ] 📦 Update check calls GitHub API (MOVED TO V2 - Task 2.8)
 - [X] License prompt appears at thresholds
 - [X] Premium feature gating infrastructure ready
 - [X] License validation works with Polar API
@@ -661,21 +671,23 @@ Implemented "Auto-Propagate" feature - automatic detection with batch propagatio
 
 ---
 
-# DEFERRED TASKS - Future Phases
+# MOVED TASKS - Deferred to Future
 
-## 3.10 - Multi-Source Data Fetching 🔮
+## 3.10 - Multi-Source Data Fetching 📦 MOVED TO V2 (Task 2.9)
 
-**When:** Phase 4 or later
+**When:** If users request it
+**Moved To:** VERSION2-WORK-PLAN.md Task 2.9
 
 Extend the system to pull data from multiple sources (PCGS, NGC, Colnect, etc.) with an abstraction layer, source configuration, and conflict resolution.
 
-**Complexity:** Major undertaking. Defer until Numista integration is rock-solid.
+**Complexity:** Major undertaking. Defer until Numista integration is rock-solid and user demand is established.
 
 ---
 
-## 3.11 - OpenNumismat Plugin Integration 🔮
+## 3.11 - OpenNumismat Plugin Integration 📦 MOVED TO V2 (Task 2.10)
 
-**When:** After app is stable and packaged
+**When:** After app is stable and widely adopted
+**Moved To:** VERSION2-WORK-PLAN.md Task 2.10
 
 Support launching NumiSync Wizard as an external tool from OpenNumismat with database path passed as command-line argument.
 
@@ -837,6 +849,7 @@ Add `numistaSync` section to coin metadata:
 
 ---
 
-**Document Status:** Ready for Implementation
-**Next Action:** Begin Task 3.1 - OAuth 2.0 Integration
-**Prerequisites:** Phase 2 complete (metadata system required)
+**Document Status:** ARCHIVED - Moved to docs/archive/
+**Incomplete Tasks:** Migrated to VERSION2-WORK-PLAN.md
+**Completed Tasks:** 3.0 (Menu Bar), 3.8 (About/Licensing - partial), 3.9 (Fast Pricing), 3.12 (Auto-Propagate)
+**Next Action:** See [VERSION2-WORK-PLAN.md](VERSION2-WORK-PLAN.md) for continuation

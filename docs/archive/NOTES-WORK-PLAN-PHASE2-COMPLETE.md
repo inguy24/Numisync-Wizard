@@ -60,23 +60,22 @@ These items should be addressed in the near term as they either:
 
 **Proposed Changes:**
 1. **Replace "Value" with more useful fields:**
-   - Material/Composition (e.g., "Bronze", "Silver 0.900")
-   - Catalog numbers (e.g., "KM# 45")
-   - Mintmark (if available at type level)
+   - ~~Material/Composition (e.g., "Bronze", "Silver 0.900")~~ **EXCLUDED** - Not available in search API; would require 1 additional API call per result (20+ calls = excessive quota usage + 20s+ delay)
+   - ~~Catalog numbers (e.g., "KM# 45")~~ **EXCLUDED** - Same API limitation as composition
+   - Category (coins/banknotes/exonumia) **✅ IMPLEMENTED**
 
 2. **Add percentage match sorting:**
    - Already have `calculateConfidence()` function
-   - Sort results by confidence score (high to low)
-   - Consider making sort order user-selectable
+   - Sort results by confidence score (high to low) **✅ IMPLEMENTED**
+   - Confidence badge display with color coding **✅ IMPLEMENTED**
 
-**Files to Modify:**
-- `src/renderer/app.js` - `renderMatches()` function (lines 1044-1119)
-- May need to fetch additional fields from Numista API
+**Implementation Summary:**
+- **Completed:** Confidence score sorting, category display, improved card layout
+- **Excluded:** Material/composition and catalog numbers (Numista search API limitation - data only available via individual `/types/{id}` calls, not in search results)
+- **Result:** Search results now show most useful data available without excessive API usage
 
-**Design Considerations:**
-- Keep card layout clean (don't overcrowd)
-- Use icons for quick visual scanning (🪙 material, 📖 catalog)
-- Consider expanding catalog numbers on click/hover
+**Files Modified:**
+- `src/renderer/app.js` - `renderMatches()` function (lines 3238-3322)
 
 ---
 

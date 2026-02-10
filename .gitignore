@@ -29,10 +29,17 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Database files (user data)
-*.db
-*.sqlite
-*.sqlite3
+# Database files (user data) - only in project root, not in examples/
+/*.db
+/*.sqlite
+/*.sqlite3
+
+# Settings and progress files - only in project root
+/*_settings.json
+/*_enrichment_progress.json
+
+# But allow example databases
+!examples/*.db
 
 # Backup files
 backups/

@@ -1,10 +1,10 @@
 # CRITICAL OPERATING PROCEDURES
 
 ## 1. DOCUMENTATION HIERARCHY
-- **Read `docs/PROJECT-REFERENCE.md`** for architecture, IPC handlers, data flow when implementing features
-- **Read `docs/PHASE3-WORK-PLAN.md`** for current work items and priorities
+- **Read `docs/reference/PROJECT-REFERENCE.md`** for architecture, IPC handlers, data flow when implementing features
+- **Read `docs/planning/PHASE3-WORK-PLAN.md`** for current work items and priorities
 - **Update `docs/CHANGELOG.md`** after completing fixes or features
-- **Update `docs/PROJECT-REFERENCE.md`** if task completion changes project status, phase progress, or architecture
+- **Update `docs/reference/PROJECT-REFERENCE.md`** if task completion changes project status, phase progress, or architecture
 - **Archive completed work plans** to `docs/archive/` with `-COMPLETE` suffix (e.g., `PHASE2-WORK-PLAN-COMPLETE.md`)
 - **NEVER** assume project state; verify against documentation first
 
@@ -13,7 +13,8 @@
 - **NO SNIPPETS:** Never provide code snippets. Implement changes directly into relevant files
 - **INTEGRATE:** All HTML goes in index.html, all renderer JS in app.js, all main process code in index.js
 - **NEVER** create standalone UI component files - integrate into existing files
-- **API SOURCE:** Use @swagger.yaml for all Numista API documentation
+- **API SOURCE:** Use @docs/reference/swagger.yaml for all Numista API documentation
+- **FILE PLACEMENT:** See @docs/reference/FILE-ORGANIZATION.md for rules on where files belong
 
 ## 3. EMOJI & ENCODING INTEGRITY
 - **STRICT ADHERENCE:** Follow @EMOJI-ENCODING-GUIDANCE.md for all emoji handling
@@ -56,7 +57,21 @@
 
 14. **Propagate user choices through multi-step flows** - When a user makes selections (e.g., checkboxes), those choices must be passed through the entire chain of function calls. Don't hardcode defaults in downstream handlers - accept the selection state from upstream.
 
+16. **Numista issuer codes don't follow one format** - Some use hyphens (`united-states`, `korea-south`), others use underscores (`boheme_moravie`). Never guess the code format — let the fuzzy matcher resolve it from `getIssuers()` and log the result, then add the verified code to `issuer-aliases.json`.
+
+17. **Numista search API doesn't cross-match denomination languages** - Searching `issuer=boheme_moravie&q=heller` returns 0 results even though the coins exist as "Haléřů" (Czech). The website search handles this, but the API does not. Use cross-referenced denomination entries (same denomination listed under two canonical forms) so `getAlternateSearchForms()` can retry with each language variant.
+
+18. **Use Unicode-aware regex for Numista text fields** - Numista returns denomination names in native languages (e.g., "Haléřů" not "Hellers"). Regexes using `[A-Za-z]` silently fail on accented/non-Latin characters. Always use `\p{L}` with the `u` flag (e.g., `/[\p{L}]+$/u`) to match any Unicode letter.
+
 15. **Numista API uses non-Gregorian year fields** - Issues from `/types/{id}/issues` return both `year` (era-specific, e.g., Meiji 14) and `gregorian_year` (e.g., 1881). OpenNumismat stores Gregorian years, so any year-based filtering must check BOTH `year` and `gregorian_year` to handle Japanese (Meiji/Taisho/Showa), Islamic (Hijri), Thai Buddhist, and other non-Gregorian dating systems.
+
+19. **Keep automatic and manual search in parity** - Both `searchForMatches()` (automatic/inline) and the manual search handler must use the same query-building logic, normalization, and filters (issuer, category). When adding a capability to one search path, always apply it to the other unless explicitly discussed otherwise. Divergence causes silent differences in result quality.
+
+20. **Numista issuers have a parent/child hierarchy — always match most specific** - The `/issuers` endpoint returns issuers with `level` (1-5) and `parent` fields. Section-level issuers (lower level) group territories under a country (e.g., "United Kingdom" section includes Falkland Islands, Gibraltar). The specific country issuer has a higher level number. When resolving issuer codes, always prefer the most specific (highest level) match. Using a section-level code causes the search API to return coins from all grouped territories, polluting results with irrelevant coins and pushing the correct coin out of view.
+
+21. **Any code mapping grade names to price fields must match field-mapper.js** - The canonical mapping is `price1=UNC, price2=XF, price3=VF, price4=F` (defined in `field-mapper.js:121-126`). Any other code that writes pricing data (e.g., fast pricing, batch updates) MUST use this same mapping. A reversal silently corrupts data — Uncirculated prices appear in the Fair field and vice versa.
+
+22. **Pass the source object through multi-stage data flows** - When a function determines behavior based on a reference object (e.g., the enriched coin for skip reasons), that object must be explicitly passed through each stage of the flow. Don't assume a related object (e.g., `duplicates[0].coin`) is equivalent — it may be empty or refer to a different entity entirely.
 
 ## 6. JSDOC DOCUMENTATION STANDARDS
 

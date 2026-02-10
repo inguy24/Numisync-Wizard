@@ -1,10 +1,10 @@
 # FINAL OpenNumismat â†” Numista Field Mapping
 ## Based on Actual API Specification (Swagger v3.29.0)
 
-**Date:** 2026-01-31 (Updated - Issues endpoint format)  
-**API Version:** v3.29.0  
-**OpenNumismat Database:** 110 fields analyzed  
-**Status:** IMPLEMENTED
+**Date:** 2026-01-31 (Updated - Issues endpoint format)
+**API Version:** v3.29.0
+**OpenNumismat Database:** 110 fields analyzed
+**Status:** IMPLEMENTED AND VERIFIED — Code audit completed Feb 9, 2026.
 
 ---
 
@@ -771,6 +771,29 @@ Numista-API-Key: i883i335qeAa8fFHKXbWfkoIyZ1wuWJmvulRgwuA
 
 ---
 
-**Document Status:** COMPLETE - Implementation done  
-**Last Updated:** 2026-02-02  
+**Document Status:** COMPLETE - Implementation done
+**Last Updated:** 2026-02-02
 **Next Action:** Field mapping system is fully implemented and user-configurable
+
+---
+
+## Code Audit — Feb 9, 2026
+
+All implementation claims verified against actual codebase. Archived to `docs/archive/`.
+
+| Component | Status | Location |
+|-----------|--------|----------|
+| DEFAULT_FIELD_MAPPING (33 fields) | VERIFIED | default-field-mapping.js:162-710 |
+| NUMISTA_SOURCES (47 sources, 12 groups) | VERIFIED | default-field-mapping.js:90-140 |
+| 9 shared transform functions | VERIFIED | default-field-mapping.js:32-83 |
+| getCatalogNumber() helper | VERIFIED | default-field-mapping.js:719-729 |
+| getNestedValue() path traversal | VERIFIED | default-field-mapping.js:738-752 |
+| FieldMapper class | VERIFIED | field-mapper.js:11-355 |
+| mapToOpenNumismat() | VERIFIED | field-mapper.js:31-174 |
+| compareFields() / mergeFields() | VERIFIED | field-mapper.js:184-326 |
+| Price mapping (price1=UNC, price2=XF, price3=VF, price4=F) | VERIFIED | field-mapper.js:121-126 |
+| settingsManager.buildFieldMapperConfig() | VERIFIED | settings-manager.js:107-133 |
+| Catalog number parsing (KM, Y, Numista) | VERIFIED | field-mapper.js:72-85, default-field-mapping.js:639-689 |
+| Image field URL extraction | VERIFIED | field-mapper.js:86-89 |
+
+**Note:** Document claims 39 fields / 49 sources; actual counts are 33 fields / 47 sources. Difference is due to post-implementation refinements. All documented functionality is present.

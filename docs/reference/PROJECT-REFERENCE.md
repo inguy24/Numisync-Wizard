@@ -1,7 +1,7 @@
 # NumiSync Wizard for OpenNumismat - Project Reference
 
 **Purpose:** Architecture reference for implementation. Read when building features.
-**Last Updated:** February 8, 2026 (Structured Logging & Report an Issue)
+**Last Updated:** February 8, 2026 (Denomination Plural/Singular Support)
 
 ---
 
@@ -22,9 +22,12 @@ numismat-enrichment/
 │   │   └── images/           # Logo and branding assets
 │   │       ├── logo_with_text.svg   # Full logo (header, welcome, about, EULA, manual)
 │   │       └── logo_no_text.svg     # Icon-only logo (source for app icon)
+│   ├── resources/            # Runtime bundled resources
+│   │   └── user-manual.html  # User manual (Help > User Manual, F1)
 │   ├── data/
-│   │   └── denomination-aliases.json # Denomination variant mappings (editable without code changes)
-│   └── modules/
+│   │   ├── denomination-aliases.json # Denomination variant mappings
+│   │   └── issuer-aliases.json      # Country/territory name aliases
+│   └── modules/              # Business logic modules
 │       ├── opennumismat-db.js      # SQLite database access
 │       ├── numista-api.js          # Numista API wrapper
 │       ├── field-mapper.js         # Field mapping logic
@@ -36,25 +39,53 @@ numismat-enrichment/
 │       ├── image-handler.js        # Image operations
 │       ├── mintmark-normalizer.js  # Mintmark utilities
 │       ├── denomination-normalizer.js # Denomination alias normalization
-│       └── api-cache.js              # Persistent API cache + monthly usage tracking
-├── build/
-│   ├── icon.png              # App icon for dev/Linux (500x500)
+│       └── api-cache.js              # Persistent API cache + monthly usage
+├── build/                    # Build resources (icons, installer scripts)
+│   ├── icon.png              # App icon for dev/Linux (512x512)
 │   ├── icon.ico              # App icon for Windows builds (256x256)
+│   ├── logo_no_text.svg      # Vector source for app icon
 │   ├── ICONS-README.txt      # Icon conversion instructions
-│   ├── installer.nsh         # NSIS custom script (EULA marker creation/removal)
+│   ├── installer.nsh         # NSIS custom script
 │   └── eula/
-│       └── eula-windows.rtf  # RTF EULA for NSIS installer license screen
-├── scripts/
-│   ├── validate-version.js   # Pre-version validation (npm preversion hook)
-│   └── post-version.js       # Post-version reminders (npm postversion hook)
-├── EULA.txt                  # Plain text EULA (bundled as extraResource)
-├── docs/
-│   ├── PROJECT-REFERENCE.md  # THIS FILE
-│   ├── CHANGELOG.md          # Compressed fix history
-│   ├── user-manual.html      # User manual (Help > User Manual, F1)
-│   └── (archived docs)
-└── CLAUDE.md                 # Operating rules (root level)
+│       └── eula-windows.rtf  # RTF EULA for NSIS installer
+├── scripts/                  # Build/version scripts
+│   ├── validate-version.js
+│   └── post-version.js
+├── docs/                     # GitHub Pages + Project documentation
+│   ├── index.html            # GitHub Pages homepage (to be created)
+│   ├── _config.yml           # Jekyll configuration (optional, to be created)
+│   ├── reference/            # Architecture & API docs
+│   │   ├── PROJECT-REFERENCE.md  # THIS FILE
+│   │   ├── swagger.yaml      # Numista API documentation
+│   │   ├── EMOJI-ENCODING-GUIDANCE.md
+│   │   └── numista-terms-of-use.txt
+│   ├── guides/               # How-to guides
+│   │   ├── BUILD-GUIDE.md
+│   │   ├── INSTALLER-DISTRIBUTION-PLAN.md
+│   │   └── POLAR-PRODUCTION-CONFIG.md
+│   ├── planning/             # Current work plans
+│   │   └── PHASE3-WORK-PLAN.md
+│   ├── assets/               # Design files + website assets
+│   │   ├── logo_no_text.ai
+│   │   └── logo_with_text.ai
+│   ├── archive/              # Completed work plans
+│   └── CHANGELOG.md          # Version history
+├── examples/                 # Example databases (tracked for multi-machine sync)
+│   ├── mycollection.db       # Sample collection for testing
+│   └── test.db               # Test database
+├── EULA.txt                  # Plain text EULA (bundled as extraResource) - REQUIRED by SignPath
+├── LICENSE.txt               # Project license (OSI-approved) - REQUIRED by SignPath
+├── README.md                 # Must contain Code Signing Policy - REQUIRED by SignPath
+├── CLAUDE.md                 # AI assistant operating instructions
+├── package.json
+├── electron-builder.yml
+└── .gitignore
 ```
+
+---
+
+**File Organization:** See [FILE-ORGANIZATION.md](FILE-ORGANIZATION.md) for comprehensive rules on where files belong, including compliance requirements (SignPath, electron-builder) and decision trees for file placement.
+
 
 ---
 
@@ -119,9 +150,9 @@ numismat-enrichment/
 | `getIssuePricing(typeId, issueId, currency)` | Get pricing for specific issue |
 | `fetchCoinData(typeId, coin, fetchSettings)` | Main orchestration - conditional fetch |
 | `matchIssue(coin, issuesResponse)` | Auto-match logic (year/gregorian_year+mintmark+type) |
-| `calculateMatchConfidence(coin, type)` | Scoring with denomination normalization via `denomination-normalizer.js` |
+| `calculateMatchConfidence(coin, type)` | Scoring with denomination normalization via `denomination-normalizer.js` (alias + plural/singular) |
 | `getIssuers()` | Fetch and cache full issuer list |
-| `resolveIssuerCode(countryName)` | Resolve country to issuer code |
+| `resolveIssuerCode(countryName)` | Resolve country to issuer code (aliases loaded from `issuer-aliases.json`) |
 
 ---
 
@@ -141,13 +172,14 @@ numismat-enrichment/
    - Fetches pricing data if enabled (requires issue)
    ↓
 5. Show field comparison screen
-   - Calls compareFields(coin, numistaData, issueData, pricingData)
+   - Calls compareFields(coin, numistaData, issueData, pricingData) — passes coin.mintmark for mint resolution
    ↓
 6. User selects fields to merge
    ↓
 7. mergeData(coinId, selectedFields, numistaData, issueData, pricingData)
    - Creates backup (if enabled)
-   - Calls mergeFields() with all data
+   - Looks up coin.mintmark for mint resolution
+   - Calls mergeFields() with all data + coinData
    - Updates database
    - Writes metadata to note field
    - Updates progress tracker
@@ -169,9 +201,15 @@ numismat-enrichment/
 4. `FieldMapper` uses resolved config to extract/transform data
 
 **Special Fields:**
+- Mint: Resolved from mint letter via `resolveMintName()` in `mintmark-normalizer.js`. Prefers `issueData.mint_letter`, falls back to coin's `.db` mintmark. Uses three strategies: direct letter match, reverse city-name map lookup, parenthetical match. Falls back to `transformMintName()` (first mint) when no mint letter available. Bypasses general transform — handled entirely in its own special-case block. When resolved from a letter, sets `_recommendUpdate` flag to pre-check the field in comparison screen.
 - Mintage, Mintmark: Require `issueData`
 - Pricing (price1-4): Require `pricingData`
 - Catalog Numbers: User-configurable catalog code (KM, Y, Schon, Numista)
+
+**Array Transform Patterns:**
+- Joins all values: `transformRulerNames`, `transformRulerPeriod`, `transformDesigners`, `transformEngravers` — use `.join(' / ')` separator
+- `transformRulerPeriod` deduplicates via `Set` (co-rulers often share the same dynasty)
+- `transformMintName` picks first mint — only used as fallback when `resolveMintName()` cannot determine the correct mint
 
 ---
 
@@ -415,8 +453,9 @@ Uses `electron-updater` with GitHub Releases (`src/main/updater.js`).
 ```
 index.js (main process)
     ├── opennumismat-db.js    # Database operations
-    ├── numista-api.js        # API calls
+    ├── numista-api.js        # API calls (loads issuer-aliases.json)
     │   └── api-cache.js      # Persistent cache (shared singleton)
+    ├── denomination-normalizer.js # Denomination normalization (loads denomination-aliases.json)
     ├── field-mapper.js       # Field mapping
     │   └── default-field-mapping.js
     ├── settings-manager.js   # Settings
