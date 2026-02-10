@@ -2450,6 +2450,90 @@ function getDeviceFingerprint() {
   }
 }
 
+// ============================================================================
+// License Versioning - Feature Gating by License Version
+// ============================================================================
+
+/**
+ * Feature entitlements by version
+ * Maps feature names to minimum required license version
+ */
+const FEATURE_VERSIONS = {
+  // V1 Features (launched with v1.0.0)
+  'fastPricing': '1.0.0',
+  'batchEnrichment': '1.0.0',
+  'advancedSearch': '1.0.0',
+
+  // V2 Features (planned for v2.0.0)
+  'numismaticSync': '2.0.0',
+  'aiPricing': '2.0.0',
+  'cloudBackup': '2.0.0',
+
+  // V3 Features (future)
+  'marketplaceIntegration': '3.0.0'
+};
+
+/**
+ * Extract version from license key prefix
+ * @param {string} licenseKey - The full license key (e.g., "V1-XXXX-XXXX-XXXX")
+ * @returns {string|null} Version string (e.g., "1.0.0") or null if invalid
+ */
+function getLicenseVersion(licenseKey) {
+  if (!licenseKey || typeof licenseKey !== 'string') {
+    return null;
+  }
+
+  const prefix = licenseKey.split('-')[0].toUpperCase();
+
+  const versionMap = {
+    'V1': '1.0.0',
+    'V2': '2.0.0',
+    'V3': '3.0.0'
+  };
+
+  return versionMap[prefix] || null;
+}
+
+/**
+ * Compare semantic versions
+ * @param {string} v1 - First version (e.g., "1.0.0")
+ * @param {string} v2 - Second version (e.g., "2.0.0")
+ * @returns {number} -1 if v1 < v2, 0 if equal, 1 if v1 > v2
+ */
+function compareVersions(v1, v2) {
+  const parts1 = v1.split('.').map(Number);
+  const parts2 = v2.split('.').map(Number);
+
+  for (let i = 0; i < 3; i++) {
+    if (parts1[i] > parts2[i]) return 1;
+    if (parts1[i] < parts2[i]) return -1;
+  }
+  return 0;
+}
+
+/**
+ * Check if a feature is unlocked by the user's license
+ * @param {string} licenseKey - The user's license key
+ * @param {string} featureName - Feature to check (from FEATURE_VERSIONS)
+ * @returns {boolean} True if feature is unlocked
+ */
+function isFeatureUnlocked(licenseKey, featureName) {
+  const licenseVersion = getLicenseVersion(licenseKey);
+
+  if (!licenseVersion) {
+    return false; // Invalid license
+  }
+
+  const requiredVersion = FEATURE_VERSIONS[featureName];
+
+  if (!requiredVersion) {
+    return false; // Unknown feature
+  }
+
+  // Compare semantic versions
+  return compareVersions(licenseVersion, requiredVersion) >= 0;
+}
+
 /**
  * Get supporter status from app settings
  * @returns {Promise<{success: boolean, supporter: Object, lifetimeStats: Object}>}
@@ -2889,6 +2973,63 @@ ipcMain.handle('deactivate-license', async () => {
     return {
       success: false,
       message: 'Failed to deactivate license: ' + error.message
+    };
+  }
+});
+
+/**
+ * Check if a feature is accessible based on the user's license version
+ * @param {string} featureName - The feature to check (e.g., 'fastPricing', 'numismaticSync')
+ * @returns {Promise<{unlocked: boolean, reason?: string, licenseVersion?: string, requiredVersion?: string, upgradeRequired?: boolean}>}
+ */
+ipcMain.handle('check-feature-access', async (event, featureName) => {
+  try {
+    const settingsPath = path.join(app.getPath('userData'), 'settings.json');
+    let settings = {};
+
+    if (fs.existsSync(settingsPath)) {
+      settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+    }
+
+    const supporter = settings.supporter;
+
+    // No license at all - require purchase
+    if (!supporter?.isSupporter || !supporter?.licenseKey) {
+      return {
+        unlocked: false,
+        reason: 'no_license',
+        upgradeRequired: true
+      };
+    }
+
+    // Check if feature is unlocked by license version
+    const licenseKey = supporter.licenseKey;
+    const unlocked = isFeatureUnlocked(licenseKey, featureName);
+
+    if (!unlocked) {
+      const licenseVersion = getLicenseVersion(licenseKey);
+      const requiredVersion = FEATURE_VERSIONS[featureName];
+
+      return {
+        unlocked: false,
+        reason: 'version_mismatch',
+        licenseVersion: licenseVersion,
+        requiredVersion: requiredVersion,
+        upgradeRequired: true
+      };
+    }
+
+    // Feature is unlocked
+    return {
+      unlocked: true,
+      licenseVersion: getLicenseVersion(licenseKey)
+    };
+  } catch (error) {
+    log.error('Error checking feature access:', error);
+    return {
+      unlocked: false,
+      reason: 'error',
+      upgradeRequired: false
     };
   }
 });

@@ -1,7 +1,8 @@
 # NumiSync Wizard - Cross-Platform Installer & Distribution Plan
 
 **Created:** February 6, 2026
-**Status:** Phase 1 Complete, Phases 2-7 Pending
+**Last Updated:** February 10, 2026
+**Status:** Phase 0-1 Complete, Phase 1.5 Complete, Phase 3-5 Complete, Phase 2 Pending (External Application Required)
 
 ## Overview
 
@@ -482,9 +483,11 @@ async function enableNumisticSync() {
 ### Polar Dashboard Configuration Checklist
 
 Before v1.0.0 launch:
-- [ ] Set license prefix to `V1` for current product
-- [ ] Update product name to "NumiSync Supporter License v1"
+- [ ] Set license prefix to `V1` for current product (requires Polar dashboard access)
+- [ ] Update product name to "NumiSync Supporter License v1" (requires Polar dashboard access)
 - [ ] Document product ID in POLAR-PRODUCTION-CONFIG.md
+
+**Note:** Code implementation for license versioning is complete. Dashboard configuration is pending until production launch.
 
 Before v2.0.0 launch:
 - [ ] Create new product "NumiSync Supporter License v2"
@@ -1534,32 +1537,34 @@ git push && git push --tags
 
 ### New Files to Create
 
-- [ ] `.github/workflows/build.yml`
-- [ ] `.github/workflows/pr-check.yml` (optional)
+- [x] `.github/workflows/build.yml`
+- [x] `.github/workflows/pr-check.yml` (optional)
 - [x] `EULA.txt`
 - [x] `build/eula/eula-windows.rtf`
 - [x] `build/installer.nsh`
-- [ ] `build/icon.icns`
-- [ ] `build/icons/16x16.png`
-- [ ] `build/icons/32x32.png`
-- [ ] `build/icons/48x48.png`
-- [ ] `build/icons/64x64.png`
-- [ ] `build/icons/128x128.png`
-- [ ] `build/icons/256x256.png`
-- [ ] `build/icons/512x512.png`
+- [x] `build/icon.icns`
+- [x] `build/icons/16x16.png`
+- [x] `build/icons/32x32.png`
+- [x] `build/icons/48x48.png`
+- [x] `build/icons/64x64.png`
+- [x] `build/icons/128x128.png`
+- [x] `build/icons/256x256.png`
+- [x] `build/icons/512x512.png`
 - [x] `scripts/validate-version.js`
 - [x] `scripts/post-version.js`
+- [x] `scripts/generate-linux-icons.ps1` (bonus)
+- [x] `scripts/generate-macos-icon.js` (bonus)
 - [x] `src/main/updater.js`
-- [ ] `docs/macos-install.md`
+- [x] `docs/macos-install.md`
 
 ### Files to Modify
 
-- [ ] `README.md` (add Code Signing Policy, installation instructions)
-- [x] `package.json` (scripts, electron-updater dependency)
-- [x] `electron-builder.yml` (EULA/NSIS integration; full cross-platform config pending)
-- [x] `src/renderer/app.js` (installer EULA marker check)
-- [x] `src/main/index.js` (auto-updater integration, menu item)
-- [x] `src/main/preload.js` (expose update events)
+- [x] `README.md` (add Code Signing Policy, installation instructions)
+- [x] `package.json` (scripts, electron-updater dependency, build scripts for all platforms)
+- [x] `electron-builder.yml` (EULA/NSIS integration, Linux config, macOS config)
+- [x] `src/renderer/app.js` (installer EULA marker check, feature gating functions)
+- [x] `src/main/index.js` (auto-updater integration, menu item, license versioning)
+- [x] `src/main/preload.js` (expose update events, feature check IPC)
 
 ### GitHub Settings
 
@@ -1634,3 +1639,108 @@ Before your first automated release:
 - [electron-builder docs](https://www.electron.build/) - Build configuration
 - [electron-updater docs](https://www.electron.build/auto-update) - Auto-update
 - [GitHub Actions](https://docs.github.com/en/actions) - CI/CD workflows
+
+---
+
+## Implementation Status Summary
+
+**Updated:** February 10, 2026
+
+### ✅ Completed Phases
+
+**Phase 0: GitHub Pages Homepage**
+- All files created and ready for deployment
+- Homepage, installation guide, quickstart guide complete
+- Zero-maintenance download links configured
+
+**Phase 1: Foundation (EULA, Version Scripts, Auto-Update)**
+- ✅ EULA extraction and integration complete
+- ✅ Version validation scripts created
+- ✅ Auto-updater module implemented
+- ✅ NSIS installer configuration complete
+
+**Phase 1.5: License Versioning Architecture**
+- ✅ License version extraction functions implemented (getLicenseVersion, compareVersions)
+- ✅ Feature versioning map defined (FEATURE_VERSIONS)
+- ✅ Feature unlocking logic implemented (isFeatureUnlocked)
+- ✅ IPC handler for feature checks created (check-feature-access)
+- ✅ Renderer-side feature gating functions added (checkFeatureAccess, showUpgradeModal)
+- ⏸️ Polar dashboard configuration pending (requires dashboard access for production)
+
+**Phase 3: GitHub Actions CI/CD**
+- ✅ Main build workflow created (.github/workflows/build.yml)
+- ✅ PR validation workflow created (.github/workflows/pr-check.yml)
+- ✅ Multi-platform build jobs configured (Windows, Linux, macOS)
+- ✅ SignPath integration prepared (commented out until approval)
+- ✅ Automated release creation configured
+
+**Phase 4: Linux Support**
+- ✅ Multi-resolution PNG icons generated (16x16 through 512x512)
+- ✅ Icon generation script created (scripts/generate-linux-icons.ps1)
+- ✅ electron-builder.yml Linux configuration added
+- ✅ AppImage, deb, and rpm targets configured
+- ✅ Linux dependencies specified
+
+**Phase 5: macOS Support**
+- ✅ macOS .icns icon generated
+- ✅ Icon generation script created (scripts/generate-macos-icon.js)
+- ✅ macOS installation guide created (docs/macos-install.md)
+- ✅ electron-builder.yml macOS configuration added
+- ✅ DMG target configured for both x64 and arm64
+
+**Documentation Updates**
+- ✅ README.md updated with Code Signing Policy section
+- ✅ README.md updated with platform signing status
+- ✅ macOS installation instructions documented
+
+### ⏳ Pending Phases
+
+**Phase 2: Windows Code Signing (SignPath Foundation)**
+- ⏸️ Requires external application to SignPath Foundation (manual step by user)
+- ⏸️ GitHub Actions workflow prepared and waiting for SignPath approval
+- ⏸️ Once approved, uncomment SignPath action in build.yml
+- ✅ README.md Code Signing Policy section already added (required by SignPath)
+
+### 🎯 Next Steps
+
+To complete the distribution setup:
+
+1. **Apply to SignPath Foundation** (manual step)
+   - Go to https://signpath.org and submit application
+   - Provide GitHub repo URL and project details
+   - Wait for approval (typically a few days)
+
+2. **Configure SignPath Secrets** (after approval)
+   - Add `SIGNPATH_API_TOKEN` to GitHub repository secrets
+   - Add `SIGNPATH_ORGANIZATION_ID` to GitHub repository variables
+   - Install SignPath GitHub App on repository
+
+3. **Enable Code Signing** (after approval)
+   - Uncomment SignPath action in `.github/workflows/build.yml`
+   - Test with a version tag push
+
+4. **First Release**
+   - Run `npm version patch` to bump version
+   - Push with tags: `git push && git push --tags`
+   - Approve signing request in SignPath dashboard
+   - Publish GitHub release
+
+### 📦 Ready to Build
+
+The codebase is now **fully configured for cross-platform distribution**:
+
+- ✅ Windows builds will create NSIS installers (unsigned until SignPath approval)
+- ✅ Linux builds will create AppImage, .deb, and .rpm packages
+- ✅ macOS builds will create DMG for both Intel and Apple Silicon
+- ✅ All builds happen automatically via GitHub Actions on version tag push
+- ✅ License versioning is implemented and ready to use
+
+You can test local builds immediately:
+```bash
+npm run build:win    # Windows NSIS installer (unsigned)
+npm run build:linux  # Linux packages (requires Linux or WSL)
+npm run build:mac    # macOS DMG (requires macOS)
+npm run build:all    # All platforms (requires appropriate OS)
+```
+
+The only remaining external dependency is SignPath Foundation approval for Windows code signing.

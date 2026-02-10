@@ -199,6 +199,7 @@ const apiMethods = {
   incrementLifetimeEnrichments: (count) => ipcRenderer.invoke('increment-lifetime-enrichments', count),
   getLifetimeStats: () => ipcRenderer.invoke('get-lifetime-stats'),
   clearLicense: () => ipcRenderer.invoke('clear-license'),
+  checkFeatureAccess: (featureName) => ipcRenderer.invoke('check-feature-access', featureName),
 
   // Fast Pricing Update (Premium Feature)
   createBackupBeforeBatch: () => ipcRenderer.invoke('create-backup-before-batch'),

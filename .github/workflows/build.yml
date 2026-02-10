@@ -1,0 +1,176 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  validate:
+    name: Validate Version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate version matches tag
+        run: |
+          TAG_VERSION=${GITHUB_REF#refs/tags/v}
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+            echo "ERROR: Tag version ($TAG_VERSION) doesn't match package.json ($PKG_VERSION)"
+            exit 1
+          fi
+          echo "✅ Version validation passed: $PKG_VERSION"
+
+  build-windows:
+    name: Build Windows
+    needs: validate
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Required for SignPath origin verification
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Windows (Unsigned)
+        run: npm run build:win
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Upload unsigned artifact (SignPath requires this)
+      - name: Upload unsigned artifact
+        id: upload-unsigned
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-unsigned
+          path: dist/*.exe
+          if-no-files-found: error
+
+      # Submit to SignPath for signing
+      # NOTE: This step is commented out until SignPath Foundation approval is obtained
+      # Uncomment after:
+      # 1. SignPath Foundation application approved
+      # 2. SignPath GitHub App installed on repository
+      # 3. SIGNPATH_API_TOKEN secret configured
+      # 4. SIGNPATH_ORGANIZATION_ID variable configured
+      #
+      # - name: Sign with SignPath
+      #   uses: signpath/github-action-submit-signing-request@v2
+      #   with:
+      #     api-token: '${{ secrets.SIGNPATH_API_TOKEN }}'
+      #     organization-id: '${{ vars.SIGNPATH_ORGANIZATION_ID }}'
+      #     project-slug: 'numisync-wizard'
+      #     signing-policy-slug: 'release-signing'
+      #     github-artifact-id: '${{ steps.upload-unsigned.outputs.artifact-id }}'
+      #     wait-for-completion: true
+      #     output-artifact-directory: 'windows-signed'
+
+      # For now, use unsigned artifact for releases
+      # Once SignPath is configured, change this to upload from windows-signed/
+      - name: Upload Windows installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: dist/*.exe
+          if-no-files-found: error
+
+  build-linux:
+    name: Build Linux
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Linux
+        run: npm run build:linux
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Linux packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-packages
+          path: |
+            dist/*.AppImage
+            dist/*.deb
+            dist/*.rpm
+          if-no-files-found: error
+
+  build-macos:
+    name: Build macOS
+    needs: validate
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build macOS
+        run: npm run build:mac
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload macOS DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-dmg
+          path: dist/*.dmg
+          if-no-files-found: error
+
+  create-release:
+    name: Create GitHub Release
+    needs: [build-windows, build-linux, build-macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Display artifact structure
+        run: ls -R
+
+      - name: Create Draft Release
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: true
+          generate_release_notes: true
+          files: |
+            windows-installer/*.exe
+            linux-packages/*.AppImage
+            linux-packages/*.deb
+            linux-packages/*.rpm
+            macos-dmg/*.dmg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

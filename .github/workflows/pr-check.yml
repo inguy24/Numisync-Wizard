@@ -1,0 +1,78 @@
+name: PR Validation
+
+on:
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  validate:
+    name: Validate PR
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate package.json
+        run: node scripts/validate-version.js
+
+      - name: Check for required files
+        run: |
+          echo "Checking for required files..."
+          FILES=(
+            "src/main/index.js"
+            "src/renderer/app.js"
+            "package.json"
+            "electron-builder.yml"
+            "build/icon.ico"
+            "build/icon.png"
+            "EULA.txt"
+          )
+
+          for file in "${FILES[@]}"; do
+            if [ ! -f "$file" ]; then
+              echo "❌ Missing required file: $file"
+              exit 1
+            fi
+            echo "✅ Found: $file"
+          done
+
+      - name: Run tests
+        run: npm test
+        continue-on-error: true  # Tests not yet configured
+
+      - name: Test build (Windows)
+        run: npm run build:dir
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  lint:
+    name: Lint Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for common issues
+        run: |
+          echo "Checking for common code issues..."
+
+          # Check for console.log in production code (warning only)
+          if grep -r "console\.log" src/main src/renderer --exclude-dir=node_modules 2>/dev/null; then
+            echo "⚠️ Warning: console.log statements found in production code"
+          fi
+
+          # Check for TODO/FIXME comments (informational only)
+          if grep -r "TODO\|FIXME" src/ --exclude-dir=node_modules 2>/dev/null; then
+            echo "ℹ️ Found TODO/FIXME comments"
+          fi
+
+          echo "✅ Lint check complete"

@@ -9,6 +9,9 @@
     "dev": "electron . --inspect",
     "build": "electron-builder build --win",
     "build:win": "electron-builder build --win",
+    "build:mac": "electron-builder build --mac",
+    "build:linux": "electron-builder build --linux",
+    "build:all": "electron-builder build --win --mac --linux",
     "build:dir": "electron-builder build --win --dir",
     "build:portable": "electron-builder build --win portable",
     "pack": "electron-builder --dir",
@@ -48,7 +51,8 @@
     "uuid": "^9.0.1"
   },
   "devDependencies": {
-    "electron-builder": "^24.9.1"
+    "electron-builder": "^24.9.1",
+    "png2icons": "^2.0.1"
   },
   "engines": {
     "node": ">=18.0.0",

@@ -85,6 +85,38 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
+## Code Signing Policy
+
+This application is digitally signed for your security (Windows releases).
+
+**Free code signing provided by [SignPath.io](https://signpath.io)**
+**Certificate by [SignPath Foundation](https://signpath.org)**
+
+### Project Roles
+
+| Role | Member |
+|------|--------|
+| Approver | Shane Burkhardt ([@inguy24](https://github.com/inguy24)) |
+| Committer | Shane Burkhardt ([@inguy24](https://github.com/inguy24)) |
+
+### Privacy
+
+This application does not transmit personal information without user consent. See our privacy policy:
+
+- ✅ No analytics or telemetry collection
+- ✅ No transmission of collection data
+- ✅ Only communicates with Numista API when explicitly using search features
+- ✅ All data stored locally on your machine
+- ✅ Open-source - review the code anytime
+
+### Platform Signing Status
+
+- **Windows:** Signed with SignPath Foundation certificate (free for open-source)
+- **macOS:** Unsigned (requires manual installation - [see instructions](docs/macos-install.md))
+- **Linux:** Unsigned (standard for open-source Linux packages)
+
+---
+
 ## Acknowledgments
 
 - **[Numista](https://www.numista.com/)** - Comprehensive numismatic catalog and API

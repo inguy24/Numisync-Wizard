@@ -820,6 +820,125 @@ async function requirePremiumFeature(featureId) {
   return true;
 }
 
+/**
+ * Check if a feature is accessible based on license version
+ * @param {string} featureName - Feature name (e.g., 'fastPricing', 'numismaticSync')
+ * @returns {Promise<boolean>} True if feature is unlocked
+ */
+async function checkFeatureAccess(featureName) {
+  try {
+    const result = await window.electronAPI.checkFeatureAccess(featureName);
+
+    if (!result.unlocked) {
+      if (result.reason === 'no_license') {
+        showUpgradeModal('This feature requires a license.', null, null);
+      } else if (result.reason === 'version_mismatch') {
+        showUpgradeModal(
+          `This feature requires a v${result.requiredVersion} license. ` +
+          `Your current license is for v${result.licenseVersion}. ` +
+          `Purchase an upgrade to unlock this feature.`,
+          result.licenseVersion,
+          result.requiredVersion
+        );
+      }
+      return false;
+    }
+
+    return true;
+  } catch (e) {
+    console.error('Error checking feature access:', e);
+    return false;
+  }
+}
+
+/**
+ * Show upgrade modal for version-gated features
+ * @param {string} message - Message to display
+ * @param {string|null} currentVersion - Current license version (e.g., "1.0.0")
+ * @param {string|null} requiredVersion - Required license version (e.g., "2.0.0")
+ */
+async function showUpgradeModal(message, currentVersion, requiredVersion) {
+  let checkoutUrl = '';
+  try {
+    const result = await window.electronAPI.getSupporterStatus();
+    if (result.success) {
+      checkoutUrl = result.polarConfig?.checkoutUrl || '';
+    }
+  } catch (e) {
+    console.error('Error getting checkout URL:', e);
+  }
+
+  const versionBadge = currentVersion
+    ? `<div style="margin-bottom: 15px;">
+         <span style="display: inline-block; padding: 4px 12px; background: var(--accent, #007bff); color: white; border-radius: 4px; font-size: 0.85em; font-weight: bold;">
+           Your License: v${currentVersion}
+         </span>
+         ${requiredVersion ? `<span style="margin: 0 8px;">→</span>
+         <span style="display: inline-block; padding: 4px 12px; background: linear-gradient(135deg, #FFD700, #FFA500); color: #333; border-radius: 4px; font-size: 0.85em; font-weight: bold;">
+           Required: v${requiredVersion}
+         </span>` : ''}
+       </div>`
+    : '';
+
+  const promptHtml = `
+    <div style="text-align: center;">
+      ${versionBadge}
+
+      <h3 style="margin: 0 0 10px 0;">Upgrade Required</h3>
+
+      <p style="margin: 0 0 20px 0; color: var(--text-secondary);">
+        ${message}
+      </p>
+
+      <div style="margin: 20px 0;">
+        ${currentVersion
+          ? `<button id="upgradeGetNewLicenseBtn"
+                    style="padding: 10px 20px; background: linear-gradient(135deg, #FFD700, #FFA500); color: #333; border: none; border-radius: 6px; cursor: pointer; font-size: 1em; font-weight: bold; margin-right: 10px;">
+              Upgrade License
+            </button>`
+          : `<button id="upgradeGetNewLicenseBtn"
+                    style="padding: 10px 20px; background: linear-gradient(135deg, #FFD700, #FFA500); color: #333; border: none; border-radius: 6px; cursor: pointer; font-size: 1em; font-weight: bold; margin-right: 10px;">
+              Get a License
+            </button>`
+        }
+        <button id="upgradeCloseBtn"
+                style="padding: 10px 20px; background: var(--bg-secondary, #6c757d); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 1em;">
+          Close
+        </button>
+      </div>
+    </div>
+  `;
+
+  showModal('Upgrade Required', promptHtml);
+
+  // Wire up buttons
+  setTimeout(() => {
+    const getBtn = document.getElementById('upgradeGetNewLicenseBtn');
+    const closeBtn = document.getElementById('upgradeCloseBtn');
+    const modalClose = document.getElementById('modalClose');
+
+    if (getBtn) {
+      getBtn.addEventListener('click', () => {
+        const url = checkoutUrl || 'https://sandbox-api.polar.sh/v1/checkout-links/polar_cl_GU5TpVHT8Fj1XvA7NqBOpEtnoHPY9kSnlrloe240tb1/redirect';
+        window.electronAPI.openExternal(url);
+        document.getElementById('modal').style.display = 'none';
+      });
+    }
+
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => {
+        document.getElementById('modal').style.display = 'none';
+      });
+    }
+
+    if (modalClose) {
+      modalClose.addEventListener('click', () => {
+        document.getElementById('modal').style.display = 'none';
+      });
+    }
+  }, 0);
+}
+
 // =============================================================================
 // Batch Type Data Propagation (Task 3.12)
 // =============================================================================
