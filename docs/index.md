@@ -3,24 +3,7 @@ layout: default
 title: NumiSync Wizard - Enrich your OpenNumismat collection
 ---
 
-<div style="text-align: center; margin: 2em 0;">
-  <img src="/assets/images/logo.svg" alt="NumiSync Wizard for OpenNumismat - Automatically enrich your coin collection with detailed catalog data, pricing information, and images from Numista" style="max-width: 500px; width: 100%;" />
-</div>
-
-<div style="text-align: center; margin: 2em 0;">
-  <a href="https://github.com/inguy24/numismat-enrichment/releases/latest" style="display: inline-block; padding: 12px 24px; background: #0066cc; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; margin-right: 10px;">Download for Windows</a>
-  <a href="https://github.com/inguy24/numismat-enrichment" style="display: inline-block; padding: 12px 24px; background: #24292e; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">View on GitHub</a>
-</div>
-
-<div style="text-align: center; margin: 1em 0;">
-  <a href="https://github.com/inguy24/numismat-enrichment"><img src="https://img.shields.io/github/stars/inguy24/numismat-enrichment?style=social" alt="GitHub stars"></a>
-</div>
-
----
-
 **Quick Navigation:** [About](#about) • [Features](#features) • [Download](#download) • [Quick Start](#quick-start) • [Support Development](#support-development) • [Documentation](#documentation)
-
----
 
 ## About
 
@@ -154,16 +137,9 @@ Shane (your fellow collector)
 
 ---
 
-<div style="border-top: 1px solid #ddd; padding-top: 2em; margin-top: 3em; text-align: center; color: #666; font-size: 0.9em;">
-  <p>Created by Shane Burkhardt (<a href="https://github.com/inguy24">@inguy24</a>)</p>
-  <p>MIT License • Version 1.0.0</p>
-  <p>
-    <a href="https://github.com/inguy24/numismat-enrichment">GitHub</a> •
-    <a href="https://github.com/inguy24/numismat-enrichment/issues">Report an Issue</a> •
-    <a href="https://github.com/inguy24/numismat-enrichment/discussions">Discussions</a> •
-    <a href="https://www.numista.com/">Numista.com</a>
-  </p>
-  <p style="font-size: 0.85em; margin-top: 1em;">
-    Powered by <a href="https://www.numista.com/">Numista API</a> • OpenNumismat Integration
-  </p>
-</div>
+**Additional Links:**
+[Report an Issue](https://github.com/inguy24/numismat-enrichment/issues) •
+[Discussions](https://github.com/inguy24/numismat-enrichment/discussions) •
+[Numista.com](https://www.numista.com/)
+
+*Powered by Numista API • OpenNumismat Integration*
