@@ -61,7 +61,7 @@ On first launch, NumiSync Wizard will:
 3. Enter your Numista API key
 4. Click **Save**
 
-**Don't have an API key yet?**
+**How to get an API key:**
 1. Go to [numista.com](https://www.numista.com/) and create a free account
 2. Log in → Profile → API Access
 3. Request an API key (instant approval for personal use)

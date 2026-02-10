@@ -13,9 +13,9 @@ Get up and running with NumiSync Wizard in 5 minutes. This guide walks you throu
 
 Before starting, make sure you have:
 
-- ✅ **NumiSync Wizard installed** ([Installation Guide](/installation))
-- ✅ **OpenNumismat collection** (.db file with some coins)
-- ✅ **Numista API key** (free from [numista.com](https://www.numista.com/))
+- **NumiSync Wizard installed** ([Installation Guide](/installation))
+- **OpenNumismat collection** (.db file with some coins)
+- **Numista API key** (free from [numista.com](https://www.numista.com/))
 
 ---
 
@@ -79,9 +79,9 @@ You can enrich coins one at a time or in batches:
 
 After searching, each coin shows one of three statuses:
 
-- **✓ Match Found** - Numista catalog entry found
-- **? Multiple Matches** - Several possibilities (manual selection needed)
-- **✗ No Match** - No catalog entry found (try manual search)
+- **Match Found** - Numista catalog entry found
+- **Multiple Matches** - Several possibilities (manual selection needed)
+- **No Match** - No catalog entry found (try manual search)
 
 ### View Field Comparison
 
@@ -190,39 +190,39 @@ If **Data Settings → Images** is enabled:
 
 ### Search Tips
 
-✅ **DO:**
+**Best Practices:**
 - Start with coins that have complete information (year, country, denomination)
 - Use standard denomination abbreviations ("1 Cent" not "1c")
 - Let NumiSync normalize denominations automatically
 
-❌ **DON'T:**
-- Search coins with missing critical fields (country, denomination)
-- Manually edit search queries unless necessary
-- Assume first match is correct - always verify!
+**Avoid:**
+- Searching coins with missing critical fields (country, denomination)
+- Manually editing search queries unless necessary
+- Assuming first match is correct - always verify!
 
 ### Data Quality
 
-✅ **DO:**
+**Best Practices:**
 - Review Field Comparison before accepting
 - Use Issue Picker when multiple variants exist
 - Verify images match your physical coin
 
-❌ **DON'T:**
-- Blindly accept all matches
-- Overwrite good data with incomplete catalog data
-- Forget to back up your collection first!
+**Avoid:**
+- Blindly accepting all matches
+- Overwriting good data with incomplete catalog data
+- Forgetting to back up your collection first!
 
 ### Performance
 
-✅ **DO:**
+**Best Practices:**
 - Enable caching (Settings → General → Cache)
 - Work in batches of 10-20 coins
 - Use Fast Pricing Mode for large updates (Supporter License)
 
-❌ **DON'T:**
-- Search 1000+ coins at once (respects rate limits, but slow)
-- Disable caching (wastes API calls)
-- Search the same coin repeatedly (use cache)
+**Avoid:**
+- Searching 1000+ coins at once (respects rate limits, but slow)
+- Disabling caching (wastes API calls)
+- Searching the same coin repeatedly (use cache)
 
 ---
 

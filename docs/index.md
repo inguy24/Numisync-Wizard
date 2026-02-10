@@ -4,18 +4,11 @@ title: NumiSync Wizard - Enrich your OpenNumismat collection
 ---
 
 <div style="text-align: center; margin: 2em 0;">
-  <img src="/assets/images/logo.svg" alt="NumiSync Wizard" style="max-width: 400px; width: 100%;" />
+  <img src="/assets/images/logo.svg" alt="NumiSync Wizard for OpenNumismat - Automatically enrich your coin collection with detailed catalog data, pricing information, and images from Numista" style="max-width: 500px; width: 100%;" />
 </div>
 
-<h1 style="text-align: center; font-size: 2em; margin-bottom: 0.5em;">NumiSync Wizard for OpenNumismat</h1>
-
-<p style="text-align: center; font-size: 1.2em; color: #666; margin-bottom: 2em;">
-Automatically enrich your coin collection with detailed catalog data,<br>
-pricing information, and images from Numista.
-</p>
-
 <div style="text-align: center; margin: 2em 0;">
-  <a href="https://github.com/inguy24/numismat-enrichment/releases/latest" style="display: inline-block; padding: 12px 24px; background: #0066cc; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; margin-right: 10px;">Download for Windows v1.0.0</a>
+  <a href="https://github.com/inguy24/numismat-enrichment/releases/latest" style="display: inline-block; padding: 12px 24px; background: #0066cc; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; margin-right: 10px;">Download for Windows</a>
   <a href="https://github.com/inguy24/numismat-enrichment" style="display: inline-block; padding: 12px 24px; background: #24292e; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">View on GitHub</a>
 </div>
 
@@ -25,44 +18,48 @@ pricing information, and images from Numista.
 
 ---
 
-## What is NumiSync Wizard?
+**Quick Navigation:** [About](#about) • [Features](#features) • [Download](#download) • [Quick Start](#quick-start) • [Support Development](#support-development) • [Documentation](#documentation)
+
+---
+
+## About
 
 NumiSync Wizard connects your OpenNumismat coin collection database to the comprehensive Numista catalog, automatically matching your coins and enriching them with:
 
-- **Detailed catalog information** (mintage, composition, ruler, designer)
-- **Current market pricing** across 4 grade levels (UNC, XF, VF, F)
-- **Multiple issue variants** per type (year, mint mark, type)
-- **High-resolution images** (obverse, reverse, and edge)
-- **Smart matching** with fuzzy search and manual override
+- Detailed catalog information (mintage, composition, ruler, designer)
+- Current market pricing across 4 grade levels (UNC, XF, VF, F)
+- Multiple issue variants per type (year, mint mark, type)
+- High-resolution images (obverse, reverse, and edge)
+- Smart matching with fuzzy search and manual override
 
 Perfect for numismatists who want to spend less time on data entry and more time enjoying their collection.
 
 ---
 
-## Key Features
+## Features
 
-### 🎯 Intelligent Coin Matching
+### Intelligent Coin Matching
 Fuzzy search with denomination normalization, issuer resolution, and non-Gregorian year support (Meiji, Hijri, Thai Buddhist calendars).
 
-### 🎛️ Granular Data Control
+### Granular Data Control
 Choose exactly what data to sync: Basic catalog info, Issue variants, or Pricing data. Update only the fields you want.
 
-### 🔍 Visual Field Comparison
+### Visual Field Comparison
 Side-by-side comparison of existing vs. new data. Cherry-pick individual fields to update or accept all changes at once.
 
-### ⚡ Premium Fast Pricing Mode
+### Premium Fast Pricing Mode
 Batch-update pricing for all matched coins in seconds. No more clicking through coins one by one. *(Requires Supporter License)*
 
-### 🔄 Auto-Propagate Type Data
+### Auto-Propagate Type Data
 Automatically apply type-level data (mintage, composition, ruler, designer) to all matching coins in your collection. *(Requires Supporter License)*
 
-### 💾 Multi-Machine Support
+### Multi-Machine Support
 Configurable cache location with file locking prevents conflicts when multiple users access the same database.
 
-### 🗄️ Smart Caching
+### Smart Caching
 Persistent API cache reduces redundant requests and respects Numista rate limits. Works offline with cached data.
 
-### ⚙️ Advanced Field Mapping
+### Advanced Field Mapping
 Customize how 45+ data sources from Numista map to OpenNumismat fields. Full control over your data.
 
 ---
@@ -73,16 +70,16 @@ Customize how 45+ data sources from Numista map to OpenNumismat fields. Full con
 
 ---
 
-## 🚀 Get Started
+## Download
 
-### Download NumiSync Wizard v1.0.0
+### NumiSync Wizard v1.0.0
 
 <div style="text-align: center; margin: 2em 0;">
-  <a href="https://github.com/inguy24/numismat-enrichment/releases/latest" style="display: inline-block; padding: 12px 24px; background: #28a745; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 1.1em;">📦 Download for Windows (x64/x86)</a>
+  <a href="https://github.com/inguy24/numismat-enrichment/releases/latest" style="display: inline-block; padding: 12px 24px; background: #28a745; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 1.1em;">Download for Windows (x64/x86)</a>
 </div>
 
 <div style="text-align: center; margin: 1em 0;">
-  <a href="https://github.com/inguy24/numismat-enrichment/releases">⬇️ View All Releases on GitHub</a>
+  <a href="https://github.com/inguy24/numismat-enrichment/releases">View All Releases on GitHub</a>
 </div>
 
 **Coming Soon:**
@@ -105,7 +102,7 @@ For detailed instructions, see the [Installation Guide](/installation) and [Quic
 
 ---
 
-## 💝 Support Development
+## Support Development
 
 ### Hi Fellow Collector!
 
@@ -113,20 +110,20 @@ I built NumiSync Wizard to save myself countless hours cataloging my coin collec
 
 ### NumiSync Wizard is FREE for core features:
 
-✅ Intelligent coin matching and search
-✅ Visual field comparison and selective updates
-✅ Issue variant selection
-✅ Image download and comparison
-✅ Smart caching and multi-machine support
-✅ Advanced field mapping
+- Intelligent coin matching and search
+- Visual field comparison and selective updates
+- Issue variant selection
+- Image download and comparison
+- Smart caching and multi-machine support
+- Advanced field mapping
 
 ### A Supporter License ($10) gets you:
 
-⭐ **Fast Pricing Mode** - Batch update pricing across your collection
-⭐ **Auto-Propagate** - Apply type data to matching coins automatically
-⭐ **No more nag prompts!**
-⭐ **Discounts on future premium features**
-⭐ The warm fuzzy feeling of supporting independent software
+- **Fast Pricing Mode** - Batch update pricing across your collection
+- **Auto-Propagate** - Apply type data to matching coins automatically
+- **No more nag prompts!**
+- **Discounts on future premium features**
+- The warm fuzzy feeling of supporting independent software
 
 <div style="text-align: center; margin: 2em 0;">
   <a href="https://github.com/inguy24/numismat-enrichment#license" style="display: inline-block; padding: 12px 24px; background: #6f42c1; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">Become a Supporter - $10</a>
@@ -134,8 +131,8 @@ I built NumiSync Wizard to save myself countless hours cataloging my coin collec
 
 Your support helps cover development costs and keeps NumiSync improving for our community of collectors.
 
-✨ **Buy once, use forever** • Unlocks current premium features permanently
-✨ **5-device activation limit** • No subscriptions • Open Source (MIT License)
+**Buy once, use forever** • Unlocks current premium features permanently
+**5-device activation limit** • No subscriptions • Open Source (MIT License)
 
 <div style="text-align: center; margin: 1em 0;">
   <a href="https://github.com/inguy24/numismat-enrichment">View source on GitHub</a>
@@ -156,8 +153,6 @@ Shane (your fellow collector)
 - [Build Guide](https://github.com/inguy24/numismat-enrichment/blob/main/docs/guides/BUILD-GUIDE.md) (for developers)
 
 ---
-
-## Footer
 
 <div style="border-top: 1px solid #ddd; padding-top: 2em; margin-top: 3em; text-align: center; color: #666; font-size: 0.9em;">
   <p>Created by Shane Burkhardt (<a href="https://github.com/inguy24">@inguy24</a>)</p>

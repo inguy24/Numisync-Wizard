@@ -3,12 +3,9 @@ description: Enrich your OpenNumismat collection with data from Numista
 author: Shane Burkhardt
 baseurl: ""
 url: "https://numisync.com"
-theme: jekyll-theme-minimal
+theme: jekyll-theme-cayman
 
-# Logo
-logo: /assets/images/logo-icon.svg
-
-# Navigation links
+# Navigation links (for custom nav)
 navigation:
   - title: Home
     url: /
