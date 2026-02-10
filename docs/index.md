@@ -3,7 +3,20 @@ layout: default
 title: NumiSync Wizard - Enrich your OpenNumismat collection
 ---
 
-**Quick Navigation:** [About](#about) • [Features](#features) • [Download](#download) • [Quick Start](#quick-start) • [Support Development](#support-development) • [Documentation](#documentation)
+<div style="text-align: center; margin: 2em 0 1em 0;">
+  <img src="/assets/images/logo.svg" alt="NumiSync Wizard for OpenNumismat" style="max-width: 500px; width: 100%;" />
+</div>
+
+<div style="text-align: center; margin: 2em 0;">
+  <a href="https://github.com/inguy24/numismat-enrichment/releases/latest" style="display: inline-block; padding: 12px 24px; background: #0066cc; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 0.5em;">Download for Windows</a>
+  <a href="https://github.com/inguy24/numismat-enrichment" style="display: inline-block; padding: 12px 24px; background: #24292e; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 0.5em;">View on GitHub</a>
+</div>
+
+<div style="text-align: center; margin: 1em 0 2em 0;">
+  <a href="https://github.com/inguy24/numismat-enrichment"><img src="https://img.shields.io/github/stars/inguy24/numismat-enrichment?style=social" alt="GitHub stars"></a>
+</div>
+
+---
 
 ## About
 
