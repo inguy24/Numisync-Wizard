@@ -5,18 +5,30 @@ title: Installation Guide
 
 # Installation Guide
 
+NumiSync Wizard is available for **Windows**, **macOS**, and **Linux**. Choose your platform below for installation instructions.
+
+---
+
 ## System Requirements
 
-### Windows
-- **Operating System:** Windows 10 (64-bit) or Windows 11
-- **Processor:** Intel Core i3 or equivalent
-- **Memory:** 4 GB RAM minimum, 8 GB recommended
-- **Storage:** 200 MB available space (plus space for image cache)
-- **Other:** OpenNumismat installed
+### All Platforms
+- **OpenNumismat** installed ([opennumismat.github.io](https://opennumismat.github.io/))
+- **Numista API Key** (free from [numista.com](https://www.numista.com/))
+- **RAM:** 4 GB minimum, 8 GB recommended
+- **Storage:** 200 MB + cache space
 
-### Prerequisites
-1. **OpenNumismat** - Download from [opennumismat.github.io](https://opennumismat.github.io/)
-2. **Numista API Key** (free) - Register at [numista.com](https://www.numista.com/) and request an API key from your profile settings
+### Windows
+- **OS:** Windows 10 (64-bit) or Windows 11
+- **Processor:** Intel Core i3 or equivalent
+
+### macOS
+- **OS:** macOS 10.13 High Sierra or later
+- **Architecture:** Intel (x64) and Apple Silicon (M1/M2/M3 arm64)
+
+### Linux
+- **OS:** Ubuntu 20.04+, Debian 10+, Fedora 32+, or compatible
+- **Architecture:** x64
+- **Display Server:** X11 or Wayland
 
 ---
 
@@ -52,7 +64,133 @@ On first launch, NumiSync Wizard will:
 
 ---
 
+## macOS Installation
+
+**⚠️ Important:** NumiSync Wizard is **not signed** with an Apple Developer certificate. macOS will block it by default. Follow these steps to install:
+
+### Step 1: Download NumiSync Wizard
+
+1. Visit the [Releases page](https://github.com/inguy24/numismat-enrichment/releases/latest)
+2. Download the latest DMG:
+   - **Universal DMG:** `NumiSync-Wizard-1.0.0-universal.dmg` (works on both Intel and Apple Silicon)
+   - **Intel-specific:** `NumiSync-Wizard-1.0.0-x64.dmg`
+   - **Apple Silicon:** `NumiSync-Wizard-1.0.0-arm64.dmg`
+
+**Most users should download the Universal DMG.**
+
+### Step 2: Install the App
+
+1. **Open the DMG** by double-clicking it
+2. **Drag NumiSync Wizard** to your Applications folder
+3. **Eject the DMG** (right-click → Eject)
+
+### Step 3: Bypass Gatekeeper (Required)
+
+Since the app is unsigned, macOS will block it. Use **Method 1** (easiest):
+
+#### Method 1: Right-Click Open (Recommended)
+
+1. **Go to Applications** folder in Finder
+2. **Right-click** (or Control-click) on NumiSync Wizard
+3. Select **"Open"** from the menu
+4. Click **"Open"** in the security dialog
+5. The app will launch - **all future launches work normally** (just double-click)
+
+#### Method 2: System Preferences Override
+
+1. Try to open the app normally (it will be blocked)
+2. Go to **System Preferences** → **Security & Privacy** → **General**
+3. Click **"Open Anyway"** next to the blocked app message
+4. Click **"Open"** in the confirmation dialog
+
+#### Method 3: Terminal Override (Advanced)
+
+```bash
+cd /Applications
+xattr -d com.apple.quarantine "NumiSync Wizard.app"
+```
+
+**For detailed troubleshooting, see the [macOS Installation Guide](/macos-install).**
+
+### Step 4: First Launch
+
+On first launch, NumiSync Wizard will:
+- Create a cache directory in `~/Library/Application Support/numisync-wizard-cache`
+- Load with no collection open
+
+---
+
+## Linux Installation
+
+NumiSync Wizard is available in three formats for Linux. Choose based on your distribution:
+
+### Option 1: AppImage (Universal - Recommended)
+
+**Best for:** All distributions
+
+1. Download `NumiSync-Wizard-1.0.0.AppImage` from [Releases](https://github.com/inguy24/numismat-enrichment/releases/latest)
+2. Make it executable:
+   ```bash
+   chmod +x NumiSync-Wizard-1.0.0.AppImage
+   ```
+3. Run it:
+   ```bash
+   ./NumiSync-Wizard-1.0.0.AppImage
+   ```
+
+**Optional:** Integrate with your desktop environment using [AppImageLauncher](https://github.com/TheAssassin/AppImageLauncher)
+
+### Option 2: Debian/Ubuntu (.deb)
+
+**Best for:** Debian, Ubuntu, Linux Mint, Pop!_OS
+
+```bash
+# Download the .deb file
+wget https://github.com/inguy24/numismat-enrichment/releases/latest/download/NumiSync-Wizard-1.0.0-amd64.deb
+
+# Install
+sudo dpkg -i NumiSync-Wizard-1.0.0-amd64.deb
+
+# Install dependencies if needed
+sudo apt-get install -f
+```
+
+Launch from applications menu or run:
+```bash
+numisync-wizard
+```
+
+### Option 3: Fedora/RHEL (.rpm)
+
+**Best for:** Fedora, RHEL, CentOS, Rocky Linux
+
+```bash
+# Download the .rpm file
+wget https://github.com/inguy24/numismat-enrichment/releases/latest/download/NumiSync-Wizard-1.0.0.x86_64.rpm
+
+# Install
+sudo rpm -i NumiSync-Wizard-1.0.0.x86_64.rpm
+
+# Or with dnf (recommended)
+sudo dnf install NumiSync-Wizard-1.0.0.x86_64.rpm
+```
+
+Launch from applications menu or run:
+```bash
+numisync-wizard
+```
+
+### First Launch (Linux)
+
+On first launch, NumiSync Wizard will:
+- Create a cache directory in `~/.config/numisync-wizard-cache`
+- Load with no collection open
+
+---
+
 ## Initial Configuration
+
+**Note:** These steps are the same for all platforms (Windows, macOS, Linux)
 
 ### 1. Add Your Numista API Key
 
@@ -69,7 +207,9 @@ On first launch, NumiSync Wizard will:
 
 ### 2. Open Your Collection
 
-1. Click **File → Open Collection** or press `Ctrl+O`
+1. Click **File → Open Collection** (keyboard shortcut varies by platform)
+   - **Windows/Linux:** `Ctrl+O`
+   - **macOS:** `Cmd+O`
 2. Navigate to your OpenNumismat `.db` file
 3. Select the file and click **Open**
 4. Your coins will load in the main window
@@ -101,33 +241,79 @@ If you see matches and can update coin data, installation is successful!
 
 ## Troubleshooting
 
-### Installer Won't Run
-- **SmartScreen warning:** Click "More info" → "Run anyway"
-- **Antivirus blocking:** Add an exception for the installer
-- **Corrupted download:** Re-download the installer and verify file size
+### Windows Issues
 
-### Application Won't Launch
-- **Check Event Viewer:** Windows Logs → Application → Look for errors
-- **Missing dependencies:** Install [Visual C++ Redistributable](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist)
-- **Antivirus interference:** Add exception for `NumiSync Wizard.exe`
+**Installer Won't Run:**
+- SmartScreen warning: Click "More info" → "Run anyway"
+- Antivirus blocking: Add exception for installer
+- Corrupted download: Re-download and verify file size
 
-### Can't Open Collection
-- **Verify file path:** Make sure the `.db` file exists and isn't corrupted
-- **File permissions:** Ensure you have read/write access
-- **File in use:** Close OpenNumismat if it has the collection open
-- **Try File → Recent Collections:** If you've opened it before
+**Application Won't Launch:**
+- Check Event Viewer: Windows Logs → Application
+- Missing dependencies: Install [Visual C++ Redistributable](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist)
+- Antivirus interference: Add exception for `NumiSync Wizard.exe`
 
-### API Key Not Working
-- **Verify key:** Copy-paste carefully (no extra spaces)
-- **Check API limits:** Numista has rate limits (120 requests/minute)
-- **Account status:** Ensure your Numista account is active
-- **Test API key:** Try it on Numista's API documentation page
+### macOS Issues
 
-### Cache Directory Issues
-- **Default location:** `%LOCALAPPDATA%\numisync-wizard-cache`
-- **Custom location:** Settings → General → Cache Directory
-- **Permissions:** Ensure you have write access to the cache directory
-- **Clear cache:** Delete cache directory contents if corrupted
+**"NumiSync Wizard is damaged and can't be opened":**
+- Delete the DMG and re-download
+- Verify file size matches releases page
+- Try Method 1 (Right-click → Open)
+
+**"No option to Open in security dialog":**
+- You double-clicked instead of right-clicking
+- Use Method 1 or Method 2 from installation steps above
+
+**App crashes immediately:**
+- Check Console app for crash logs
+- Report issue with macOS version and crash log
+
+**See [macOS Installation Guide](/macos-install) for detailed troubleshooting.**
+
+### Linux Issues
+
+**AppImage won't run:**
+- Ensure it's executable: `chmod +x *.AppImage`
+- Install FUSE: `sudo apt-get install fuse` (Ubuntu/Debian)
+- Try running from terminal to see error messages
+
+**.deb installation fails:**
+- Install dependencies: `sudo apt-get install -f`
+- Check system requirements (Ubuntu 20.04+)
+
+**.rpm installation fails:**
+- Install dependencies: `sudo dnf install <package-name>`
+- Check system requirements (Fedora 32+)
+
+**Missing libraries:**
+```bash
+# Ubuntu/Debian
+sudo apt-get install libgtk-3-0 libnotify4 libnss3 libxss1 libxtst6 xdg-utils
+
+# Fedora/RHEL
+sudo dnf install gtk3 libnotify nss libXScrnSaver libXtst xdg-utils
+```
+
+### All Platforms
+
+**Can't Open Collection:**
+- Verify `.db` file exists and isn't corrupted
+- Ensure you have read/write permissions
+- Close OpenNumismat if it has the collection open
+- Try File → Recent Collections
+
+**API Key Not Working:**
+- Copy-paste carefully (no extra spaces)
+- Check rate limits (120 requests/minute)
+- Verify Numista account is active
+- Test key on Numista API documentation page
+
+**Cache Directory Issues:**
+- **Windows:** `%LOCALAPPDATA%\numisync-wizard-cache`
+- **macOS:** `~/Library/Application Support/numisync-wizard-cache`
+- **Linux:** `~/.config/numisync-wizard-cache`
+- Check write permissions
+- Clear cache if corrupted
 
 ---
 
@@ -141,8 +327,40 @@ If you see matches and can update coin data, installation is successful!
 4. Follow the uninstaller prompts
 
 **Manual cleanup (optional):**
-- Delete cache directory: `%LOCALAPPDATA%\numisync-wizard-cache`
+- Delete cache: `%LOCALAPPDATA%\numisync-wizard-cache`
 - Delete settings: `%APPDATA%\numisync-wizard`
+
+### macOS
+
+1. Quit the application
+2. Delete `NumiSync Wizard.app` from Applications folder
+3. **Optional cleanup:**
+   ```bash
+   rm -rf ~/Library/Application\ Support/numisync-wizard-cache
+   rm -rf ~/Library/Preferences/com.numisync.wizard.plist
+   ```
+
+### Linux
+
+**AppImage:** Simply delete the `.AppImage` file
+
+**Debian/Ubuntu (.deb):**
+```bash
+sudo apt-get remove numisync-wizard
+```
+
+**Fedora/RHEL (.rpm):**
+```bash
+sudo rpm -e numisync-wizard
+# Or with dnf
+sudo dnf remove numisync-wizard
+```
+
+**Manual cleanup (all Linux):**
+```bash
+rm -rf ~/.config/numisync-wizard-cache
+rm -rf ~/.config/numisync-wizard
+```
 
 ---
 

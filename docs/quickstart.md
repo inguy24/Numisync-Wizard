@@ -7,6 +7,8 @@ title: Quick Start Guide
 
 Get up and running with NumiSync Wizard in 5 minutes. This guide walks you through the basic workflow of enriching your coin collection.
 
+**Platform Note:** This guide works for Windows, macOS, and Linux. Keyboard shortcuts are shown for all platforms where they differ.
+
 ---
 
 ## Prerequisites
@@ -23,12 +25,17 @@ Before starting, make sure you have:
 
 ### Open NumiSync Wizard
 
-1. Launch NumiSync Wizard from your Start Menu or Desktop
+1. Launch NumiSync Wizard:
+   - **Windows:** Start Menu or Desktop shortcut
+   - **macOS:** Applications folder or Launchpad
+   - **Linux:** Applications menu or run `numisync-wizard` (if installed via .deb/.rpm)
 2. First launch will create a cache directory automatically
 
 ### Add Your API Key
 
-1. Click **Settings** (gear icon) or press `Ctrl+,`
+1. Click **Settings** (gear icon) or press:
+   - **Windows/Linux:** `Ctrl+,`
+   - **macOS:** `Cmd+,`
 2. Go to **API Settings** tab
 3. Paste your Numista API key
 4. Click **Save**
@@ -39,7 +46,9 @@ Before starting, make sure you have:
 
 ## Step 2: Open Your Collection
 
-1. Click **File → Open Collection** (or press `Ctrl+O`)
+1. Click **File → Open Collection** or press:
+   - **Windows/Linux:** `Ctrl+O`
+   - **macOS:** `Cmd+O`
 2. Navigate to your OpenNumismat `.db` file
 3. Click **Open**
 4. Your coins will load in the main window
@@ -55,9 +64,13 @@ Before starting, make sure you have:
 You can enrich coins one at a time or in batches:
 
 - **Single coin:** Click on a coin row to select it
-- **Multiple coins:** Hold `Ctrl` and click multiple rows
+- **Multiple coins:** Hold modifier key and click multiple rows
+  - **Windows/Linux:** `Ctrl+Click`
+  - **macOS:** `Cmd+Click`
 - **Range:** Click first coin, hold `Shift`, click last coin
-- **All coins:** Press `Ctrl+A`
+- **All coins:** Select all
+  - **Windows/Linux:** `Ctrl+A`
+  - **macOS:** `Cmd+A`
 
 ### Start Search
 
@@ -123,7 +136,9 @@ Many coins have multiple issues (years, mint marks, types):
 ### Manual Search
 
 If no match found automatically:
-1. Click **Manual Search** button (or press `Ctrl+F`)
+1. Click **Manual Search** button or press:
+   - **Windows/Linux:** `Ctrl+F`
+   - **macOS:** `Cmd+F`
 2. Modify search parameters (denomination, year, country)
 3. Click **Search**
 4. Browse results and select the correct entry
@@ -228,6 +243,7 @@ If **Data Settings → Images** is enabled:
 
 ## Keyboard Shortcuts
 
+**Windows/Linux:**
 - `Ctrl+O` - Open collection
 - `F2` - Search & Enrich selected coins
 - `Ctrl+F` - Manual search
@@ -235,6 +251,16 @@ If **Data Settings → Images** is enabled:
 - `Escape` - Cancel/Close dialog
 - `Ctrl+A` - Select all coins
 - `Ctrl+,` - Open settings
+- `F1` - Open help
+
+**macOS:**
+- `Cmd+O` - Open collection
+- `F2` - Search & Enrich selected coins
+- `Cmd+F` - Manual search
+- `Enter` - Accept match
+- `Escape` - Cancel/Close dialog
+- `Cmd+A` - Select all coins
+- `Cmd+,` - Open settings
 - `F1` - Open help
 
 ---

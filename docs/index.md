@@ -8,8 +8,11 @@ title: NumiSync Wizard - Enrich your OpenNumismat collection
 </div>
 
 <div style="text-align: center; margin: 2em 0;">
-  <a href="https://github.com/inguy24/numismat-enrichment/releases/latest" style="display: inline-block; padding: 12px 24px; background: #0066cc; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 0.5em;">Download for Windows</a>
+  <a href="https://github.com/inguy24/numismat-enrichment/releases/latest" style="display: inline-block; padding: 12px 24px; background: #0066cc; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 0.5em;">⬇️ Download Now</a>
   <a href="https://github.com/inguy24/numismat-enrichment" style="display: inline-block; padding: 12px 24px; background: #24292e; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 0.5em;">View on GitHub</a>
+</div>
+<div style="text-align: center; margin: 0.5em 0 2em 0; color: #666; font-size: 0.9em;">
+  Available for Windows • macOS • Linux
 </div>
 
 <div style="text-align: center; margin: 1em 0 2em 0;">
@@ -62,7 +65,37 @@ Customize how 45+ data sources from Numista map to OpenNumismat fields. Full con
 
 ## Screenshots
 
-*Coming soon! Screenshots will showcase the main window, field comparison UI, issue picker, fast pricing mode, and settings panel.*
+### Main Window - Coin Collection Management
+![Main Window](/assets/images/screenshots/main-window.png)
+*Browse your collection with enriched catalog data, images, and pricing information*
+
+### Intelligent Match Selection
+![Match Selection](/assets/images/screenshots/match-select.png)
+*Smart search finds exact matches using denomination normalization and fuzzy matching*
+
+### Side-by-Side Field Comparison
+![Field Comparison](/assets/images/screenshots/field-comparison.png)
+*Review existing vs. new data before updating - cherry-pick individual fields or accept all*
+
+### Issue Variant Picker
+![Issue Picker](/assets/images/screenshots/issue-picker.png)
+*Select the exact issue variant for your coin - year, mint mark, type differences*
+
+### Premium Fast Pricing Mode
+![Fast Pricing Mode](/assets/images/screenshots/fast-pricing-mode.png)
+*Batch update pricing for hundreds of coins in seconds (Supporter License feature)*
+
+### Granular Data Settings
+![Data Settings](/assets/images/screenshots/data-settings.png)
+*Choose exactly which data categories to sync - Basic, Issue, Pricing, or Images*
+
+### Advanced Field Mapping
+![Field Mapping](/assets/images/screenshots/field-mappings.png)
+*Customize how 45+ Numista data sources map to your OpenNumismat fields*
+
+### Grid View Mode
+![Grid View](/assets/images/screenshots/grid-view.png)
+*Alternative visualization of your collection with thumbnail images and key details*
 
 ---
 
@@ -71,16 +104,19 @@ Customize how 45+ data sources from Numista map to OpenNumismat fields. Full con
 ### NumiSync Wizard v1.0.0
 
 <div style="text-align: center; margin: 2em 0;">
-  <a href="https://github.com/inguy24/numismat-enrichment/releases/latest" style="display: inline-block; padding: 12px 24px; background: #28a745; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 1.1em;">Download for Windows (x64/x86)</a>
+  <a href="https://github.com/inguy24/numismat-enrichment/releases/latest" style="display: inline-block; padding: 12px 24px; background: #28a745; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 1.1em; margin: 0.5em;">⬇️ Download Latest Release</a>
+</div>
+
+<div style="text-align: center; margin: 1em 0 2em 0;">
+  <strong>Available Platforms:</strong><br/>
+  🪟 <strong>Windows</strong> - Installer (x64/x86)<br/>
+  🍎 <strong>macOS</strong> - DMG (Intel & Apple Silicon) • <a href="/macos-install">Installation Guide</a><br/>
+  🐧 <strong>Linux</strong> - AppImage, .deb, .rpm (x64)
 </div>
 
 <div style="text-align: center; margin: 1em 0;">
-  <a href="https://github.com/inguy24/numismat-enrichment/releases">View All Releases on GitHub</a>
+  <a href="https://github.com/inguy24/numismat-enrichment/releases">📦 View All Releases on GitHub</a>
 </div>
-
-**Coming Soon:**
-- macOS (Intel/Apple Silicon)
-- Linux (AppImage, deb, rpm)
 
 ---
 
@@ -95,6 +131,11 @@ Get up and running in 5 easy steps:
 5. **Review matches → Accept changes → Done!**
 
 For detailed instructions, see the [Installation Guide](/installation) and [Quick Start Guide](/quickstart).
+
+**Platform Support:**
+- **Windows 10/11** - Full support with installer
+- **macOS 10.13+** - Intel and Apple Silicon (M1/M2/M3)
+- **Linux** - Debian/Ubuntu (.deb), Fedora/RHEL (.rpm), Universal (AppImage)
 
 ---
 
