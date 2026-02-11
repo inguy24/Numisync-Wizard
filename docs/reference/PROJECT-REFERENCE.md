@@ -1,7 +1,7 @@
 # NumiSync Wizard for OpenNumismat - Project Reference
 
 **Purpose:** Architecture reference for implementation. Read when building features.
-**Last Updated:** February 10, 2026 (Cross-Platform Distribution Implementation)
+**Last Updated:** February 10, 2026 (Settings Consolidation + License Validation Fixes + Polar Environment Guide)
 
 ---
 
@@ -70,6 +70,7 @@ numismat-enrichment/
 │   ├── guides/               # How-to guides
 │   │   ├── BUILD-GUIDE.md
 │   │   ├── INSTALLER-DISTRIBUTION-PLAN.md
+│   │   ├── POLAR-ENVIRONMENT-SWITCHING.md    # Sandbox ↔ Production switching
 │   │   └── POLAR-PRODUCTION-CONFIG.md
 │   ├── planning/             # Current work plans
 │   │   └── PHASE3-WORK-PLAN.md
@@ -116,8 +117,8 @@ numismat-enrichment/
 | `merge-data` | Apply selected fields to database |
 | `update-coin-status` | Update coin status in progress cache |
 | `get-progress-stats` | Get overall progress statistics |
-| `get-app-settings` | Phase 1 app-wide settings |
-| `save-app-settings` | Save Phase 1 settings |
+| `get-app-settings` | App-wide settings (reads from settings.json) |
+| `save-app-settings` | Save app settings (writes to settings.json with merge) |
 | `get-settings` | Phase 2 collection-specific settings |
 | `save-fetch-settings` | Save Phase 2 fetch settings |
 | `get-field-mappings` | Returns user's field mappings + NUMISTA_SOURCES |
@@ -304,9 +305,25 @@ updateVersionBadge() in app.js
 
 **When Updates Are Triggered:**
 - App initialization (DOMContentLoaded)
-- After successful license activation (About dialog)
+- After successful license activation (About dialog or App Settings)
 - After license removal (About dialog)
 - After license deactivation (App Settings)
+
+**License Entry Locations:**
+
+Users can activate a license in two places:
+
+1. **App Settings → License Management** (Primary, always visible)
+   - Dual-state component that shows license entry form when no license exists
+   - Password input field for license key
+   - "Activate License" button (Enter key also works)
+   - Purchase link to Polar checkout
+   - After activation: form switches to license info display with Validate/Deactivate buttons
+
+2. **About Dialog** (Help menu or click version badge)
+   - Legacy entry point, still functional
+   - Shows license entry controls when no license exists
+   - Displays supporter badge when license is active
 
 **Premium Feature Gating (app.js):**
 ```javascript
@@ -451,8 +468,12 @@ Uses `electron-updater` with GitHub Releases (`src/main/updater.js`).
    └─ Migration: Auto-migrated from old location (v3.0+)
 
 3. App-Wide Files (userData directory) - CROSS-COLLECTION
-   ├─ app-settings.json (v3.0+)
+   ├─ settings.json (CONSOLIDATED - single source of truth)
+   │  └─ All app settings: API key, search delay, image handling, backups
    │  └─ Window state, recent collections, cache config, EULA
+   │  └─ Supporter/license status, lifetime stats
+   │  └─ Log level, monthly API limit
+   │  └─ Cache TTL settings (flat + structured format)
    ├─ api-cache.json (v3.0+, configurable location)
    │  └─ Persistent Numista API response cache (issuers, types, issues)
    │  └─ Monthly usage tracking per endpoint
@@ -460,16 +481,26 @@ Uses `electron-updater` with GitHub Releases (`src/main/updater.js`).
       └─ File lock for multi-machine cache access
    └─ Survives: App restart, collection switches
    └─ Cache location: Default (userData) or custom (user-configurable)
+   └─ Path: %APPDATA%/numisync-wizard/ (Windows - lowercase with hyphen)
+   └─ Path: ~/.config/numisync-wizard/ (Linux/macOS - lowercase with hyphen)
 ```
+
+**IMPORTANT - Folder Name Capitalization:**
+- **userData folder:** `numisync-wizard` (lowercase with hyphen)
+  - Matches package.json "name" field, NOT electron-builder productName
+  - Logger and all code must use lowercase 'numisync-wizard' to find settings
+  - Mismatch causes logger to fail loading settings.json, defaulting to 'info' level
 
 **Key Changes in v3.0:**
 - Collection files now organized in `.NumiSync/` subdirectory (cleaner, less clutter)
 - Backup timestamps now human-readable: `2026-02-09_143522` instead of ISO format
 - Progress file renamed from `_enrichment_progress.json` to `_progress.json` (shorter)
-- App settings renamed from `settings.json` to `app-settings.json` (clarity)
 - API cache renamed from `numista_api_cache.json` to `api-cache.json`
 - API cache location now configurable (supports multi-machine scenarios)
 - File locking prevents cache corruption when shared across machines
+- **Settings consolidated:** `app-settings.json` merged back into `settings.json` (Feb 2026)
+  - Eliminated dual settings files that caused redundancy and confusion
+  - See `docs/reference/SETTINGS-CONSOLIDATION.md` for migration details
 
 **See Also:** [FILE-LOCATIONS.md](FILE-LOCATIONS.md) for complete documentation of all file locations, uninstaller guidance, and migration details.
 

@@ -467,7 +467,7 @@ async function showAboutDialog() {
 
     if (purchaseLicenseBtn) {
       purchaseLicenseBtn.addEventListener('click', () => {
-        const url = checkoutUrl || 'https://sandbox-api.polar.sh/v1/checkout-links/polar_cl_GU5TpVHT8Fj1XvA7NqBOpEtnoHPY9kSnlrloe240tb1/redirect';
+        const url = checkoutUrl || 'https://buy.polar.sh/polar_cl_4hKjIXXM8bsjk9MivMFIvtXbg7zWswAzEAVJK2TVZZ0';
         window.electronAPI.openExternal(url);
       });
     }
@@ -674,7 +674,7 @@ async function showLicensePromptModal(totalCoinsEnriched) {
 
     if (getBtn) {
       getBtn.addEventListener('click', () => {
-        const url = checkoutUrl || 'https://sandbox-api.polar.sh/v1/checkout-links/polar_cl_GU5TpVHT8Fj1XvA7NqBOpEtnoHPY9kSnlrloe240tb1/redirect';
+        const url = checkoutUrl || 'https://buy.polar.sh/polar_cl_4hKjIXXM8bsjk9MivMFIvtXbg7zWswAzEAVJK2TVZZ0';
         window.electronAPI.openExternal(url);
         document.getElementById('modal').style.display = 'none';
       });
@@ -796,7 +796,7 @@ async function requirePremiumFeature(featureId) {
 
         if (getBtn) {
           getBtn.addEventListener('click', () => {
-            const url = checkoutUrl || 'https://sandbox-api.polar.sh/v1/checkout-links/polar_cl_GU5TpVHT8Fj1XvA7NqBOpEtnoHPY9kSnlrloe240tb1/redirect';
+            const url = checkoutUrl || 'https://buy.polar.sh/polar_cl_4hKjIXXM8bsjk9MivMFIvtXbg7zWswAzEAVJK2TVZZ0';
             window.electronAPI.openExternal(url);
             document.getElementById('modal').style.display = 'none';
             resolve(false);
@@ -919,7 +919,7 @@ async function showUpgradeModal(message, currentVersion, requiredVersion) {
 
     if (getBtn) {
       getBtn.addEventListener('click', () => {
-        const url = checkoutUrl || 'https://sandbox-api.polar.sh/v1/checkout-links/polar_cl_GU5TpVHT8Fj1XvA7NqBOpEtnoHPY9kSnlrloe240tb1/redirect';
+        const url = checkoutUrl || 'https://buy.polar.sh/polar_cl_4hKjIXXM8bsjk9MivMFIvtXbg7zWswAzEAVJK2TVZZ0';
         window.electronAPI.openExternal(url);
         document.getElementById('modal').style.display = 'none';
       });
@@ -5404,27 +5404,45 @@ function updateDefaultCollectionUI(path) {
  */
 async function loadLicenseManagementDisplay() {
   const groupEl = document.getElementById('licenseManagementGroup');
+  const entryFormEl = document.getElementById('licenseEntryForm');
   const infoEl = document.getElementById('licenseInfoDisplay');
+  const actionsEl = document.getElementById('licenseActions');
+  const actionsHelpEl = document.getElementById('licenseActionsHelp');
 
-  if (!groupEl || !infoEl) return;
+  if (!groupEl || !entryFormEl || !infoEl || !actionsEl) return;
 
   try {
     const result = await window.electronAPI.getSupporterStatus();
 
     if (!result.success) {
-      groupEl.style.display = 'none';
+      // Error getting status - show entry form by default
+      entryFormEl.style.display = 'block';
+      infoEl.style.display = 'none';
+      actionsEl.style.display = 'none';
+      if (actionsHelpEl) actionsHelpEl.style.display = 'none';
       return;
     }
 
     const supporter = result.supporter;
 
     if (!supporter?.isSupporter) {
-      groupEl.style.display = 'none';
+      // No license - show entry form
+      entryFormEl.style.display = 'block';
+      infoEl.style.display = 'none';
+      actionsEl.style.display = 'none';
+      if (actionsHelpEl) actionsHelpEl.style.display = 'none';
+
+      // Clear any previous messages
+      const messageEl = document.getElementById('settingsLicenseMessage');
+      if (messageEl) messageEl.textContent = '';
       return;
     }
 
-    // Show the section for active supporters
-    groupEl.style.display = 'block';
+    // Has license - show info display and actions
+    entryFormEl.style.display = 'none';
+    infoEl.style.display = 'block';
+    actionsEl.style.display = 'block';
+    if (actionsHelpEl) actionsHelpEl.style.display = 'block';
 
     const deviceLabel = supporter.deviceLabel || 'Unknown';
     const activatedDate = supporter.validatedAt
@@ -5455,7 +5473,11 @@ async function loadLicenseManagementDisplay() {
     `;
   } catch (error) {
     console.error('Error loading license info:', error);
-    groupEl.style.display = 'none';
+    // On error, show entry form
+    entryFormEl.style.display = 'block';
+    infoEl.style.display = 'none';
+    actionsEl.style.display = 'none';
+    if (actionsHelpEl) actionsHelpEl.style.display = 'none';
   }
 }
 
@@ -5998,6 +6020,93 @@ document.getElementById('deactivateLicenseBtn').addEventListener('click', async 
 });
 
 // =============================================================================
+// Settings Screen - License Entry Event Handlers
+// =============================================================================
+
+/**
+ * Handle license activation from Settings screen
+ */
+document.getElementById('settingsActivateLicenseBtn').addEventListener('click', async () => {
+  const keyInput = document.getElementById('settingsLicenseKeyInput');
+  const activateBtn = document.getElementById('settingsActivateLicenseBtn');
+  const messageEl = document.getElementById('settingsLicenseMessage');
+
+  if (!keyInput || !activateBtn || !messageEl) return;
+
+  const key = keyInput.value.trim();
+  if (!key) {
+    messageEl.style.color = 'var(--error, #dc3545)';
+    messageEl.textContent = 'Please enter a license key';
+    return;
+  }
+
+  // Disable button and show loading state
+  activateBtn.disabled = true;
+  activateBtn.textContent = 'Validating...';
+  messageEl.textContent = '';
+
+  try {
+    const result = await window.electronAPI.validateLicenseKey(key);
+
+    if (result.valid) {
+      // Success
+      messageEl.style.color = 'var(--success, #28a745)';
+      messageEl.textContent = result.message || 'License activated successfully!';
+
+      // Clear input
+      keyInput.value = '';
+
+      // Wait a moment, then refresh the display and update version badge
+      setTimeout(async () => {
+        await loadLicenseManagementDisplay();
+        updateVersionBadge();
+      }, 1500);
+    } else {
+      // Validation failed
+      messageEl.style.color = 'var(--error, #dc3545)';
+      messageEl.textContent = result.message || 'License validation failed';
+      activateBtn.disabled = false;
+      activateBtn.textContent = 'Activate License';
+    }
+  } catch (error) {
+    console.error('Error validating license:', error);
+    messageEl.style.color = 'var(--error, #dc3545)';
+    messageEl.textContent = 'Error validating license: ' + error.message;
+    activateBtn.disabled = false;
+    activateBtn.textContent = 'Activate License';
+  }
+});
+
+/**
+ * Handle "Enter" key press in license input field
+ */
+document.getElementById('settingsLicenseKeyInput').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') {
+    document.getElementById('settingsActivateLicenseBtn').click();
+  }
+});
+
+/**
+ * Handle purchase link click
+ */
+document.getElementById('settingsPurchaseLicenseLink').addEventListener('click', async (e) => {
+  e.preventDefault();
+
+  let checkoutUrl = '';
+  try {
+    const result = await window.electronAPI.getSupporterStatus();
+    if (result.success) {
+      checkoutUrl = result.polarConfig?.checkoutUrl || '';
+    }
+  } catch (error) {
+    console.error('Error getting checkout URL:', error);
+  }
+
+  const url = checkoutUrl || 'https://buy.polar.sh/polar_cl_4hKjIXXM8bsjk9MivMFIvtXbg7zWswAzEAVJK2TVZZ0';
+  window.electronAPI.openExternal(url);
+});
+
+// =============================================================================
 // Periodic License Validation
 // =============================================================================
 
@@ -6137,12 +6246,12 @@ async function updateVersionBadge() {
 async function openPurchaseLicenseUrl() {
   try {
     const result = await window.electronAPI.getSupporterStatus();
-    const checkoutUrl = result.polarConfig?.checkoutUrl || 'https://sandbox-api.polar.sh/v1/checkout-links/polar_cl_GU5TpVHT8Fj1XvA7NqBOpEtnoHPY9kSnlrloe240tb1/redirect';
+    const checkoutUrl = result.polarConfig?.checkoutUrl || 'https://buy.polar.sh/polar_cl_4hKjIXXM8bsjk9MivMFIvtXbg7zWswAzEAVJK2TVZZ0';
     window.electronAPI.openExternal(checkoutUrl);
   } catch (e) {
     console.error('Error opening purchase URL:', e);
     // Fallback to sandbox URL
-    window.electronAPI.openExternal('https://sandbox-api.polar.sh/v1/checkout-links/polar_cl_GU5TpVHT8Fj1XvA7NqBOpEtnoHPY9kSnlrloe240tb1/redirect');
+    window.electronAPI.openExternal('https://buy.polar.sh/polar_cl_4hKjIXXM8bsjk9MivMFIvtXbg7zWswAzEAVJK2TVZZ0');
   }
 }
 

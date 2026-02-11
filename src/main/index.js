@@ -94,19 +94,40 @@ function getApiCache() {
 
 /**
  * Load app-wide settings from disk
- * @returns {Object} App settings with defaults
+ * IMPORTANT: Now reads from settings.json (consolidation - app-settings.json removed)
+ * @returns {Object} App settings with defaults for cache-related fields
  */
 function loadAppSettings() {
   try {
-    const settingsPath = path.join(app.getPath('userData'), 'app-settings.json');
+    const settingsPath = path.join(app.getPath('userData'), 'settings.json');
     if (fs.existsSync(settingsPath)) {
-      return JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+      const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+
+      // Ensure cache structure exists with defaults
+      if (!settings.cache) {
+        settings.cache = {
+          location: 'default',
+          customPath: null,
+          lockTimeout: 30000
+        };
+      }
+
+      // Ensure cacheTtl structure exists (merge old flat fields if present)
+      if (!settings.cacheTtl) {
+        settings.cacheTtl = {
+          issuers: settings.cacheTtlIssuers || 90,
+          types: settings.cacheTtlTypes || 30,
+          issues: settings.cacheTtlIssues || 30
+        };
+      }
+
+      return settings;
     }
   } catch (error) {
     log.warn('Failed to load app settings:', error.message);
   }
 
-  // Return defaults
+  // Return defaults for new installation
   return {
     version: '3.0',
     cache: {
@@ -131,61 +152,88 @@ function loadAppSettings() {
 
 /**
  * Save app-wide settings to disk
- * @param {Object} settings - Settings object to save
+ * IMPORTANT: Now writes to settings.json (consolidation - app-settings.json removed)
+ * Merges with existing settings to preserve fields not in the update
+ * @param {Object} settings - Settings object to save (partial updates supported)
  */
 function saveAppSettings(settings) {
   try {
-    const settingsPath = path.join(app.getPath('userData'), 'app-settings.json');
-    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+    const settingsPath = path.join(app.getPath('userData'), 'settings.json');
+
+    // Load existing settings to merge with
+    let existingSettings = {};
+    if (fs.existsSync(settingsPath)) {
+      existingSettings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+    }
+
+    // Merge: new settings override existing
+    const mergedSettings = { ...existingSettings, ...settings };
+
+    // If cacheTtl is being updated, also update flat fields for backwards compatibility
+    if (settings.cacheTtl) {
+      mergedSettings.cacheTtlIssuers = settings.cacheTtl.issuers;
+      mergedSettings.cacheTtlTypes = settings.cacheTtl.types;
+      mergedSettings.cacheTtlIssues = settings.cacheTtl.issues;
+    }
+
+    fs.writeFileSync(settingsPath, JSON.stringify(mergedSettings, null, 2));
   } catch (error) {
     log.error('Failed to save app settings:', error.message);
   }
 }
 
 /**
- * Migrate app settings from old format to new format
+ * Migrate app settings - consolidate app-settings.json back into settings.json
  * Called once on startup to handle backwards compatibility
+ * SETTINGS CONSOLIDATION (Feb 2026): app-settings.json created redundancy
  */
 function migrateAppSettings() {
   const userDataPath = app.getPath('userData');
-  const oldSettingsPath = path.join(userDataPath, 'settings.json');
-  const newSettingsPath = path.join(userDataPath, 'app-settings.json');
+  const settingsPath = path.join(userDataPath, 'settings.json');
+  const appSettingsPath = path.join(userDataPath, 'app-settings.json');
 
-  // Migrate settings.json → app-settings.json
-  if (fs.existsSync(oldSettingsPath) && !fs.existsSync(newSettingsPath)) {
+  // Migrate app-settings.json → settings.json (consolidation)
+  if (fs.existsSync(appSettingsPath)) {
     try {
-      const oldData = JSON.parse(fs.readFileSync(oldSettingsPath, 'utf8'));
+      const appSettingsData = JSON.parse(fs.readFileSync(appSettingsPath, 'utf8'));
+      let settingsData = {};
 
-      const newData = {
-        version: '3.0',
-        cache: {
-          location: 'default',
-          customPath: null,
-          lockTimeout: 30000
-        },
+      if (fs.existsSync(settingsPath)) {
+        settingsData = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+      }
+
+      // Merge app-settings.json into settings.json
+      // Priority: settings.json wins for shared fields (it's more up-to-date)
+      const merged = {
+        ...settingsData,
+        // Add cache config from app-settings.json if not in settings.json
+        cache: settingsData.cache || appSettingsData.cache,
+        // Merge cacheTtl structure (prefer settings.json flat fields if present)
         cacheTtl: {
-          issuers: oldData.cacheTtlIssuers || 90,
-          types: oldData.cacheTtlTypes || 30,
-          issues: oldData.cacheTtlIssues || 30
+          issuers: settingsData.cacheTtlIssuers || appSettingsData.cacheTtl?.issuers || 90,
+          types: settingsData.cacheTtlTypes || appSettingsData.cacheTtl?.types || 30,
+          issues: settingsData.cacheTtlIssues || appSettingsData.cacheTtl?.issues || 30
         },
-        windowBounds: oldData.windowBounds,
-        recentCollections: oldData.recentCollections || [],
-        logLevel: oldData.logLevel || 'info',
-        supporter: oldData.supporter || {},
-        eulaAccepted: oldData.eulaAccepted,
-        eulaVersion: oldData.eulaVersion,
-        eulaAcceptedAt: oldData.eulaAcceptedAt
+        // Keep flat fields for backwards compatibility
+        cacheTtlIssuers: settingsData.cacheTtlIssuers || appSettingsData.cacheTtl?.issuers || 90,
+        cacheTtlTypes: settingsData.cacheTtlTypes || appSettingsData.cacheTtl?.types || 30,
+        cacheTtlIssues: settingsData.cacheTtlIssues || appSettingsData.cacheTtl?.issues || 30,
+        // Version tracking
+        version: '3.0'
       };
 
-      fs.writeFileSync(newSettingsPath, JSON.stringify(newData, null, 2));
-      log.info('Migrated app settings to new format');
-      // Keep old file for safety (can delete in future version)
+      fs.writeFileSync(settingsPath, JSON.stringify(merged, null, 2));
+      log.info('Consolidated app-settings.json into settings.json');
+
+      // Rename app-settings.json to .bak for safety
+      fs.renameSync(appSettingsPath, appSettingsPath + '.bak');
+      log.info('Archived app-settings.json as app-settings.json.bak');
     } catch (error) {
       log.error('Failed to migrate app settings:', error.message);
     }
   }
 
-  // Rename cache file
+  // Rename cache file (legacy migration - should already be done)
   const oldCachePath = path.join(userDataPath, 'numista_api_cache.json');
   const newCachePath = path.join(userDataPath, 'api-cache.json');
 
@@ -2402,13 +2450,13 @@ ipcMain.handle('clear-recent-collections', async () => {
 // IPC HANDLERS - Licensing & Supporter Status
 // ============================================================================
 
-// Polar configuration - SANDBOX MODE
-// To switch to production, see docs/POLAR-PRODUCTION-CONFIG.md
+// Polar configuration - PRODUCTION MODE
+// To switch to sandbox, see docs/guides/POLAR-ENVIRONMENT-SWITCHING.md
 const POLAR_CONFIG = {
-  organizationId: '5e78bbbd-3677-4b3f-91d4-00c44c370d31',
-  productId: '4f7d17ca-274c-41f2-b57c-cb7393776131',
-  checkoutUrl: 'https://sandbox-api.polar.sh/v1/checkout-links/polar_cl_GU5TpVHT8Fj1XvA7NqBOpEtnoHPY9kSnlrloe240tb1/redirect',
-  server: 'sandbox'  // 'sandbox' or 'production'
+  organizationId: '52798f3d-8060-45c9-b5e7-067bfa63c350',
+  productId: '50fd6539-84c3-4ca7-9a1e-9f73033077dd',
+  checkoutUrl: 'https://buy.polar.sh/polar_cl_4hKjIXXM8bsjk9MivMFIvtXbg7zWswAzEAVJK2TVZZ0',
+  server: 'production'  // 'sandbox' or 'production'
 };
 
 /**
@@ -2633,6 +2681,21 @@ ipcMain.handle('validate-license-key', async (event, licenseKey) => {
       };
 
       fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
+
+      // Immediately validate the license to increment Polar's validation counter
+      // This ensures the dashboard shows "Validated" even on first activation
+      try {
+        log.debug('[LICENSE DEBUG] Calling validate immediately after activation');
+        const validateResult = await polar.customerPortal.licenseKeys.validate({
+          key: licenseKey.trim(),
+          organizationId: POLAR_CONFIG.organizationId,
+          activationId: result.id
+        });
+        log.debug('[LICENSE DEBUG] Post-activation validate response:', JSON.stringify(validateResult, null, 2));
+      } catch (validateError) {
+        // Non-fatal - activation succeeded, validation can happen later
+        log.warn('[LICENSE DEBUG] Post-activation validation failed (non-fatal):', validateError.message);
+      }
 
       return {
         success: true,

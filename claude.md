@@ -73,6 +73,12 @@
 
 22. **Pass the source object through multi-stage data flows** - When a function determines behavior based on a reference object (e.g., the enriched coin for skip reasons), that object must be explicitly passed through each stage of the flow. Don't assume a related object (e.g., `duplicates[0].coin`) is equivalent — it may be empty or refer to a different entity entirely.
 
+23. **Logger folder path must match package.json name, not productName** - `logger.js` runs before `app.ready()`, so it manually constructs the userData path. It must use package.json `"name"` field (e.g., `"numisync-wizard"`), NOT electron-builder `productName` (e.g., `"NumiSync Wizard"`). In dev mode, Electron uses package.json name for userData folder. Mismatch causes logger to fail loading settings, silently falling back to default 'info' level and filtering out all `log.debug()` statements. Check this when debug logging doesn't work despite settings showing debug enabled.
+
+24. **Activate and Validate are separate license operations** - Polar SDK has two distinct endpoints: `activate()` registers a new device (counts toward device limit, creates activation record, does NOT increment validations counter) and `validate()` checks existing license validity (increments validations counter, updates lastValidatedAt timestamp shown in dashboard). When user first enters license key, call `activate()` to register device, then immediately call `validate()` to increment validation counter. Periodic re-validation (every 7 days) should only call `validate()`, not `activate()`. Calling only `activate()` on first entry causes Polar dashboard to show "Validations: 0, Validated At: Never Validated" even though license works.
+
+25. **Never create parallel settings files — always consolidate** - Creating a new settings file (e.g., `app-settings.json`) when adding features causes redundancy, sync issues, and confusion about which file controls which settings. Always extend the existing settings file with new fields. When adding cache configuration or other new features, add the fields to `settings.json` with backwards-compatible defaults. If dual files already exist, immediately consolidate by: (1) updating read/write functions to use one file, (2) reversing migration to merge the new file into the old, (3) documenting the single source of truth. See `docs/reference/SETTINGS-CONSOLIDATION.md` for full consolidation pattern.
+
 ## 6. JSDOC DOCUMENTATION STANDARDS
 
 **When to Add JSDoc:**

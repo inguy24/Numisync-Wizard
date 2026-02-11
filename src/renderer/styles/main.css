@@ -2466,8 +2466,9 @@ body {
   overflow: visible;
 }
 
+/* Modal body should clip to border - zoomed images escape via high z-index */
 #issuePickerModal .modal-body {
-  overflow: visible;
+  overflow: auto;
 }
 
 /* Keep the issue options list scrollable */

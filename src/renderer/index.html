@@ -613,12 +613,39 @@
             </div>
           </div>
 
-          <div class="setting-group" id="licenseManagementGroup" style="display: none;">
+          <div class="setting-group" id="licenseManagementGroup">
             <h3>License Management</h3>
-            <div id="licenseInfoDisplay">
+
+            <!-- License entry form - shown when NO license -->
+            <div id="licenseEntryForm" style="display: none;">
+              <p class="setting-help">
+                Enter your NumiSync Wizard license key to unlock premium features.
+              </p>
+              <div style="margin: 15px 0;">
+                <label for="settingsLicenseKeyInput" style="display: block; margin-bottom: 5px;">License Key:</label>
+                <input type="password"
+                       id="settingsLicenseKeyInput"
+                       placeholder="Enter your license key"
+                       style="width: 100%; max-width: 400px; padding: 8px; border: 1px solid var(--border-color, #ddd); border-radius: 4px;">
+                <button id="settingsActivateLicenseBtn"
+                        class="btn btn-primary"
+                        style="margin-top: 10px;">
+                  Activate License
+                </button>
+                <p id="settingsLicenseMessage" style="margin: 10px 0 0 0; font-size: 0.9em;"></p>
+              </div>
+              <p class="setting-help">
+                Don't have a license? <a href="#" id="settingsPurchaseLicenseLink" style="color: var(--accent, #007bff);">Purchase one here</a>
+              </p>
+            </div>
+
+            <!-- License info display - shown when license EXISTS -->
+            <div id="licenseInfoDisplay" style="display: none;">
               <!-- License info will be populated by JavaScript -->
             </div>
-            <div id="licenseActions" style="margin-top: 15px;">
+
+            <!-- License actions - shown when license EXISTS -->
+            <div id="licenseActions" style="margin-top: 15px; display: none;">
               <button id="revalidateLicenseBtn" class="btn btn-secondary" style="margin-right: 10px;">
                 Validate License
               </button>
@@ -626,7 +653,8 @@
                 Deactivate License
               </button>
             </div>
-            <p class="setting-help">
+
+            <p class="setting-help" id="licenseActionsHelp" style="display: none;">
               <strong>Device Label:</strong> Identifies this installation on Polar's website.<br>
               <strong>Deactivate:</strong> Frees up one of your 3 device slots so you can activate on another device.
             </p>

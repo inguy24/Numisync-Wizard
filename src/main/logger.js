@@ -4,7 +4,7 @@
  * Configures electron-log v5 for the entire application.
  * All other files import this singleton via require('./logger') or require('../main/logger').
  *
- * Log file location: %APPDATA%/NumiSync Wizard/logs/numisync-wizard.log
+ * Log file location: %APPDATA%/numisync-wizard/logs/numisync-wizard.log
  */
 const log = require('electron-log');
 const path = require('path');
@@ -16,9 +16,10 @@ const fs = require('fs');
 let initialLogLevel = 'info';
 try {
   // app.getPath('userData') may not be available yet, so build the path manually
+  // IMPORTANT: Must match package.json "name" field, NOT electron-builder productName
   const userDataPath = process.env.APPDATA
-    ? path.join(process.env.APPDATA, 'NumiSync Wizard')
-    : path.join(require('os').homedir(), '.config', 'NumiSync Wizard');
+    ? path.join(process.env.APPDATA, 'numisync-wizard')
+    : path.join(require('os').homedir(), '.config', 'numisync-wizard');
   const settingsPath = path.join(userDataPath, 'settings.json');
   if (fs.existsSync(settingsPath)) {
     const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
