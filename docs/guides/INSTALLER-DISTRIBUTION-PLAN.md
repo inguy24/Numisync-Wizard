@@ -736,8 +736,80 @@ Maintain BOTH packaging formats:
 - [x] EULA / additional license terms provided
 - [x] Keywords configured (7 keywords, 21 words)
 - [x] runFullTrust capability declared and justified
+- [ ] **Windows App Certification Kit (WACK) test passed** (MISSED - see notes below)
 - [x] MSIX package submitted to Microsoft for certification (February 16, 2026)
 - [ ] Microsoft certification approved (pending review, typically 1-3 business days)
+
+**WACK Testing Note (February 16, 2026):**
+First submission did not include pre-testing with Windows App Certification Kit. Microsoft's certification process runs the same tests, so issues (if any) will be caught during review. For all future releases, WACK testing is now required before submission - see "WACK Pre-Submission Testing" section below.
+
+### WACK Pre-Submission Testing
+
+**Windows App Certification Kit (WACK)** validates that your app meets Microsoft Store requirements BEFORE submission, catching issues early.
+
+**When to Run WACK:**
+- Before every Microsoft Store submission (initial and updates)
+- After making changes to app capabilities or manifest
+- After upgrading Electron or major dependencies
+
+**What WACK Tests:**
+- App manifest correctness and required declarations
+- API usage compliance (no restricted/deprecated APIs)
+- Performance requirements (launch time < 5s, suspend/resume behavior)
+- Security validation (capability usage, file access patterns)
+- Package integrity and signing (for signed packages)
+- High-DPI and accessibility support
+
+**How to Run WACK:**
+
+**Option 1: Automated Script (Recommended)**
+```powershell
+# Run the WACK helper script
+.\scripts\run-wack.ps1
+```
+
+**Option 2: Manual via Start Menu**
+1. Build MSIX package: `npm run build:msix`
+2. Open Start Menu → Search "Windows App Cert Kit"
+3. Click "Validate app package"
+4. Browse to `dist\NumiSync Wizard-<version>.msix`
+5. Select all tests → Run
+6. Wait 5-10 minutes for results
+7. Review HTML report (auto-opens)
+
+**Understanding WACK Results:**
+
+| Result | Meaning | Action Required |
+|--------|---------|-----------------|
+| ✅ PASSED | App meets all requirements | Safe to submit to Store |
+| ⚠️ WARNING | Minor issues detected | Review warnings, fix if possible (not blocking) |
+| ❌ FAILED | Critical issues found | **Must fix before submission** - Store will reject |
+
+**Common WACK Failures and Fixes:**
+
+| Failure | Cause | Fix |
+|---------|-------|-----|
+| "Debug configuration test" | Built in debug mode | Use `npm run build:msix` (production build) |
+| "Supported API test" | Using restricted Windows APIs | Remove restricted API calls or add capability justification |
+| "App manifest compliance" | Missing required manifest fields | Update `electron-builder.yml` appx section |
+| "Performance test" | App takes >5s to launch | Optimize startup code, lazy-load heavy modules |
+| "High DPI test" | DPI scaling issues | Test app at 125%, 150%, 200% scaling |
+
+**WACK Report Location:**
+- Saved to: `C:\Users\<username>\AppData\Local\Microsoft\Windows App Certification Kit\`
+- Filename: `AppCertification_<timestamp>.html`
+- Keep reports for certification audit trail
+
+**Interpreting the Report:**
+- **Green sections** - Tests passed
+- **Yellow sections** - Warnings (review but not blocking)
+- **Red sections** - Failures (must fix before submission)
+- Click any failure for detailed explanation and remediation guidance
+
+**WACK Limitations:**
+- Cannot test Store-specific features (in-app purchases, Store licensing)
+- Performance tests run on your hardware (may differ from user machines)
+- Does not validate Store listing content (description, screenshots, etc.)
 
 ### Update Workflow
 
@@ -746,9 +818,11 @@ Maintain BOTH packaging formats:
 1. Developer runs `npm version patch/minor/major`
 2. GitHub Actions builds BOTH NSIS and MSIX automatically
 3. NSIS: Uploaded to GitHub Release (manual SignPath approval if enabled)
-4. MSIX: Uploaded to GitHub Release + manually submitted to Microsoft Store
-5. Microsoft reviews update (typically approved within hours for established apps)
-6. Store users receive update through Windows Update automatically
+4. **MSIX: Download artifact and run WACK test** (`.\scripts\run-wack.ps1`)
+5. **Verify WACK passes** - if failures, fix issues and rebuild
+6. MSIX: Upload to GitHub Release + manually submit to Microsoft Store
+7. Microsoft reviews update (typically approved within hours for established apps)
+8. Store users receive update through Windows Update automatically
 
 ### Store Update Notifications (Implemented)
 
