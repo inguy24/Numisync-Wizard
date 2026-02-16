@@ -3,7 +3,7 @@ layout: default
 title: Get a Supporter License
 ---
 
-# NumiSync Supporter License
+<h1 style="margin-top: 2em;">NumiSync Supporter License</h1>
 
 ## What's Included
 
@@ -11,20 +11,20 @@ NumiSync Wizard is **free for core features**, but a Supporter License ($10) unl
 
 ### Free Features (Always Available)
 
-- ✅ Intelligent coin matching and search
-- ✅ Visual field comparison and selective updates
-- ✅ Issue variant selection
-- ✅ Image download and comparison
-- ✅ Smart caching and multi-machine support
-- ✅ Advanced field mapping
+- Intelligent coin matching and search
+- Visual field comparison and selective updates
+- Issue variant selection
+- Image download and comparison
+- Smart caching and multi-machine support
+- Advanced field mapping
 
 ### Supporter License Features ($10)
 
-- ⚡ **Fast Pricing Mode** - Batch update pricing across your entire collection in seconds
-- 🔄 **Auto-Propagate** - Automatically apply type data to all matching coins
-- 🔕 **No more nag prompts!** - Uninterrupted workflow
-- 💰 **Discounts on future premium features** - Early supporter benefits
-- 💚 **Support independent software** - Help keep NumiSync improving
+- **Fast Pricing Mode** - Batch update pricing across your entire collection in seconds
+- **Auto-Propagate** - Automatically apply type data to all matching coins
+- **No more nag prompts** - Uninterrupted workflow
+- **Discounts on future premium features** - Early supporter benefits
+- **Support independent software** - Help keep NumiSync improving
 
 **Buy once, use forever** • 5-device activation limit • No subscriptions
 
@@ -33,7 +33,7 @@ NumiSync Wizard is **free for core features**, but a Supporter License ($10) unl
 ## Purchase a License
 
 <div style="text-align: center; margin: 2em 0;">
-  <a href="https://polar.sh/inguy24/products/50fd6539-84c3-4ca7-9a1e-9f73033077dd" style="display: inline-block; padding: 16px 32px; background: #6f42c1; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 1.2em;">Purchase Now - $10</a>
+  <a href="https://polar.sh/inguy24/products/50fd6539-84c3-4ca7-9a1e-9f73033077dd" target="_blank" rel="noopener" style="display: inline-block; padding: 16px 32px; background: #6f42c1; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 1.2em;">Purchase Now - $10</a>
 </div>
 
 <div style="text-align: center; margin: 1em 0; color: #666;">
@@ -88,10 +88,6 @@ No! **Buy once, use forever.** Your license never expires and includes all featu
 
 Your v1 license unlocks all v1.x features permanently. Future major versions (v2.0+) with significant new features may require a separate license, but existing v1 features will continue working. Early supporters will receive upgrade discounts.
 
-### Can I get a refund?
-
-Yes! If you're not satisfied within 30 days, contact us for a full refund - no questions asked.
-
 ### I lost my license key. Can I retrieve it?
 
 Yes! Your license key is tied to your email address. Check your purchase confirmation email from Polar.sh, or contact support with your purchase email.
@@ -109,22 +105,12 @@ Every supporter license directly funds NumiSync's continued development and keep
 
 ---
 
-## Student/Financial Hardship Discount
-
-If you're a student or experiencing financial hardship, please reach out. We offer discounts for those who need them - numismatics should be accessible to all collectors.
-
-<div style="text-align: center; margin: 2em 0;">
-  <a href="mailto:shane@numisync.com?subject=Student/Hardship%20License%20Request" style="color: #6f42c1;">Request a discount</a>
-</div>
-
----
-
 ## Need Help?
 
 - **Installation issues?** See the [Installation Guide](/installation)
 - **Questions about features?** Check the in-app documentation (press F1)
 - **Technical support?** [Open an issue on GitHub](https://github.com/inguy24/numismat-enrichment/issues)
-- **Other questions?** Email: [shane@numisync.com](mailto:shane@numisync.com)
+- **Other questions?** Email: [shane@shaneburkhardt.com](mailto:shane@shaneburkhardt.com)
 
 ---
 

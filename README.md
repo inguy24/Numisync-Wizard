@@ -6,19 +6,19 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GitHub stars](https://img.shields.io/github/stars/inguy24/numismat-enrichment?style=social)](https://github.com/inguy24/numismat-enrichment)
 
-**NumiSync Wizard** is a desktop application for Windows that automatically enriches your [OpenNumismat](https://opennumismat.github.io/) coin collection database with detailed catalog data, pricing information, and images from [Numista](https://www.numista.com/).
+**NumiSync Wizard** is a cross-platform desktop application for Windows, macOS, and Linux that automatically enriches your [OpenNumismat](https://opennumismat.github.io/) coin collection database with detailed catalog data, pricing information, and images from [Numista](https://www.numista.com/).
 
 ---
 
 ## Features
 
-- 🎯 **Intelligent Coin Matching** - Fuzzy search with denomination normalization and issuer resolution
-- 🎛️ **Granular Data Control** - Choose exactly what data to sync (Basic/Issue/Pricing)
-- 🔍 **Visual Field Comparison** - Side-by-side comparison, cherry-pick fields to update
-- ⚡ **Fast Pricing Mode** - Batch update pricing for all matched coins *(Premium)*
-- 🔄 **Auto-Propagate** - Apply type data to matching coins automatically *(Premium)*
-- 💾 **Smart Caching** - Persistent API cache reduces requests, respects rate limits
-- ⚙️ **Advanced Field Mapping** - Customize how 45+ data sources map to OpenNumismat
+- **Intelligent Coin Matching** - Fuzzy search with denomination normalization and issuer resolution
+- **Granular Data Control** - Choose exactly what data to sync (Basic/Issue/Pricing)
+- **Visual Field Comparison** - Side-by-side comparison, cherry-pick fields to update
+- **Fast Pricing Mode** - Batch update pricing for all matched coins *(Premium)*
+- **Auto-Propagate** - Apply type data to matching coins automatically *(Premium)*
+- **Smart Caching** - Persistent API cache reduces requests, respects rate limits
+- **Advanced Field Mapping** - Customize how 45+ data sources map to OpenNumismat
 
 ---
 
@@ -70,23 +70,21 @@ For detailed instructions, see the **[Quick Start Guide](https://numisync.com/qu
 
 ## Documentation
 
-- 🌐 **[Homepage](https://numisync.com)** - Features, screenshots, and downloads
-- 📖 **[Installation Guide](https://numisync.com/installation)** - System requirements and setup
-- 🚀 **[Quick Start Guide](https://numisync.com/quickstart)** - Get started in 5 minutes
-- 📚 **[Full Documentation](docs/)** - Technical reference and guides
-- 📝 **[Changelog](docs/CHANGELOG.md)** - Version history and updates
-- 🛠️ **[Build Guide](docs/guides/BUILD-GUIDE.md)** - For developers
+- **[Homepage](https://numisync.com)** - Features, screenshots, and downloads
+- **[Installation Guide](https://numisync.com/installation)** - System requirements and setup
+- **[Quick Start Guide](https://numisync.com/quickstart)** - Get started in 5 minutes
+- **[Full Documentation](docs/)** - Technical reference and guides
+- **[Changelog](docs/CHANGELOG.md)** - Version history and updates
+- **[Build Guide](docs/guides/BUILD-GUIDE.md)** - For developers
 
 ---
 
 ## System Requirements
 
-- **OS:** Windows 10/11 (64-bit)
+- **OS:** Windows 10/11 (64-bit), macOS 10.13+, or Linux (Ubuntu, Debian, Fedora, etc.)
 - **RAM:** 4 GB minimum, 8 GB recommended
 - **Storage:** 200 MB + cache space
 - **Dependencies:** OpenNumismat, Numista API key (free)
-
-**Coming Soon:** macOS and Linux support
 
 ---
 
@@ -94,12 +92,12 @@ For detailed instructions, see the **[Quick Start Guide](https://numisync.com/qu
 
 NumiSync Wizard is **free** for core features, with optional **Supporter License ($10)** that unlocks:
 
-- ⚡ Fast Pricing Mode - Batch update pricing across your collection
-- 🔄 Auto-Propagate - Apply type data automatically
-- 🚫 No nag prompts
-- 🎁 Discounts on future premium features
+- **Fast Pricing Mode** - Batch update pricing across your collection
+- **Auto-Propagate** - Apply type data automatically
+- **No nag prompts** - Uninterrupted workflow
+- **Discounts on future premium features** - Early supporter benefits
 
-**[Become a Supporter](https://numisync.com#support-development)** - Buy once, use forever • No subscriptions
+**[Become a Supporter](https://numisync.com/license)** - Buy once, use forever • No subscriptions
 
 Your support helps cover development costs and keeps NumiSync improving for our community of collectors.
 
@@ -145,11 +143,11 @@ This application is digitally signed for your security.
 
 This application does not transmit personal information without user consent. See our privacy policy:
 
-- ✅ No analytics or telemetry collection
-- ✅ No transmission of collection data
-- ✅ Only communicates with Numista API when explicitly using search features
-- ✅ All data stored locally on your machine
-- ✅ Open-source - review the code anytime
+- No analytics or telemetry collection
+- No transmission of collection data
+- Only communicates with Numista API when explicitly using search features
+- All data stored locally on your machine
+- Open-source - review the code anytime
 
 ### Platform Signing Status
 
@@ -177,8 +175,8 @@ This application does not transmit personal information without user consent. Se
 
 <div align="center">
 
-**[Download Now](https://github.com/inguy24/numismat-enrichment/releases/latest)** • **[Documentation](https://numisync.com)** • **[Support](https://numisync.com#support-development)**
+**[Download Now](https://numisync.com/download)** • **[Documentation](https://numisync.com)** • **[Support](https://numisync.com/license)**
 
-Made with ❤️ by a fellow coin collector
+Made by a fellow coin collector
 
 </div>
