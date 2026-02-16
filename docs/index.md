@@ -15,10 +15,6 @@ title: NumiSync Wizard - Enrich your OpenNumismat collection
   Available for Windows, macOS, and Linux
 </div>
 
-<div style="text-align: center; margin: 1em 0 2em 0;">
-  <a href="https://github.com/inguy24/numismat-enrichment"><img src="https://img.shields.io/github/stars/inguy24/numismat-enrichment?style=social" alt="GitHub stars"></a>
-</div>
-
 ---
 
 ## About
