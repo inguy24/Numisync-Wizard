@@ -28,6 +28,16 @@ title: Download NumiSync Wizard
       <strong>Direct Download (.exe)</strong><br/>
       <span style="color: #888; font-style: italic;">Coming Soon &mdash; awaiting code signing approval</span>
     </div>
+
+    <div style="margin-top: 1.5em; padding: 12px; background: #f9f9f9; border-radius: 6px; font-size: 0.8em; color: #666;">
+      <div style="margin-bottom: 4px;">Free code signing provided by</div>
+      <div>
+        <a href="https://signpath.io" target="_blank" rel="noopener" style="color: #0066cc; text-decoration: none; font-weight: 500;">SignPath.io</a>
+      </div>
+      <div style="margin-top: 2px;">
+        Certificate by <a href="https://signpath.org" target="_blank" rel="noopener" style="color: #0066cc; text-decoration: none; font-weight: 500;">SignPath Foundation</a>
+      </div>
+    </div>
   </div>
 
   <!-- macOS -->
