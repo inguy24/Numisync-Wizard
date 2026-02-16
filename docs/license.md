@@ -33,7 +33,7 @@ NumiSync Wizard is **free for core features**, but a Supporter License ($10) unl
 ## Purchase a License
 
 <div style="text-align: center; margin: 2em 0;">
-  <a href="https://polar.sh/inguy24/products/50fd6539-84c3-4ca7-9a1e-9f73033077dd" target="_blank" rel="noopener" style="display: inline-block; padding: 16px 32px; background: #6f42c1; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 1.2em;">Purchase Now - $10</a>
+  <a href="https://buy.polar.sh/polar_cl_4hKjIXXM8bsjk9MivMFIvtXbg7zWswAzEAVJK2TVZZ0" target="_blank" rel="noopener" style="display: inline-block; padding: 16px 32px; background: #6f42c1; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 1.2em;">Purchase Now - $10</a>
 </div>
 
 <div style="text-align: center; margin: 1em 0; color: #666;">
