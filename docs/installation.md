@@ -34,7 +34,13 @@ NumiSync Wizard is available for **Windows**, **macOS**, and **Linux**. Choose y
 
 ## Windows Installation
 
-### Step 1: Download NumiSync Wizard
+### Option 1: Microsoft Store (Coming Soon)
+
+NumiSync Wizard has been submitted to the Microsoft Store and is awaiting certification. Once approved, you will be able to install it directly from the Store with automatic updates and no SmartScreen warnings.
+
+### Option 2: Direct Download
+
+#### Step 1: Download NumiSync Wizard
 
 1. Visit the [Releases page](https://github.com/inguy24/numismat-enrichment/releases/latest)
 2. Download the latest installer:
@@ -45,7 +51,7 @@ NumiSync Wizard is available for **Windows**, **macOS**, and **Linux**. Choose y
 - Right-click **This PC** → **Properties**
 - Look for "System type" (e.g., "64-bit operating system")
 
-### Step 2: Run the Installer
+#### Step 2: Run the Installer
 
 1. **Double-click** the downloaded installer
 2. Windows may show a SmartScreen warning (unsigned installer)
@@ -56,7 +62,7 @@ NumiSync Wizard is available for **Windows**, **macOS**, and **Linux**. Choose y
 6. Wait for installation to complete
 7. Click **Finish** to launch NumiSync Wizard
 
-### Step 3: First Launch
+#### Step 3: First Launch
 
 On first launch, NumiSync Wizard will:
 - Create a cache directory in `%LOCALAPPDATA%\numisync-wizard-cache`

@@ -1,8 +1,8 @@
 # NumiSync Wizard - Cross-Platform Installer & Distribution Plan
 
 **Created:** February 6, 2026
-**Last Updated:** February 10, 2026
-**Status:** Phase 0-1 Complete, Phase 1.5 Complete, Phase 3-5 Complete, Phase 2 Pending (External Application Required)
+**Last Updated:** February 16, 2026
+**Status:** Phase 0-1 Complete, Phase 1.5 Complete, Phase 2.5 MSIX Submitted (Feb 16, 2026), Phase 3-5 Complete, Phase 6 Complete, Phase 2 Pending
 
 ## Overview
 
@@ -670,7 +670,7 @@ You must install the SignPath GitHub App on your repository:
 ## Phase 2.5: Microsoft Store Distribution (Alternative to SignPath)
 
 **Created:** February 11, 2026
-**Status:** Implementation Complete
+**Status:** MSIX submitted to Microsoft for certification (February 16, 2026)
 **Cost:** FREE (individual developers pay no fee)
 
 ### Business Case
@@ -727,14 +727,17 @@ Maintain BOTH packaging formats:
 
 ### Store Submission Checklist
 
-Before first submission:
-
-- [x] Privacy policy URL: https://numisync.com/privacy (already exists)
-- [ ] App description (marketing copy from README)
-- [ ] Screenshots (4-6 images, 1366x768 or higher)
-- [ ] App icon (submitted during build)
-- [ ] Age rating (likely "Everyone" or "Everyone 10+")
-- [ ] Support contact information (GitHub issues link)
+- [x] Privacy policy URL: https://numisync.com/privacy
+- [x] App description (marketing copy)
+- [x] Screenshots submitted
+- [x] App icon (submitted during build)
+- [x] Age rating configured
+- [x] Support contact information (GitHub issues link)
+- [x] EULA / additional license terms provided
+- [x] Keywords configured (7 keywords, 21 words)
+- [x] runFullTrust capability declared and justified
+- [x] MSIX package submitted to Microsoft for certification (February 16, 2026)
+- [ ] Microsoft certification approved (pending review, typically 1-3 business days)
 
 ### Update Workflow
 
@@ -785,6 +788,95 @@ Before first submission:
 - Zero ongoing costs
 
 **ROI**: Infinite - Zero cost investment provides immediate signed distribution and removes all SignPath uncertainty.
+
+---
+
+## Phase 6: Website Download Page Restructuring
+
+**Created:** February 16, 2026
+**Status:** Pending Implementation
+
+### Problem
+
+The current website (numisync.com) has download issues:
+- Download links scattered across homepage, installation guide, macOS guide, and README (14 touchpoints total)
+- All links point to GitHub Releases which currently 404 (no releases published yet)
+- Microsoft Store not represented as a download option
+- Homepage uses generic emoji characters instead of real platform logos
+- No dedicated download page — all download content is inline on the homepage
+
+### Solution: Dedicated Download Page
+
+Create a separate `/download` page that centralizes all download options, keeping the homepage clean.
+
+### Files to Create
+
+| File | Purpose |
+|------|---------|
+| `docs/download.md` | Dedicated download page with platform-specific sections |
+
+### Files to Modify
+
+| File | Changes |
+|------|---------|
+| `docs/index.md` | Hero: replace MS Store button (404s) with "Download" button linking to /download. Download section: replace with compact platform logos linking to /download |
+| `docs/_layouts/default.html` | Nav bar: change `#download` anchor to `/download` page link |
+| `docs/_config.yml` | Add download page to navigation config |
+| `docs/installation.md` | Windows section: add "Option 1: Microsoft Store (Coming Soon)" above existing direct download |
+| `README.md` | Fix premature "Active" status in Code Signing table, update Installation section |
+| `docs/CHANGELOG.md` | Add Feb 16 entry for Store submission and website restructuring |
+
+### Download Page Structure (`docs/download.md`)
+
+Three platform sections, each with inline SVG logo (~48px):
+
+**Windows:**
+- Microsoft Store — "Coming Soon" placeholder (link provided after certification)
+- Direct Download (.exe) — "Coming Soon" placeholder (link to GitHub Releases once published)
+
+**macOS:**
+- DMG download — "Coming Soon" placeholder (link to GitHub Releases once published)
+- Link to existing macOS installation guide (`/macos-install`)
+
+**Linux:**
+- AppImage, .deb, .rpm — "Coming Soon" placeholder (links to GitHub Releases once published)
+
+### Homepage Changes (`docs/index.md`)
+
+**Hero section:** Replace broken MS Store button with:
+- "Download" button → links to `/download` page
+- "View on GitHub" button → stays as-is
+
+**Download section:** Replace emoji platform list with inline SVG platform logos (Windows 4-pane, Apple silhouette, Tux penguin) linking to `/download`
+
+### Platform Logos
+
+Inline SVGs embedded directly in HTML — no external files, no CDN dependencies:
+- **Windows:** Microsoft 4-pane window logo
+- **macOS:** Apple logo silhouette
+- **Linux:** Tux penguin silhouette
+
+### Post-Certification Updates
+
+After Microsoft Store certification is approved:
+1. `docs/download.md` — Replace Windows "Coming Soon" with active Store link (URL provided by user)
+2. `docs/download.md` — Add Microsoft Store badge image
+3. `README.md` — Update Code Signing table status from "Submitted" to "Active"
+
+After first GitHub Release is published:
+1. `docs/download.md` — Replace all "Coming Soon" placeholders with active download links
+2. Links use `/releases/latest` format for zero-maintenance (auto-redirects to newest)
+
+### Implementation Checklist
+
+- [ ] Create `docs/download.md` with platform sections and inline SVG logos
+- [ ] Update `docs/index.md` hero section (Download button → /download)
+- [ ] Update `docs/index.md` download section (platform logos → /download)
+- [ ] Update `docs/_layouts/default.html` nav link (#download → /download)
+- [ ] Update `docs/_config.yml` navigation config
+- [ ] Update `docs/installation.md` Windows section with MS Store option
+- [ ] Update `README.md` Code Signing table and Installation section
+- [ ] Update `docs/CHANGELOG.md` with Feb 16 entry
 
 ---
 
@@ -1765,7 +1857,7 @@ Before your first automated release:
 
 ## Implementation Status Summary
 
-**Updated:** February 10, 2026
+**Updated:** February 16, 2026
 
 ### ✅ Completed Phases
 
@@ -1809,6 +1901,16 @@ Before your first automated release:
 - ✅ electron-builder.yml macOS configuration added
 - ✅ DMG target configured for both x64 and arm64
 
+**Phase 2.5: Microsoft Store Distribution**
+- ✅ MSIX build configuration added to electron-builder.yml
+- ✅ GitHub Actions workflow updated with MSIX build job
+- ✅ Store update notifications implemented (passive banner + "What's New" modal)
+- ✅ Microsoft Partner Center account created
+- ✅ Store listing configured (description, screenshots, keywords, EULA, age rating)
+- ✅ runFullTrust capability declared and justified
+- ✅ MSIX package submitted to Microsoft for certification (February 16, 2026)
+- ⏸️ Awaiting Microsoft certification approval (typically 1-3 business days)
+
 **Documentation Updates**
 - ✅ README.md updated with Code Signing Policy section
 - ✅ README.md updated with platform signing status
@@ -1822,34 +1924,51 @@ Before your first automated release:
 - ⏸️ Once approved, uncomment SignPath action in build.yml
 - ✅ README.md Code Signing Policy section already added (required by SignPath)
 
+**Microsoft Store Certification**
+- ⏸️ MSIX submitted February 16, 2026 — awaiting certification review
+- After approval: add active Store link to download page and README
+- After approval: update Code Signing table status from "Submitted" to "Active"
+
+**Phase 6: Website Download Page Restructuring** ✅ COMPLETE (February 16, 2026)
+- [x] Create `docs/download.md` dedicated download page with inline SVG platform logos
+- [x] Update `docs/index.md` hero (Download button → /download) and download section (platform logos)
+- [x] Update `docs/_layouts/default.html` nav link (#download → /download)
+- [x] Update `docs/_config.yml` navigation config
+- [x] Update `docs/installation.md` Windows section with MS Store coming soon
+- [x] Update `README.md` Code Signing table (fix premature "Active" status)
+- [x] Update `docs/CHANGELOG.md` with Feb 16 entry
+- After Store certification: replace "Coming Soon" placeholders with active Store link
+- After first GitHub Release: replace "Coming Soon" placeholders with active download links
+
 ### 🎯 Next Steps
 
-To complete the distribution setup:
+1. **Await Microsoft Store certification** (submitted February 16, 2026)
+   - After approval: add active Store link to download page (URL provided by user)
+   - After approval: update README Code Signing table status to "Active"
 
-1. **Apply to SignPath Foundation** (manual step)
+2. **Publish first GitHub Release**
+   - After release: replace "Coming Soon" download placeholders with active links
+   - Download links use `/releases/latest` for zero-maintenance
+
+3. **Apply to SignPath Foundation** (optional — Store provides signing)
    - Go to https://signpath.org and submit application
    - Provide GitHub repo URL and project details
    - Wait for approval (typically a few days)
 
-2. **Configure SignPath Secrets** (after approval)
+4. **Configure SignPath Secrets** (after approval)
    - Add `SIGNPATH_API_TOKEN` to GitHub repository secrets
    - Add `SIGNPATH_ORGANIZATION_ID` to GitHub repository variables
    - Install SignPath GitHub App on repository
 
-3. **Enable Code Signing** (after approval)
+5. **Enable Code Signing** (after approval)
    - Uncomment SignPath action in `.github/workflows/build.yml`
    - Test with a version tag push
-
-4. **First Release**
-   - Run `npm version patch` to bump version
-   - Push with tags: `git push && git push --tags`
-   - Approve signing request in SignPath dashboard
-   - Publish GitHub release
 
 ### 📦 Ready to Build
 
 The codebase is now **fully configured for cross-platform distribution**:
 
+- ✅ Windows MSIX submitted to Microsoft Store (pending certification)
 - ✅ Windows builds will create NSIS installers (unsigned until SignPath approval)
 - ✅ Linux builds will create AppImage, .deb, and .rpm packages
 - ✅ macOS builds will create DMG for both Intel and Apple Silicon
@@ -1859,9 +1978,10 @@ The codebase is now **fully configured for cross-platform distribution**:
 You can test local builds immediately:
 ```bash
 npm run build:win    # Windows NSIS installer (unsigned)
+npm run build:msix   # Windows MSIX package
 npm run build:linux  # Linux packages (requires Linux or WSL)
 npm run build:mac    # macOS DMG (requires macOS)
 npm run build:all    # All platforms (requires appropriate OS)
 ```
 
-The only remaining external dependency is SignPath Foundation approval for Windows code signing.
+Remaining external dependencies: Microsoft Store certification (submitted), SignPath Foundation approval (optional).

@@ -9,6 +9,8 @@ theme: jekyll-theme-cayman
 navigation:
   - title: Home
     url: /
+  - title: Download
+    url: /download
   - title: Installation
     url: /installation
   - title: Quick Start

@@ -28,8 +28,8 @@ NumiSync Wizard is available through multiple distribution channels:
 
 ### Windows
 
-**Option 1: Microsoft Store (Recommended)**
-- Search for "NumiSync Wizard" in the Microsoft Store
+**Option 1: Microsoft Store (Coming Soon)**
+- Submitted for Microsoft Store certification (February 2026)
 - Automatic updates through Windows
 - Signed by Microsoft (no SmartScreen warnings)
 
@@ -127,7 +127,7 @@ This application is digitally signed for your security.
 
 | Distribution | Signing Authority | Status |
 |--------------|-------------------|--------|
-| **Microsoft Store** | Microsoft Corporation | ✅ Active |
+| **Microsoft Store** | Microsoft Corporation | ⏳ Submitted for certification (Feb 2026) |
 | **Direct Download (NSIS)** | SignPath Foundation | ⏳ Pending Approval |
 
 **Microsoft Store** packages are automatically signed by Microsoft during the Store submission process.
