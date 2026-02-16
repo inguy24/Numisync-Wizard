@@ -1,5 +1,18 @@
 # CRITICAL OPERATING PROCEDURES
 
+## 0. GITHUB OPERATIONS
+
+**CRITICAL: NEVER use WebFetch on GitHub URLs** - Automated web scraping triggers GitHub security and forces password resets.
+
+**ALWAYS use GitHub CLI (`gh`) instead:**
+- Check workflow status: `gh run list --workflow=build.yml`
+- View failed logs: `gh run view <run-id> --log-failed`
+- List releases: `gh release list`
+- View release assets: `gh release view <tag> --json assets`
+- Delete release assets: `gh release delete-asset <tag> <filename>`
+
+**GitHub CLI location:** `"C:\Program Files\GitHub CLI\gh.exe"` (use full path if not in PATH)
+
 ## 1. DOCUMENTATION HIERARCHY
 - **Read `docs/reference/PROJECT-REFERENCE.md`** for architecture, IPC handlers, data flow when implementing features
 - **Read `docs/planning/PHASE3-WORK-PLAN.md`** for current work items and priorities
@@ -78,6 +91,10 @@
 24. **Activate and Validate are separate license operations** - Polar SDK has two distinct endpoints: `activate()` registers a new device (counts toward device limit, creates activation record, does NOT increment validations counter) and `validate()` checks existing license validity (increments validations counter, updates lastValidatedAt timestamp shown in dashboard). When user first enters license key, call `activate()` to register device, then immediately call `validate()` to increment validation counter. Periodic re-validation (every 7 days) should only call `validate()`, not `activate()`. Calling only `activate()` on first entry causes Polar dashboard to show "Validations: 0, Validated At: Never Validated" even though license works.
 
 25. **Never create parallel settings files — always consolidate** - Creating a new settings file (e.g., `app-settings.json`) when adding features causes redundancy, sync issues, and confusion about which file controls which settings. Always extend the existing settings file with new fields. When adding cache configuration or other new features, add the fields to `settings.json` with backwards-compatible defaults. If dual files already exist, immediately consolidate by: (1) updating read/write functions to use one file, (2) reversing migration to merge the new file into the old, (3) documenting the single source of truth. See `docs/reference/SETTINGS-CONSOLIDATION.md` for full consolidation pattern.
+
+26. **electron-builder auto-publish requires explicit permissions** - When building with tags, electron-builder auto-detects the tag and tries to publish to GitHub releases. This fails with "403 Forbidden: Resource not accessible by integration" if the build job doesn't have `contents: write` permission. Fix: Add `--publish never` to all build commands in GitHub Actions, then use a separate `create-release` job with proper permissions to handle publishing. This keeps builds clean and release creation centralized.
+
+27. **Linux .deb/.rpm packages require author email in package.json** - electron-builder's FpmTarget (for .deb and .rpm) requires `author.email` in package.json for the package maintainer field. Using just `"author": "Name"` fails with "Please specify author 'email' in the application package.json". Use object form: `"author": { "name": "Name", "email": "email@domain.com" }`. AppImage builds don't require this, so errors only appear when building .deb/.rpm.
 
 ## 6. JSDOC DOCUMENTATION STANDARDS
 
