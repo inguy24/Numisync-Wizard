@@ -48,7 +48,10 @@ title: Download NumiSync Wizard
       <a href="https://github.com/inguy24/numismat-enrichment/releases/latest/download/NumiSync.Wizard-1.0.0-arm64.dmg" style="display: inline-block; margin-top: 0.5em; padding: 8px 16px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 0.9em;">Download DMG</a>
     </div>
 
-    <p style="font-size: 0.85em; margin-top: 1.5em;"><a href="/macos-install">Installation Guide</a> (unsigned app instructions)</p>
+    <p style="font-size: 0.85em; margin-top: 1.5em;">
+      <a href="/macos-install">Installation Guide</a> (unsigned app)
+      <a href="#" onclick="showModal(); return false;" style="color: #0066cc; text-decoration: none; font-weight: 500;">Why unsigned?</a>
+    </p>
   </div>
 
   <!-- Linux -->
@@ -139,3 +142,55 @@ NumiSync Wizard is open source under the MIT License.
 <div style="text-align: center; margin: 2em 0;">
   <a href="/" style="display: inline-block; padding: 10px 20px; background: #0066cc; color: white; text-decoration: none; border-radius: 6px;">Back to Home</a>
 </div>
+
+<!-- Modal for unsigned macOS explanation -->
+<div id="unsignedModal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);" onclick="if(event.target === this) hideModal();">
+  <div style="background-color: #fff; margin: 10% auto; padding: 30px; border-radius: 8px; max-width: 600px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" onclick="event.stopPropagation();">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+      <h2 style="margin: 0; color: #333;">Why is the macOS app unsigned?</h2>
+      <button onclick="hideModal()" style="background: none; border: none; font-size: 28px; cursor: pointer; color: #999; line-height: 1;">&times;</button>
+    </div>
+
+    <div style="color: #555; line-height: 1.6;">
+      <p>We'd love to participate in the Apple Developer Program and provide a fully signed macOS app, but the cost just doesn't make sense for this project.</p>
+
+      <p><strong>The Apple Developer Program costs $99/year.</strong> For a free, open-source hobby project supported by optional $10 donations, this recurring fee would consume most (or all) of the supporter contributions.</p>
+
+      <p>Instead of charging users more or running at a loss, we've chosen to:</p>
+      <ul style="margin: 10px 0; padding-left: 25px;">
+        <li>Keep NumiSync Wizard completely <strong>free to use</strong></li>
+        <li>Provide <strong>clear installation instructions</strong> for the unsigned app</li>
+        <li>Focus resources on <strong>features and improvements</strong> rather than Apple fees</li>
+      </ul>
+
+      <p>The app is <strong>safe to use</strong> — it's open source and built automatically via GitHub Actions. You just need to <a href="/macos-install" style="color: #0066cc;">right-click and select "Open"</a> the first time you launch it.</p>
+
+      <p style="margin-top: 20px; padding: 15px; background: #f0f7ff; border-left: 4px solid #0066cc; border-radius: 4px;">
+        <strong>💡 Note:</strong> If Apple ever introduces a free tier for individual developers (like Microsoft recently did), we'll gladly sign the app!
+      </p>
+    </div>
+
+    <div style="text-align: right; margin-top: 25px;">
+      <button onclick="hideModal()" style="padding: 10px 24px; background: #0066cc; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px;">Got it!</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function showModal() {
+  document.getElementById('unsignedModal').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+}
+
+function hideModal() {
+  document.getElementById('unsignedModal').style.display = 'none';
+  document.body.style.overflow = 'auto';
+}
+
+// Close modal with Escape key
+document.addEventListener('keydown', function(event) {
+  if (event.key === 'Escape') {
+    hideModal();
+  }
+});
+</script>
