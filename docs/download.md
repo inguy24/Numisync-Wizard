@@ -3,7 +3,7 @@ layout: default
 title: Download NumiSync Wizard
 ---
 
-# Download NumiSync Wizard
+<h1 style="margin-top: 2em;">Download NumiSync Wizard</h1>
 
 <p style="margin: 1.5em 0 2em 0; font-size: 1.1em; color: #555;">Choose your platform to get started. NumiSync Wizard is available for Windows, macOS, and Linux.</p>
 
@@ -48,28 +48,47 @@ title: Download NumiSync Wizard
 
   <!-- Linux -->
   <div style="flex: 1; min-width: 280px; max-width: 360px; border: 1px solid #ddd; border-radius: 8px; padding: 1.5em; text-align: center;">
-    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" style="margin-bottom: 0.5em;">
-      <g fill="none" stroke="#333" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-        <!-- Body -->
-        <ellipse cx="12" cy="15" rx="5" ry="6" fill="#000"/>
-        <!-- Belly -->
-        <ellipse cx="12" cy="16" rx="3" ry="4" fill="#fff"/>
-        <!-- Head -->
-        <circle cx="12" cy="7" r="4" fill="#000"/>
-        <!-- Eyes -->
-        <circle cx="10.5" cy="6.5" r="0.8" fill="#fff"/>
-        <circle cx="13.5" cy="6.5" r="0.8" fill="#fff"/>
-        <circle cx="10.5" cy="6.7" r="0.4" fill="#000"/>
-        <circle cx="13.5" cy="6.7" r="0.4" fill="#000"/>
-        <!-- Beak -->
-        <path d="M 11 8.5 Q 12 9.5 13 8.5" fill="#ffa500" stroke="#ffa500"/>
-        <!-- Feet -->
-        <path d="M 9 20 L 8 21 M 9 20 L 9.5 21.5 M 9 20 L 10 21" stroke="#ffa500" stroke-width="1"/>
-        <path d="M 15 20 L 14 21 M 15 20 L 15.5 21.5 M 15 20 L 16 21" stroke="#ffa500" stroke-width="1"/>
-        <!-- Wings -->
-        <path d="M 7.5 14 Q 5 14 4 15" stroke="#000" stroke-width="1.2" fill="none"/>
-        <path d="M 16.5 14 Q 19 14 20 15" stroke="#000" stroke-width="1.2" fill="none"/>
-      </g>
+    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" style="margin-bottom: 0.5em;">
+      <!-- Simplified Tux - Linux Mascot -->
+      <!-- Based on original by Larry Ewing, vector by Garrett LeSage -->
+
+      <!-- Body -->
+      <ellipse cx="24" cy="30" rx="12" ry="14" fill="#000"/>
+
+      <!-- Belly -->
+      <ellipse cx="24" cy="31" rx="8" ry="10" fill="#fff"/>
+
+      <!-- Left wing -->
+      <ellipse cx="13" cy="27" rx="4" ry="8" fill="#000"/>
+
+      <!-- Right wing -->
+      <ellipse cx="35" cy="27" rx="4" ry="8" fill="#000"/>
+
+      <!-- Head -->
+      <circle cx="24" cy="16" r="9" fill="#000"/>
+
+      <!-- Left eye outer -->
+      <ellipse cx="20" cy="15" rx="2.5" ry="3" fill="#fff"/>
+
+      <!-- Right eye outer -->
+      <ellipse cx="28" cy="15" rx="2.5" ry="3" fill="#fff"/>
+
+      <!-- Left pupil -->
+      <circle cx="20.5" cy="15.5" r="1.2" fill="#000"/>
+
+      <!-- Right pupil -->
+      <circle cx="28.5" cy="15.5" r="1.2" fill="#000"/>
+
+      <!-- Beak -->
+      <path d="M 22 19 L 24 21 L 26 19 Z" fill="#fdb603"/>
+
+      <!-- Left foot -->
+      <ellipse cx="18" cy="43" rx="3.5" ry="2" fill="#fdb603"/>
+      <path d="M 15 43 L 14 45 M 17 43 L 17 45 M 19 43 L 20 45" stroke="#fdb603" stroke-width="1.2" fill="none"/>
+
+      <!-- Right foot -->
+      <ellipse cx="30" cy="43" rx="3.5" ry="2" fill="#fdb603"/>
+      <path d="M 27 43 L 26 45 M 29 43 L 29 45 M 31 43 L 32 45" stroke="#fdb603" stroke-width="1.2" fill="none"/>
     </svg>
     <h3 style="margin: 0.5em 0;">Linux</h3>
     <p style="color: #666; font-size: 0.9em;">Ubuntu, Debian, Fedora, and more (x64)</p>
