@@ -186,7 +186,7 @@ I built NumiSync Wizard to save myself countless hours cataloging my coin collec
 - The warm fuzzy feeling of supporting independent software
 
 <div style="text-align: center; margin: 2em 0;">
-  <a href="https://github.com/inguy24/numismat-enrichment#license" style="display: inline-block; padding: 12px 24px; background: #6f42c1; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">Become a Supporter - $10</a>
+  <a href="/license" style="display: inline-block; padding: 12px 24px; background: #6f42c1; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">Become a Supporter - $10</a>
 </div>
 
 Your support helps cover development costs and keeps NumiSync improving for our community of collectors.
