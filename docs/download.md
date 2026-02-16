@@ -5,7 +5,7 @@ title: Download NumiSync Wizard
 
 # Download NumiSync Wizard
 
-Choose your platform to get started. NumiSync Wizard is available for Windows, macOS, and Linux.
+<p style="margin: 1.5em 0 2em 0; font-size: 1.1em; color: #555;">Choose your platform to get started. NumiSync Wizard is available for Windows, macOS, and Linux.</p>
 
 ---
 
