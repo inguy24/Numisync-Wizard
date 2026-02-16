@@ -3,6 +3,7 @@
 
 appId: com.numisync.wizard
 productName: NumiSync Wizard
+executableName: NumiSyncWizard
 copyright: Copyright 2026 Shane Burkhardt
 
 # Directories
@@ -24,8 +25,6 @@ files:
 extraResources:
   - from: EULA.txt
     to: EULA.txt
-  - from: swagger.yaml
-    to: swagger.yaml
 
 # Windows-specific configuration
 win:
@@ -34,12 +33,6 @@ win:
       arch:
         - x64
   icon: build/icon.ico
-  # File associations for .db files
-  fileAssociations:
-    - ext: db
-      name: OpenNumismat Collection
-      description: OpenNumismat coin collection database
-      icon: build/icon.ico
 
 # NSIS installer configuration
 nsis:
@@ -56,6 +49,32 @@ nsis:
   uninstallerIcon: build/icon.ico
   installerHeaderIcon: build/icon.ico
   deleteAppDataOnUninstall: false
+
+# ============================================
+# MICROSOFT STORE CONFIGURATION (MSIX)
+# ============================================
+appx:
+  # Identity - must be unique in Microsoft Store
+  identityName: ShaneBurkhardt.NumiSyncWizard
+  publisher: CN=63DF2FB3-6EDC-4553-939D-B99BBA2EDAE8  # From Microsoft Partner Center
+  publisherDisplayName: Shane Burkhardt
+  displayName: NumiSync Wizard
+
+  # Application settings
+  applicationId: NumiSyncWizard
+  backgroundColor: transparent
+  showNameOnTiles: true
+
+  # Target Windows 10 version 1809 or later (required by Microsoft Store)
+  minVersion: "10.0.17763.0"
+  maxVersionTested: "10.0.22621.0"
+
+  # Languages
+  languages:
+    - en-US
+
+  # Force .msix extension (required for Microsoft Store code signing)
+  artifactName: ${productName}-${version}.msix
 
 # ============================================
 # LINUX CONFIGURATION

@@ -230,7 +230,11 @@ const apiMethods = {
   },
 
   // Logging
-  exportLogFile: () => ipcRenderer.invoke('export-log-file')
+  exportLogFile: () => ipcRenderer.invoke('export-log-file'),
+
+  // Store update events
+  onStoreUpdateAvailable: (callback) => ipcRenderer.on('store-update-available', (event, info) => callback(info)),
+  onShowWhatsNew: (callback) => ipcRenderer.on('show-whats-new', (event, info) => callback(info))
 };
 
 // Expose as both 'electronAPI' (for backward compatibility) and 'api' (for new code)

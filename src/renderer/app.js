@@ -7464,6 +7464,117 @@ function updateMenuState(state) {
   }
 }
 
+// ============================================
+// MICROSOFT STORE UPDATE NOTIFICATIONS
+// ============================================
+
+/**
+ * Show passive notification for available Store update
+ * @param {Object} updateInfo - Update information from GitHub API
+ */
+function showStoreUpdateNotification(updateInfo) {
+  const banner = document.createElement('div');
+  banner.id = 'store-update-banner';
+  banner.className = 'update-banner';
+  banner.innerHTML = `
+    <div class="update-banner-content">
+      <span class="update-icon">🔄</span>
+      <span class="update-text">
+        Version ${updateInfo.version} is available.
+        Updates install automatically through Microsoft Store.
+      </span>
+      <button class="update-dismiss" onclick="this.parentElement.parentElement.remove()">×</button>
+    </div>
+  `;
+
+  // Add to top of app
+  document.body.insertBefore(banner, document.body.firstChild);
+
+  // Auto-dismiss after 10 seconds
+  setTimeout(() => {
+    if (banner.parentElement) {
+      banner.remove();
+    }
+  }, 10000);
+}
+
+/**
+ * Show "What's New" modal after Store auto-update
+ * @param {Object} info - Version and release notes
+ */
+function showWhatsNewModal(info) {
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `
+    <div class="modal-dialog whats-new-modal">
+      <div class="modal-header">
+        <h2>🎉 What's New in Version ${info.version}</h2>
+        <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
+      </div>
+      <div class="modal-body">
+        <p class="update-info">Updated from version ${info.previousVersion}</p>
+        <div class="release-notes">
+          ${formatReleaseNotes(info.releaseNotes)}
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="this.closest('.modal-overlay').remove()">
+          Got it!
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+}
+
+/**
+ * Format markdown release notes to HTML
+ * @param {string} markdown - Release notes in markdown
+ * @returns {string} HTML formatted notes
+ */
+function formatReleaseNotes(markdown) {
+  if (!markdown) return '<p>No release notes available.</p>';
+
+  // Simple markdown to HTML conversion
+  const lines = markdown.split('\n');
+  let html = '';
+  let inList = false;
+
+  for (const line of lines) {
+    if (line.startsWith('## ')) {
+      if (inList) {
+        html += '</ul>';
+        inList = false;
+      }
+      html += `<h3>${line.substring(3)}</h3>`;
+    } else if (line.startsWith('- ')) {
+      if (!inList) {
+        html += '<ul>';
+        inList = true;
+      }
+      html += `<li>${line.substring(2)}</li>`;
+    } else if (line.trim() === '') {
+      if (inList) {
+        html += '</ul>';
+        inList = false;
+      }
+    } else if (line.trim()) {
+      if (inList) {
+        html += '</ul>';
+        inList = false;
+      }
+      html += `<p>${line}</p>`;
+    }
+  }
+
+  if (inList) {
+    html += '</ul>';
+  }
+
+  return html;
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   // Show welcome screen initially while we check EULA and default collection
   showScreen('welcome');
@@ -7488,6 +7599,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (window.menuEvents) {
     window.menuEvents.onMenuAction(handleMenuAction);
     console.log('Menu event listeners registered');
+  }
+
+  // Setup Store update event listeners
+  if (window.electronAPI && window.electronAPI.onStoreUpdateAvailable) {
+    window.electronAPI.onStoreUpdateAvailable((updateInfo) => {
+      showStoreUpdateNotification(updateInfo);
+    });
+    console.log('Store update listeners registered');
+  }
+
+  if (window.electronAPI && window.electronAPI.onShowWhatsNew) {
+    window.electronAPI.onShowWhatsNew((info) => {
+      showWhatsNewModal(info);
+    });
+    console.log('What\'s New listener registered');
   }
 
   // Try to auto-load default collection (after EULA is accepted)

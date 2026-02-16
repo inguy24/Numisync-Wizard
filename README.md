@@ -22,10 +22,44 @@
 
 ---
 
+## Installation
+
+NumiSync Wizard is available through multiple distribution channels:
+
+### Windows
+
+**Option 1: Microsoft Store (Recommended)**
+- Search for "NumiSync Wizard" in the Microsoft Store
+- Automatic updates through Windows
+- Signed by Microsoft (no SmartScreen warnings)
+
+**Option 2: Direct Download**
+- Download the latest `.exe` installer from [GitHub Releases](https://github.com/inguy24/numismat-enrichment/releases/latest)
+- Run the installer and follow the setup wizard
+- Updates available through the app (Help > Check for Updates)
+- Signed by SignPath Foundation (when available)
+
+### macOS *(Coming Soon)*
+
+Download the `.dmg` file from [GitHub Releases](https://github.com/inguy24/numismat-enrichment/releases/latest).
+
+**Installation steps**: See [macOS Installation Guide](https://numisync.com/installation#macos)
+
+### Linux *(Coming Soon)*
+
+Choose your preferred package format:
+- **AppImage**: Universal, no installation required
+- **.deb**: For Debian/Ubuntu-based distributions
+- **.rpm**: For Fedora/RHEL-based distributions
+
+Download from [GitHub Releases](https://github.com/inguy24/numismat-enrichment/releases/latest).
+
+---
+
 ## Quick Start
 
-1. **Download** the latest release from [GitHub Releases](https://github.com/inguy24/numismat-enrichment/releases/latest)
-2. **Install** and launch NumiSync Wizard
+1. **Install** NumiSync Wizard (see Installation above)
+2. **Launch** the application
 3. **Open** your OpenNumismat collection (.db file)
 4. **Settings** → Add your Numista API key (free from [numista.com](https://www.numista.com/))
 5. **Select coins** → Click "Search & Enrich" → Review matches → Accept!
@@ -87,10 +121,18 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Code Signing Policy
 
-This application is digitally signed for your security (Windows releases).
+This application is digitally signed for your security.
 
-**Free code signing provided by [SignPath.io](https://signpath.io)**
-**Certificate by [SignPath Foundation](https://signpath.org)**
+### Windows Code Signing
+
+| Distribution | Signing Authority | Status |
+|--------------|-------------------|--------|
+| **Microsoft Store** | Microsoft Corporation | ✅ Active |
+| **Direct Download (NSIS)** | SignPath Foundation | ⏳ Pending Approval |
+
+**Microsoft Store** packages are automatically signed by Microsoft during the Store submission process.
+
+**Direct Download** packages will be signed via **[SignPath Foundation](https://signpath.org)** (free code signing for open source). Application submitted and awaiting approval.
 
 ### Project Roles
 

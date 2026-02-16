@@ -11,6 +11,7 @@
     "build:win": "electron-builder build --win",
     "build:mac": "electron-builder build --mac",
     "build:linux": "electron-builder build --linux",
+    "build:msix": "electron-builder build --win appx",
     "build:all": "electron-builder build --win --mac --linux",
     "build:dir": "electron-builder build --win --dir",
     "build:portable": "electron-builder build --win portable",
@@ -23,9 +24,6 @@
     "postversion": "node scripts/post-version.js",
     "postinstall": "electron-builder install-app-deps",
     "test": "echo 'Tests not yet configured'"
-  },
-  "build": {
-    "extends": null
   },
   "repository": {
     "type": "git",
@@ -44,14 +42,14 @@
   "dependencies": {
     "@polar-sh/sdk": "^0.42.5",
     "axios": "^1.13.4",
-    "electron": "^28.3.3",
     "electron-log": "^5.4.3",
     "electron-updater": "^6.7.3",
     "sql.js": "^1.10.3",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
-    "electron-builder": "^24.9.1",
+    "electron": "^28.3.3",
+    "electron-builder": "^26.7.0",
     "png2icons": "^2.0.1"
   },
   "engines": {

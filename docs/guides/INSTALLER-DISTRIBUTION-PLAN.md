@@ -667,6 +667,127 @@ You must install the SignPath GitHub App on your repository:
 
 ---
 
+## Phase 2.5: Microsoft Store Distribution (Alternative to SignPath)
+
+**Created:** February 11, 2026
+**Status:** Implementation Complete
+**Cost:** FREE (individual developers pay no fee)
+
+### Business Case
+
+SignPath Foundation approval is uncertain due to "reputation" requirements for self-developed projects. Microsoft Store provides:
+
+- **Automatic code signing** (Microsoft certificate)
+- **Low barrier to entry** (FREE for individuals vs. uncertain approval)
+- **Built-in distribution** (Windows 10/11 Store)
+- **Automatic updates** (Windows Update mechanism)
+- **Professional appearance** (no SmartScreen warnings)
+- **Better discoverability** (Windows Store search)
+
+### Key Technical Consideration
+
+**File Associations**: Microsoft Store packages cannot register file associations (e.g., double-clicking `.db` files won't open NumiSync Wizard).
+
+**Impact for NumiSync Wizard**: None. NumiSync is not designed to be the default database viewer - it's an enrichment tool that works alongside OpenNumismat. Users launch the app, then select their database file through File > Open.
+
+### Dual Distribution Strategy
+
+Maintain BOTH packaging formats:
+
+| Distribution | Package | Signing | Updates | Target Audience |
+|--------------|---------|---------|---------|-----------------|
+| Microsoft Store | MSIX | Microsoft | Windows Store | Casual users, easy discovery |
+| Direct Download | NSIS | SignPath (pending) or unsigned | electron-updater | Power users, offline installs |
+
+### Implementation Summary
+
+**Files Modified:**
+
+| File | Changes |
+|------|---------|
+| `electron-builder.yml` | Removed file associations, added `appx:` section |
+| `package.json` | Added `build:msix` script |
+| `.github/workflows/build.yml` | Added MSIX build job, included in releases |
+| `src/main/updater.js` | Store detection, GitHub version check, "What's New" modal |
+| `src/renderer/app.js` | Store update notification banner, changelog modal |
+| `src/renderer/styles/main.css` | CSS for update notifications |
+| `src/main/preload.js` | IPC exposures for Store update events |
+| `README.md` | Documented both installation methods |
+
+### Microsoft Partner Center Setup
+
+**One-time setup required** (user action):
+
+1. Create Microsoft Partner Center account: https://partner.microsoft.com/dashboard
+2. Select **individual account** (FREE - no developer fee required!)
+3. Reserve app name: "NumiSync Wizard"
+4. Get publisher certificate subject: `CN=<provided by Microsoft>`
+5. Update `electron-builder.yml` with publisher info
+6. Submit MSIX package for review (1-3 days typical)
+
+### Store Submission Checklist
+
+Before first submission:
+
+- [x] Privacy policy URL: https://numisync.com/privacy (already exists)
+- [ ] App description (marketing copy from README)
+- [ ] Screenshots (4-6 images, 1366x768 or higher)
+- [ ] App icon (submitted during build)
+- [ ] Age rating (likely "Everyone" or "Everyone 10+")
+- [ ] Support contact information (GitHub issues link)
+
+### Update Workflow
+
+**After Microsoft Store approval**:
+
+1. Developer runs `npm version patch/minor/major`
+2. GitHub Actions builds BOTH NSIS and MSIX automatically
+3. NSIS: Uploaded to GitHub Release (manual SignPath approval if enabled)
+4. MSIX: Uploaded to GitHub Release + manually submitted to Microsoft Store
+5. Microsoft reviews update (typically approved within hours for established apps)
+6. Store users receive update through Windows Update automatically
+
+### Store Update Notifications (Implemented)
+
+**Option 2: Passive Notification (Before Update)**
+- Checks GitHub API for latest version on startup (10-second delay)
+- Shows banner: "🔄 Version X.X.X is available. Updates install automatically through Microsoft Store."
+- Auto-dismisses after 10 seconds
+- Does not interfere with app usage
+
+**Option 3: "What's New" Modal (After Update)**
+- On first launch after Store auto-updates
+- Shows modal: "🎉 What's New in Version X.X.X"
+- Displays changelog from GitHub Release
+- User dismisses with "Got it!" button
+
+### SignPath Foundation Status
+
+- Application submitted, awaiting approval
+- If approved: NSIS installer gets signed (keeps dual distribution)
+- If denied: Microsoft Store becomes primary signed distribution
+- MSIX setup proceeds regardless of SignPath outcome
+
+### Cost-Benefit Analysis
+
+**Cost:**
+- **$0** - Completely FREE for individual developers
+- ~2-3 hours implementation time (one-time) - **COMPLETE**
+- Ongoing: ~5 minutes per release to submit to Store
+
+**Benefit:**
+- Professional code signing (Microsoft certificate)
+- Better discoverability (Windows Store search)
+- Automatic updates for Store users
+- No SmartScreen warnings
+- Hedge against SignPath uncertainty
+- Builds credibility (official Store presence)
+- Zero ongoing costs
+
+**ROI**: Infinite - Zero cost investment provides immediate signed distribution and removes all SignPath uncertainty.
+
+---
+
 ## Phase 3: GitHub Actions CI/CD
 
 ### Workflow Structure

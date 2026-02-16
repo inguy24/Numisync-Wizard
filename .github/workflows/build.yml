@@ -84,6 +84,39 @@ jobs:
           path: dist/*.exe
           if-no-files-found: error
 
+  build-windows-msix:
+    name: Build Windows MSIX
+    needs: validate
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Windows MSIX
+        run: npm run build:msix
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload MSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-msix
+          path: |
+            dist/*.msix
+            dist/*.appx
+          if-no-files-found: error
+
   build-linux:
     name: Build Linux
     needs: validate
@@ -147,7 +180,7 @@ jobs:
 
   create-release:
     name: Create GitHub Release
-    needs: [build-windows, build-linux, build-macos]
+    needs: [build-windows, build-windows-msix, build-linux, build-macos]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -168,6 +201,8 @@ jobs:
           generate_release_notes: true
           files: |
             windows-installer/*.exe
+            windows-msix/*.msix
+            windows-msix/*.appx
             linux-packages/*.AppImage
             linux-packages/*.deb
             linux-packages/*.rpm

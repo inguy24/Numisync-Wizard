@@ -3337,3 +3337,118 @@ body {
 .text-warning {
   color: #856404;
 }
+
+/* ============================================
+   MICROSOFT STORE UPDATE NOTIFICATIONS
+   ============================================ */
+
+/* Store Update Notification Banner */
+.update-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 12px 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 9999;
+  animation: slideDown 0.3s ease-out;
+}
+
+.update-banner-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.update-icon {
+  font-size: 20px;
+}
+
+.update-text {
+  flex: 1;
+  font-size: 14px;
+}
+
+.update-dismiss {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  font-size: 24px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.update-dismiss:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* What's New Modal */
+.whats-new-modal {
+  max-width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.whats-new-modal .modal-header h2 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.update-info {
+  color: #666;
+  font-size: 14px;
+  margin: 0 0 16px 0;
+}
+
+.release-notes {
+  background: #f5f5f5;
+  border-radius: 8px;
+  padding: 16px;
+  margin: 16px 0;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.release-notes h3 {
+  margin: 16px 0 8px 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.release-notes h3:first-child {
+  margin-top: 0;
+}
+
+.release-notes ul {
+  margin: 8px 0;
+  padding-left: 24px;
+}
+
+.release-notes li {
+  margin: 8px 0;
+  line-height: 1.5;
+}
+
+.release-notes p {
+  margin: 8px 0;
+  line-height: 1.6;
+}
