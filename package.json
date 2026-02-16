@@ -37,7 +37,10 @@
     "numista",
     "electron"
   ],
-  "author": "Shane Burkhardt",
+  "author": {
+    "name": "Shane Burkhardt",
+    "email": "shane@numisync.com"
+  },
   "license": "MIT",
   "dependencies": {
     "@polar-sh/sdk": "^0.42.5",
