@@ -996,7 +996,7 @@ jobs:
       - run: npm ci
 
       - name: Build Windows (Unsigned)
-        run: npm run build:win
+        run: npm run build:win -- --publish never
 
       # Upload unsigned artifact (SignPath requires this)
       - name: Upload unsigned artifact
@@ -1038,7 +1038,7 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - name: Build Linux
-        run: npm run build:linux
+        run: npm run build:linux -- --publish never
       - uses: actions/upload-artifact@v4
         with:
           name: linux-packages
@@ -1058,7 +1058,7 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - name: Build macOS
-        run: npm run build:mac
+        run: npm run build:mac -- --publish never
       - uses: actions/upload-artifact@v4
         with:
           name: macos-dmg
@@ -1085,6 +1085,22 @@ jobs:
 - CI compares git tag version to package.json version
 - Build fails if mismatch (prevents accidental version drift)
 
+### Critical: Auto-Publish Behavior
+
+> **IMPORTANT:** When electron-builder detects a git tag, it will attempt to auto-publish builds to GitHub Releases.
+> However, build jobs do NOT have `contents: write` permission by default (only the `create-release` job has it).
+> This causes a `403 Forbidden: Resource not accessible by integration` error.
+>
+> **Solution:** Add `--publish never` flag to ALL build commands in the workflow:
+> ```yaml
+> run: npm run build:win -- --publish never
+> run: npm run build:linux -- --publish never
+> run: npm run build:mac -- --publish never
+> run: npm run build:msix -- --publish never
+> ```
+>
+> The `create-release` job will handle publishing artifacts after all builds complete successfully.
+
 ### Workflow Files to Create
 
 | File | Purpose |
@@ -1092,9 +1108,53 @@ jobs:
 | `.github/workflows/build.yml` | Main build workflow (triggers on version tags) |
 | `.github/workflows/pr-check.yml` | PR validation (optional - lint, test) |
 
+### GitHub Operations Best Practices
+
+**CRITICAL:** When monitoring GitHub Actions workflows or interacting with GitHub programmatically:
+
+- **ALWAYS use GitHub CLI (`gh`)** for GitHub API operations
+- **NEVER use web scraping or WebFetch** on GitHub URLs - this triggers security measures and can cause password resets
+- GitHub CLI installation: [cli.github.com](https://cli.github.com/)
+
+**Useful `gh` commands for release automation:**
+```bash
+# List recent workflow runs
+gh run list
+
+# View failed workflow logs
+gh run view --log-failed
+
+# List releases
+gh release list
+
+# Delete a specific release asset
+gh release delete-asset <tag> <filename>
+
+# Create a release
+gh release create <tag> --draft --title "Version X.X.X"
+```
+
 ---
 
 ## Phase 4: Linux Support
+
+### Critical: Author Email Requirement
+
+> **IMPORTANT:** Linux .deb and .rpm packages require the `author` field in package.json to be an object with an `email` property.
+> If `author` is a string, the build will fail with: `Please specify author 'email' in the application package.json`
+>
+> **Correct format:**
+> ```json
+> "author": {
+>   "name": "Your Name",
+>   "email": "your@email.com"
+> }
+> ```
+>
+> **Incorrect format (will fail):**
+> ```json
+> "author": "Your Name"
+> ```
 
 ### Files to Create
 
@@ -1857,6 +1917,65 @@ git push && git push --tags
 
 - [ ] Add SignPath secrets to repository secrets
 - [ ] Enable GitHub Actions for the repository
+
+---
+
+## Common Build Issues
+
+### Issue: 403 Forbidden during GitHub Actions build
+
+**Symptom:**
+```
+Error: HTTP code 403
+Message: Forbidden: Resource not accessible by integration
+```
+
+**Cause:** electron-builder detects git tag and attempts to auto-publish, but build jobs lack `contents: write` permission.
+
+**Solution:** Add `--publish never` flag to all build commands in `.github/workflows/build.yml`:
+```yaml
+run: npm run build:win -- --publish never
+```
+
+**Reference:** See "Critical: Auto-Publish Behavior" section above.
+
+---
+
+### Issue: Linux .deb/.rpm build fails with author email error
+
+**Symptom:**
+```
+Error: Please specify author 'email' in the application package.json
+```
+
+**Cause:** electron-builder FpmTarget (used for .deb and .rpm) requires author email for package maintainer field.
+
+**Solution:** Change `package.json` author from string to object format:
+```json
+"author": {
+  "name": "Shane Burkhardt",
+  "email": "shane@numisync.com"
+}
+```
+
+**Reference:** See "Critical: Author Email Requirement" in Phase 4 above.
+
+---
+
+### Issue: GitHub password reset loops
+
+**Symptom:** GitHub repeatedly requires password reset and MFA re-authentication.
+
+**Cause:** Using web scraping tools (WebFetch, curl, etc.) on GitHub URLs triggers security measures.
+
+**Solution:** Always use GitHub CLI (`gh`) for GitHub API operations:
+```bash
+gh run list
+gh run view <run-id> --log-failed
+gh release list
+```
+
+**Reference:** See "GitHub Operations Best Practices" section above.
 
 ---
 
