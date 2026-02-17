@@ -1,6 +1,6 @@
 {
   "name": "numisync-wizard",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "NumiSync Wizard - Enrich your OpenNumismat collection with data from Numista",
   "homepage": "https://numisync.com",
   "main": "src/main/index.js",
