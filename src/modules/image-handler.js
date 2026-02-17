@@ -1,3 +1,17 @@
+/**
+ * @fileoverview image-handler.js — Image download, format detection, and BLOB/URI conversion.
+ *
+ * Exports: ImageHandler class
+ *   blobToDataUri(blob, mimeType?) — Buffer/Uint8Array → base64 data URI for HTML display
+ *   downloadImage(url, timeout?) — downloads image from URL, returns Buffer
+ *   getMimeType(input) — detects MIME type from URL extension or buffer magic bytes
+ *   getPlaceholder(type) — returns SVG data URI placeholder for 'obverse'/'reverse'/'edge'
+ *   extractImageUrls(numistaType) — extracts { obverse, reverse, edge } URLs from Numista type data
+ *   isValidImage(buffer) — validates PNG/JPEG/GIF/WebP by magic bytes
+ *   prepareForDisplay(image, type?) — handles Buffer, URL, or null → display-ready string
+ * Uses: axios, logger.js
+ * Called by: src/main/index.js (get-coin-images, download-and-store-images, merge-data image handling)
+ */
 const axios = require('axios');
 const log = require('../main/logger').scope('ImageHandler');
 

@@ -1,3 +1,16 @@
+/**
+ * @fileoverview field-mapper.js — Maps Numista API responses to OpenNumismat database fields.
+ *
+ * Exports: FieldMapper class
+ *   mapToOpenNumismat(numistaData, issueData?, pricingData?, userSettings?, coinData?) — maps to DB format
+ *   compareFields(coin, numistaData, issueData?, pricingData?) — returns { fields[], hasChanges }
+ *   mergeFields(selectedFields, numistaData, issueData?, pricingData?, coinData?) — builds UPDATE object
+ *   setFieldMapping(newMapping) / getFieldMapping() — runtime mapping reconfiguration
+ *   getEnabledFields() — list of currently enabled field names
+ * Note: price1=UNC, price2=XF, price3=VF, price4=F (Lesson 21 — canonical grade-to-price mapping)
+ * Uses: default-field-mapping.js, mintmark-normalizer.js, logger.js
+ * Called by: src/main/index.js (compare-fields, merge-data, propagate-type-data, fast-pricing-update)
+ */
 const { DEFAULT_FIELD_MAPPING, getCatalogNumber, getNestedValue, formatCatalogForDisplay } = require('./default-field-mapping');
 const { resolveMintName } = require('./mintmark-normalizer');
 const log = require('../main/logger').scope('FieldMapper');

@@ -1,25 +1,23 @@
 /**
- * Metadata Manager
- * 
- * Manages storage and retrieval of enrichment metadata in OpenNumismat's note field.
- * Metadata is stored as JSON inside HTML comments, preserving user notes.
- * 
- * Storage Format:
- * - User notes (preserved exactly)
- * - HTML comment block with JSON metadata
- * 
- * Example:
- * ```
- * This is a rare coin from my grandfather.
- * <!-- NUMISMAT_ENRICHMENT_DATA
- * {
- *   "version": "2.0",
- *   "basicData": {...},
- *   "issueData": {...},
- *   "pricingData": {...}
- * }
- * -->
- * ```
+ * @fileoverview metadata-manager.js — Enrichment metadata stored as JSON in OpenNumismat's note field.
+ *
+ * Metadata is embedded as a JSON block inside an HTML comment, preserving any user notes above it.
+ * Format: user notes text + <!-- NUMISMAT_ENRICHMENT_DATA { ...JSON... } -->
+ *
+ * Exports:
+ *   readEnrichmentMetadata(noteField) — parses note → { userNotes, metadata }
+ *   writeEnrichmentMetadata(userNotes, metadata) — serializes → combined note string
+ *   updateMetadataSection(noteField, section, sectionData) — patches one section (basicData/issueData/pricingData)
+ *   getDefaultMetadata() — returns empty metadata structure with NOT_QUERIED statuses
+ *   isValidMetadata(metadata) — validates required sections and status fields exist
+ *   ensureValidMetadata(metadata) — fills missing fields with defaults
+ *   getSectionStatus(noteField, section) — shortcut to read one section's status string
+ *   getPricingFreshness(noteField) — returns { status: CURRENT|RECENT|AGING|OUTDATED|NEVER_UPDATED, age, timestamp }
+ *   isFullyEnriched(noteField, fetchSettings) — true if all requested data types are MERGED
+ *   getOverallStatus(noteField, fetchSettings) — returns COMPLETE|PARTIAL|PENDING|ERROR
+ * Storage: data embedded in coins.note column (not a separate file)
+ * Uses: logger.js
+ * Called by: src/main/index.js (merge-data, update-coin-status, get-coins), progress-tracker.js
  */
 
 const log = require('../main/logger').scope('Metadata');

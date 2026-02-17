@@ -1,3 +1,20 @@
+/**
+ * @fileoverview cache-lock.js — Atomic file-based locking to prevent cache corruption.
+ *
+ * Uses exclusive file creation ('wx' flag) for atomic lock acquisition with retry + timeout.
+ * Detects and cleans stale locks (>5 minutes old).
+ *
+ * Exports: CacheLock class
+ *   acquire() — waits up to timeout ms, creates lock file atomically; throws on timeout
+ *   release() — deletes lock file if this instance owns it
+ *   isStale() — true if lock file exists and is older than 5 minutes
+ *   CacheLock.checkCacheLockStatus(cachePath) — static; returns { status, cacheExists, lockExists, lockAge, lockOwner }
+ *   CacheLock.getCacheMetadata(cachePath) — static; returns { exists, size, lastModified, entryCount, version, valid }
+ * Storage: {cachePath}.lock alongside the cache JSON file
+ * Note: Lesson 12 — Windows requires PowerShell for exclusive lock tests; Node.js fs uses shared access
+ * Uses: fs, path, os, uuid
+ * Called by: api-cache.js (wraps every disk write operation)
+ */
 const fs = require('fs');
 const path = require('path');
 const os = require('os');

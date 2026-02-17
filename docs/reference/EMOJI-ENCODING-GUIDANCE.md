@@ -16,67 +16,72 @@ The tools I use don't properly handle UTF-8 encoding by default. When I read a f
 
 ## THE SOLUTION - FOLLOW THESE RULES
 
-### RULE 1: Use `bash_tool` with `cp` for file operations
-**DON'T:** Use `create_file` to create modified versions
-**DO:** Use bash commands to copy and modify files
+### RULE 1: Use Python binary mode or bash sed for emoji files
+**DON'T:** Use the `Edit` or `Write` tools on `ui-strings.js`
+**DO:** Use Python binary mode or bash sed to modify it
 
-```bash
-# GOOD - Preserves encoding
-cp /mnt/project/file.js /mnt/user-data/outputs/file.js
-
-# GOOD - Append to files
-cat >> /mnt/project/file.css << 'EOF'
-new css here
-EOF
-
-# BAD - Corrupts encoding
-create_file with emoji content
+```python
+# GOOD - Python binary mode preserves encoding
+with open('src/renderer/ui-strings.js', 'rb') as f:
+    content = f.read()
+content = content.replace(b'old text', b'new text')
+with open('src/renderer/ui-strings.js', 'wb') as f:
+    f.write(content)
 ```
 
-### RULE 2: If you MUST use `str_replace`, check for emojis first
-
-Before using `str_replace`:
-1. Use `view` to check if the file has emojis
-2. If YES → Use bash sed or awk instead
-3. If NO → Safe to use str_replace
-
 ```bash
-# Check for emojis
-grep -P "[\x{1F300}-\x{1F9FF}]" /path/to/file
-
-# If found, use sed instead of str_replace
-sed -i 's/old text/new text/g' /path/to/file
+# GOOD - bash sed preserves encoding
+sed -i 's/old text/new text/g' src/renderer/ui-strings.js
 ```
 
-### RULE 3: NEVER recreate files that already have emojis
+### RULE 2: Before using Edit/Write, confirm the file has no emojis
 
-If a file like index.html or app.js already has emojis and is working:
-- DON'T read it and write it back out
-- DON'T use create_file with its contents
-- DO use targeted str_replace ONLY if no emojis in that section
-- DO use bash commands to modify
+Before using the `Edit` or `Write` tools on any renderer file:
+1. Check if the file is `ui-strings.js` → if YES, use Python/sed instead
+2. For any other file, standard Edit/Write tools are safe (app.js and index.html are emoji-free after Fix 8)
 
-### RULE 4: When copying modified files to outputs
-
-**ALWAYS use bash cp, NEVER create_file:**
-
-```bash
-# CORRECT WAY
-cp /mnt/project/index.html /mnt/user-data/outputs/index.html
-cp /mnt/project/app.js /mnt/user-data/outputs/app.js
-
-# WRONG WAY - This fucks up emojis
-view file, then create_file with contents
+```python
+# Verify a file is emoji-free before using standard tools
+import re
+with open('src/renderer/app.js', 'rb') as f:
+    content = f.read().decode('utf-8', errors='replace')
+emoji_pattern = re.compile(r'[\U0001F300-\U0001FFFF\U00002600-\U000027BF]')
+print(f'Emoji count: {len(emoji_pattern.findall(content))}')
 ```
 
-### RULE 5: Test emoji rendering after ANY file modification
+### RULE 3: NEVER add emoji strings directly to app.js or index.html
 
-After modifying files, check if emojis are intact:
-```bash
-# Check if emojis are still properly encoded
-grep "⚙️\|📂\|✅\|💡" /path/to/file
+These files are now emoji-free. If a UI feature needs an emoji:
+- DON'T add the emoji string inline in `app.js` or `index.html`
+- DO add a new constant to `ui-strings.js` (Python binary mode)
+- DO reference it via `UI_STRINGS.YOUR_KEY` in `app.js`
 
-# If this returns nothing, you fucked it up
+### RULE 4: Adding a new emoji constant to ui-strings.js
+
+```python
+# CORRECT WAY — Python binary mode
+with open('src/renderer/ui-strings.js', 'rb') as f:
+    content = f.read()
+# Insert new constant before the closing }; line
+new_line = b"\n  ICON_NEW: '\xf0\x9f\x86\x95',  // NEW emoji"
+content = content.replace(b'\n};', new_line + b'\n};')
+with open('src/renderer/ui-strings.js', 'wb') as f:
+    f.write(content)
+
+# WRONG WAY - Edit tool will corrupt the encoding
+# Edit(file_path='src/renderer/ui-strings.js', ...)  ← NEVER DO THIS
+```
+
+### RULE 5: Verify emoji integrity after modifying ui-strings.js
+
+```python
+# Check that emojis in ui-strings.js are still properly encoded
+import re
+with open('src/renderer/ui-strings.js', 'rb') as f:
+    content = f.read().decode('utf-8', errors='replace')
+emoji_pattern = re.compile(r'[\U0001F300-\U0001FFFF\U00002600-\U000027BF\U00002702-\U000027B0]')
+print(f'Emoji count: {len(emoji_pattern.findall(content))}')
+# Should be > 0; if 0, encoding was corrupted
 ```
 
 ## WHAT TO DO IF ENCODING GETS CORRUPTED
@@ -88,41 +93,48 @@ grep "⚙️\|📂\|✅\|💡" /path/to/file
 
 ## SPECIFIC FILES IN THIS PROJECT WITH EMOJIS
 
-These files have emojis and must be handled with extreme care:
-- `/mnt/project/index.html` - Has emoji buttons (⚙️ 📂 ← → ✅ 💡 💰 📋 🔄 📍)
-- `/mnt/project/app.js` - Has emoji in status messages
-- `/mnt/project/main.css` - Usually safe (CSS doesn't often have emojis)
-- Any file that displays UI text to users
+**After Fix 8 (emoji isolation), only ONE file contains emojis:**
+- `src/renderer/ui-strings.js` — all 25+ emoji constants; EMOJI-RESTRICTED; use Python binary ops or bash sed
+
+**These files are now emoji-free (safe for standard Edit/Write tools):**
+- `src/renderer/app.js` — references emojis via `UI_STRINGS.*` only; no inline emoji literals
+- `src/renderer/index.html` — emoji placeholders use `<span data-ui-key="...">` populated at runtime
 
 ## CHECKLIST BEFORE MODIFYING FILES
 
-- [ ] Does this file have emojis? (grep to check)
-- [ ] Am I using `str_replace` on a section with emojis? (DON'T)
-- [ ] Am I using `create_file` with emoji content? (DON'T)
-- [ ] Should I use bash `cp` or `sed` instead? (YES)
-- [ ] Will I test emoji rendering after? (ALWAYS)
+- [ ] Is the file `ui-strings.js`? → Use Python binary mode or bash sed (NEVER Edit/Write tools)
+- [ ] Is the file `app.js` or `index.html`? → Standard Edit/Write tools are safe (emoji-free)
+- [ ] Am I adding a new emoji to the UI? → Add constant to `ui-strings.js` via Python, reference via `UI_STRINGS.KEY`
+- [ ] Did I verify emoji count after modifying `ui-strings.js`? → Run Rule 5 Python snippet
 
 ## THE GOLDEN RULE
 
-**When in doubt, use bash commands. Never trust create_file or str_replace with emojis.**
+**The only emoji-restricted file is `ui-strings.js`. Never use Edit/Write tools on it.**
 
 ## Example of What NOT to Do
 
-```python
-# INCORRECT APPROACH
-view /mnt/project/index.html  # This has emojis
-create_file with the contents  # This WILL corrupt encoding
+```javascript
+// INCORRECT — adds emoji inline to app.js (now emoji-free)
+statusEl.textContent = '✅ Enriched';
+
+// INCORRECT — uses Edit tool on ui-strings.js
+// Edit(file_path='src/renderer/ui-strings.js', ...)
 ```
 
 ## Example of What TO Do
 
-```bash
-# CORRECT APPROACH
-# Just copy the file
-cp /mnt/project/index.html /mnt/user-data/outputs/
+```javascript
+// CORRECT — reference the constant in app.js
+statusEl.textContent = UI_STRINGS.ICON_CHECK + ' Enriched';
+```
 
-# Or if you must modify, use sed
-sed -i 's/old/new/g' /mnt/project/index.html
+```python
+# CORRECT — add new constant to ui-strings.js via Python binary mode
+with open('src/renderer/ui-strings.js', 'rb') as f:
+    content = f.read()
+content = content.replace(b"  // end of constants", b"  ICON_NEW: '\xf0\x9f\x86\x95',\n  // end of constants")
+with open('src/renderer/ui-strings.js', 'wb') as f:
+    f.write(content)
 ```
 
 ## REMEMBER

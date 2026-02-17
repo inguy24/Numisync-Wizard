@@ -1,3 +1,25 @@
+/**
+ * @fileoverview settings-manager.js — Per-collection settings file I/O with schema migration.
+ *
+ * Exports: SettingsManager class
+ *   getSettings() / saveSettings() — full settings read/write
+ *   getApiKey() / setApiKey(key) — Numista API key
+ *   getRateLimit() / setRateLimit(ms) — API rate limit in milliseconds
+ *   getFetchSettings() / setFetchSettings(obj) — { basicData, issueData, pricingData, searchCategory, emptyMintmarkInterpretation, enableAutoPropagate }
+ *   getCurrency() / setCurrency(code) — pricing currency (e.g., 'USD')
+ *   getFieldMappings() / setFieldMappings(obj) — per-field enabled/sourceKey/catalogCode config
+ *   getUiPreferences() / setUiPreferences(obj) — view, sort, filter, backup, image handling preferences
+ *   getAutoBackup() / setAutoBackup(bool) — auto-backup on merge
+ *   getMaxBackups() / setMaxBackups(n) — backup retention limit (0 = unlimited)
+ *   buildFieldMapperConfig() — builds FieldMapper-compatible config from user settings + NUMISTA_SOURCES
+ *   buildDefaultFieldMappings() — initializes fieldMappings from DEFAULT_FIELD_MAPPING
+ *   resetToDefaults() — resets all settings (preserves API key)
+ *   getCallsPerCoin() — estimates API calls per coin from current fetchSettings
+ * Storage: {collectionDir}/.NumiSync/{basename}_settings.json (migrates from old path on first run)
+ * Note: Lesson 25 — always extend this file rather than creating parallel settings files
+ * Uses: default-field-mapping.js, logger.js
+ * Called by: src/main/index.js (get-settings, save-fetch-settings, save-currency, save-ui-preference, reset-settings, get/save-field-mappings)
+ */
 const fs = require('fs');
 const path = require('path');
 const { DEFAULT_FIELD_MAPPING, NUMISTA_SOURCES } = require('./default-field-mapping');

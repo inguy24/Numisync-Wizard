@@ -1276,7 +1276,7 @@ async function showBatchTypePropagationPrompt(enrichedCoin, numistaData, issueDa
           Apply to This Coin Only
         </button>
         <button id="batchTypeApplyAll" class="btn ${isSupporter ? 'btn-secondary' : 'btn-primary btn-premium'}"${unenrichedCount === 0 ? ' disabled' : ''}>
-          Apply to All <span id="batchTypeButtonCount">${initialCount}</span>${isSupporter ? '' : ' <span class="premium-badge">💎</span>'}
+          Apply to All <span id="batchTypeButtonCount">${initialCount}</span>${isSupporter ? '' : ' <span class="premium-badge">' + UI_STRINGS.ICON_GEM + '</span>'}
         </button>
       </div>
     </div>
@@ -2771,14 +2771,14 @@ async function loadCoinImages() {
 
 function getStatusIcon(status) {
   const icons = {
-    'MERGED': '✅',
-    'SKIPPED': '🚫',
-    'ERROR': '❌',
-    'MATCHED': '🔍',
-    'SEARCHED': '🔎',
-    'PENDING': '⏳'
+    'MERGED': UI_STRINGS.ICON_CHECK,
+    'SKIPPED': UI_STRINGS.ICON_NO_ENTRY,
+    'ERROR': UI_STRINGS.ICON_CROSS,
+    'MATCHED': UI_STRINGS.ICON_SEARCH,
+    'SEARCHED': UI_STRINGS.ICON_SEARCH_ALT,
+    'PENDING': UI_STRINGS.ICON_HOURGLASS
   };
-  return icons[status] || '⏺️';
+  return icons[status] || UI_STRINGS.ICON_RECORD;
 }
 
 function getStatusText(status) {
@@ -2806,9 +2806,9 @@ function getDataTypeIcons(coin) {
   // Default icons if no statusInfo
   if (!statusInfo) {
     return '<span class="data-icons">' +
-      '<span class="data-icon" title="Basic: Pending">⏳</span>' +
-      '<span class="data-icon" title="Issue: Pending">⏳</span>' +
-      '<span class="data-icon" title="Pricing: Pending">⏳</span>' +
+      '<span class="data-icon" title="Basic: Pending">' + UI_STRINGS.ICON_HOURGLASS + '</span>' +
+      '<span class="data-icon" title="Issue: Pending">' + UI_STRINGS.ICON_HOURGLASS + '</span>' +
+      '<span class="data-icon" title="Pricing: Pending">' + UI_STRINGS.ICON_HOURGLASS + '</span>' +
     '</span>';
   }
 
@@ -2831,16 +2831,16 @@ function getDataTypeIcon(dataStatus, label) {
   const status = dataStatus?.status || 'NOT_QUERIED';
   
   const iconMap = {
-    'MERGED': { icon: '✅', title: label + ': Merged' },
-    'NOT_QUERIED': { icon: '⚪', title: label + ': Not requested' },
-    'PENDING': { icon: '⏳', title: label + ': Pending' },
-    'ERROR': { icon: '❌', title: label + ': Error' },
-    'NO_MATCH': { icon: '❓', title: label + ': No match found' },
-    'NO_DATA': { icon: '📭', title: label + ': No data available' },
-    'SKIPPED': { icon: '🚫', title: label + ': Skipped' }
+    'MERGED': { icon: UI_STRINGS.ICON_CHECK, title: label + ': Merged' },
+    'NOT_QUERIED': { icon: UI_STRINGS.ICON_CIRCLE_WHITE, title: label + ': Not requested' },
+    'PENDING': { icon: UI_STRINGS.ICON_HOURGLASS, title: label + ': Pending' },
+    'ERROR': { icon: UI_STRINGS.ICON_CROSS, title: label + ': Error' },
+    'NO_MATCH': { icon: UI_STRINGS.ICON_QUESTION, title: label + ': No match found' },
+    'NO_DATA': { icon: UI_STRINGS.ICON_MAILBOX_EMPTY, title: label + ': No data available' },
+    'SKIPPED': { icon: UI_STRINGS.ICON_NO_ENTRY, title: label + ': Skipped' }
   };
   
-  const iconInfo = iconMap[status] || { icon: '⚪', title: label + ': Unknown' };
+  const iconInfo = iconMap[status] || { icon: UI_STRINGS.ICON_CIRCLE_WHITE, title: label + ': Unknown' };
   return '<span class="data-icon" title="' + iconInfo.title + '">' + iconInfo.icon + '</span>';
 }
 
@@ -2856,13 +2856,13 @@ function getPricingIcon(pricingStatus) {
   // If not merged, use standard icons
   if (status !== 'MERGED') {
     const iconMap = {
-      'NOT_QUERIED': { icon: '⚪', title: 'Pricing: Not requested' },
-      'PENDING': { icon: '⏳', title: 'Pricing: Pending' },
-      'ERROR': { icon: '❌', title: 'Pricing: Error' },
-      'NO_DATA': { icon: '📭', title: 'Pricing: No data available' },
-      'SKIPPED': { icon: '🚫', title: 'Pricing: Skipped' }
+      'NOT_QUERIED': { icon: UI_STRINGS.ICON_CIRCLE_WHITE, title: 'Pricing: Not requested' },
+      'PENDING': { icon: UI_STRINGS.ICON_HOURGLASS, title: 'Pricing: Pending' },
+      'ERROR': { icon: UI_STRINGS.ICON_CROSS, title: 'Pricing: Error' },
+      'NO_DATA': { icon: UI_STRINGS.ICON_MAILBOX_EMPTY, title: 'Pricing: No data available' },
+      'SKIPPED': { icon: UI_STRINGS.ICON_NO_ENTRY, title: 'Pricing: Skipped' }
     };
-    const iconInfo = iconMap[status] || { icon: '⚪', title: 'Pricing: Unknown' };
+    const iconInfo = iconMap[status] || { icon: UI_STRINGS.ICON_CIRCLE_WHITE, title: 'Pricing: Unknown' };
     return '<span class="data-icon" title="' + iconInfo.title + '">' + iconInfo.icon + '</span>';
   }
   
@@ -2883,7 +2883,7 @@ function getPricingIcon(pricingStatus) {
  */
 function calculatePricingFreshness(timestamp) {
   if (!timestamp) {
-    return { status: 'NEVER', icon: '⚪', text: 'Never updated' };
+    return { status: 'NEVER', icon: UI_STRINGS.ICON_CIRCLE_WHITE, text: 'Never updated' };
   }
   
   try {
@@ -2894,17 +2894,17 @@ function calculatePricingFreshness(timestamp) {
     const ageYears = ageMonths / 12;
     
     if (ageMonths < 3) {
-      return { status: 'CURRENT', icon: '🟢', text: 'Current (< 3 months)' };
+      return { status: 'CURRENT', icon: UI_STRINGS.ICON_CIRCLE_GREEN, text: 'Current (< 3 months)' };
     }
     if (ageYears < 1) {
-      return { status: 'RECENT', icon: '🟡', text: 'Recent (' + Math.round(ageMonths) + ' months)' };
+      return { status: 'RECENT', icon: UI_STRINGS.ICON_CIRCLE_YELLOW, text: 'Recent (' + Math.round(ageMonths) + ' months)' };
     }
     if (ageYears < 2) {
-      return { status: 'AGING', icon: '🟠', text: 'Aging (' + ageYears.toFixed(1) + ' years)' };
+      return { status: 'AGING', icon: UI_STRINGS.ICON_CIRCLE_ORANGE, text: 'Aging (' + ageYears.toFixed(1) + ' years)' };
     }
-    return { status: 'OUTDATED', icon: '🔴', text: 'Outdated (' + Math.round(ageYears) + ' years)' };
+    return { status: 'OUTDATED', icon: UI_STRINGS.ICON_CIRCLE_RED, text: 'Outdated (' + Math.round(ageYears) + ' years)' };
   } catch (e) {
-    return { status: 'NEVER', icon: '⚪', text: 'Unknown' };
+    return { status: 'NEVER', icon: UI_STRINGS.ICON_CIRCLE_WHITE, text: 'Unknown' };
   }
 }
 
@@ -3000,19 +3000,32 @@ async function renderCurrentCoinInfo() {
  * @returns {string} Query with parenthetical content removed
  */
 /**
- * Normalize a denomination unit for use in Numista search queries.
- * Uses the numeric value to determine correct singular/plural form,
- * since Numista is strict about "1 Centavo" vs "50 Centavos".
+ * Normalize a denomination unit string for use in Numista search queries,
+ * since Numista is strict about "1 Centavo" vs "50 Centavos" and about
+ * language-specific forms (e.g., Italian "centesimi" vs Spanish "centésimos").
+ * When an issuer code is provided, checks issuer-denomination-overrides.json
+ * for a country-specific form before falling back to the denomination-aliases.json default.
  * @param {string} unit - Raw unit string from coin data
  * @param {number|null} value - Numeric denomination value (1 = singular, >1 = plural)
+ * @param {string|null} [issuerCode] - Resolved Numista issuer code (optional)
  * @returns {string} Normalized unit suitable for API search queries
  */
-function normalizeUnitForSearch(unit, value) {
+function normalizeUnitForSearch(unit, value, issuerCode) {
   if (!unit) return unit;
   const canonical = window.stringSimilarity.normalizeUnit(unit);
   if (!canonical) return unit;
-  // Use numeric value to pick correct singular/plural form
   const numValue = parseFloat(value);
+  // Issuer-specific override takes priority over denomination-aliases.json default
+  if (issuerCode) {
+    const overrideEntry = (window.stringSimilarity.issuerOverrides[canonical] || {})[issuerCode];
+    if (overrideEntry) {
+      if (!isNaN(numValue)) {
+        return numValue === 1 ? overrideEntry.singular : overrideEntry.plural;
+      }
+      return overrideEntry.singular; // no numeric value → use singular as safest default
+    }
+  }
+  // Default path — use denomination-aliases.json plural
   if (!isNaN(numValue)) {
     return window.stringSimilarity.getSearchForm(canonical, numValue);
   }
@@ -3045,15 +3058,16 @@ function stripParenthetical(query) {
 /**
  * Build a simplified core query from coin data (denomination + year).
  * @param {Object} coin - Coin object
+ * @param {string|null} [issuerCode] - Resolved Numista issuer code for denomination form selection
  * @returns {string} Simplified query
  */
-function buildCoreQuery(coin) {
+function buildCoreQuery(coin, issuerCode) {
   const parts = [];
 
   // Add denomination (normalize spelling, use correct singular/plural for Numista search)
   if (coin.value) {
     if (coin.unit) {
-      parts.push(`${coin.value} ${normalizeUnitForSearch(coin.unit, coin.value)}`);
+      parts.push(`${coin.value} ${normalizeUnitForSearch(coin.unit, coin.value, issuerCode)}`);
     } else {
       parts.push(coin.value.toString());
     }
@@ -3148,7 +3162,7 @@ async function searchForMatches() {
 
     // Strategy 2: Core terms only (denomination + year)
     if (AppState.currentMatches.length === 0) {
-      const coreQuery = buildCoreQuery(coin);
+      const coreQuery = buildCoreQuery(coin, baseParams.issuer);
       if (coreQuery && coreQuery !== baseParams.q) {
         searchAttempt++;
         console.log(`Search attempt ${searchAttempt}: Core query -> "${coreQuery}"`);
@@ -3192,7 +3206,7 @@ async function searchForMatches() {
       const altForms = window.stringSimilarity.getAlternateSearchForms(coin.unit, parseFloat(coin.value) || 0);
       if (altForms.length > 0) {
         // The primary form was already tried; filter it out
-        const primaryForm = normalizeUnitForSearch(coin.unit, coin.value);
+        const primaryForm = normalizeUnitForSearch(coin.unit, coin.value, baseParams.issuer);
         const newForms = altForms.filter(f => f !== primaryForm);
         for (const altForm of newForms) {
           if (AppState.currentMatches.length > 0) break;
@@ -3281,7 +3295,25 @@ function resolveSearchCategory(settingValue, coin) {
 async function buildSearchParams(coin) {
   const params = {};
 
-  // Build search query preferring structured fields over raw title.
+  // 1. Resolve issuer FIRST — needed for denomination form selection.
+  // Country-specific denominations (e.g., Italian "centesimi" vs Spanish "centésimos")
+  // require knowing the issuer before we can choose the right plural form.
+  let issuerCode = null;
+  if (coin.country && coin.country.trim()) {
+    try {
+      const cleanCountry = stripParenthetical(coin.country.trim());
+      const issuerResult = await window.electronAPI.resolveIssuer(cleanCountry);
+      if (issuerResult.success && issuerResult.code) {
+        issuerCode = issuerResult.code;
+        params.issuer = issuerCode;
+        console.log(`Resolved issuer for "${coin.country}": ${issuerCode}`);
+      }
+    } catch (error) {
+      console.warn('Issuer resolution failed (non-fatal):', error.message);
+    }
+  }
+
+  // 2. Build search query preferring structured fields over raw title.
   // Structured fields (value, unit) produce normalized denomination forms
   // that match Numista's expected singular/plural (e.g., "1 crown" not "1 Crowns").
   // Country name is NOT included in query text — the issuer parameter handles filtering.
@@ -3290,7 +3322,7 @@ async function buildSearchParams(coin) {
 
   // Prefer structured denomination fields
   if (coin.value) {
-    const normalizedUnit = coin.unit ? normalizeUnitForSearch(coin.unit, coin.value) : null;
+    const normalizedUnit = coin.unit ? normalizeUnitForSearch(coin.unit, coin.value, issuerCode) : null;
     query = normalizedUnit ? `${coin.value} ${normalizedUnit}` : coin.value.toString();
     usedStructuredDenom = true;
   }
@@ -3337,20 +3369,6 @@ async function buildSearchParams(coin) {
   const category = resolveSearchCategory(categorySetting, coin);
   if (category) {
     params.category = category;
-  }
-
-  // Resolve issuer code from country name to narrow search results
-  if (coin.country && coin.country.trim()) {
-    try {
-      const cleanCountry = stripParenthetical(coin.country.trim());
-      const issuerResult = await window.electronAPI.resolveIssuer(cleanCountry);
-      if (issuerResult.success && issuerResult.code) {
-        params.issuer = issuerResult.code;
-        console.log(`Resolved issuer for "${coin.country}": ${issuerResult.code}`);
-      }
-    } catch (error) {
-      console.warn('Issuer resolution failed (non-fatal):', error.message);
-    }
   }
 
   return params;
@@ -3772,7 +3790,7 @@ function createDefaultSelection(comparison) {
     selection[fieldName] = autoSelect;
     
     if (autoSelect) {
-      console.log(`  ✅ Auto-selecting '${fieldName}' (current empty, numista has value)`);
+      console.log(`  ${UI_STRINGS.ICON_CHECK} Auto-selecting '${fieldName}' (current empty, numista has value)`);
     } else {
       console.log(`  - Not selecting '${fieldName}' (hasCurrentValue=${data.hasCurrentValue}, hasNumistaValue=${data.hasNumistaValue})`);
     }
@@ -5700,7 +5718,7 @@ function showCacheCollisionModal(collision, cachePath) {
       </ul>
     `;
   } else if (metadata) {
-    detailsDiv.innerHTML = '<p style="color: #d97706;">⚠️ Cache file exists but may be corrupted or invalid.</p>';
+    detailsDiv.innerHTML = '<p style="color: #d97706;">' + UI_STRINGS.ICON_WARNING + ' Cache file exists but may be corrupted or invalid.</p>';
   }
 
   // Show stale lock warning if applicable
@@ -6711,7 +6729,7 @@ class DataSettingsUI {
   showSuccess(message) {
     const statusMessage = document.getElementById('statusMessage');
     if (statusMessage) {
-      statusMessage.textContent = `✅ ${message}`;
+      statusMessage.textContent = `${UI_STRINGS.ICON_CHECK} ${message}`;
       statusMessage.style.color = '#27ae60';
       
       setTimeout(() => {
@@ -6726,7 +6744,7 @@ class DataSettingsUI {
   showError(message) {
     const statusMessage = document.getElementById('statusMessage');
     if (statusMessage) {
-      statusMessage.textContent = `⚠️ ${message}`;
+      statusMessage.textContent = `${UI_STRINGS.ICON_WARNING} ${message}`;
       statusMessage.style.color = '#e74c3c';
       
       setTimeout(() => {
@@ -7478,7 +7496,7 @@ function showStoreUpdateNotification(updateInfo) {
   banner.className = 'update-banner';
   banner.innerHTML = `
     <div class="update-banner-content">
-      <span class="update-icon">🔄</span>
+      <span class="update-icon">${UI_STRINGS.ICON_REFRESH}</span>
       <span class="update-text">
         Version ${updateInfo.version} is available.
         Updates install automatically through Microsoft Store.
@@ -7508,7 +7526,7 @@ function showWhatsNewModal(info) {
   modal.innerHTML = `
     <div class="modal-dialog whats-new-modal">
       <div class="modal-header">
-        <h2>🎉 What's New in Version ${info.version}</h2>
+        <h2>${UI_STRINGS.ICON_PARTY} What's New in Version ${info.version}</h2>
         <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
       </div>
       <div class="modal-body">
@@ -7576,6 +7594,12 @@ function formatReleaseNotes(markdown) {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // Populate emoji placeholders from UI_STRINGS (spans in index.html)
+  document.querySelectorAll('.emoji-placeholder[data-ui-key]').forEach(function(el) {
+    var key = el.getAttribute('data-ui-key');
+    if (UI_STRINGS[key]) el.textContent = UI_STRINGS[key];
+  });
+
   // Show welcome screen initially while we check EULA and default collection
   showScreen('welcome');
   showStatus('Starting...');

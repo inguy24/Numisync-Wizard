@@ -24,7 +24,7 @@
         <!-- Collection-specific actions (shown when collection is open) -->
         <div class="collection-actions" id="headerCollectionActions" style="display: none;">
           <button id="fastPricingBtn" class="btn btn-secondary btn-premium btn-premium-locked">
-            <span class="premium-icon">🔒</span> Fast Pricing Mode
+            <span class="premium-icon"><span class="emoji-placeholder" data-ui-key="ICON_LOCK"></span></span> Fast Pricing Mode
           </button>
           <button id="closeCollectionBtn" class="btn btn-secondary">
             ← Close Collection
@@ -67,14 +67,14 @@
           
           <div class="welcome-actions">
             <button id="loadCollectionBtn" class="btn btn-primary btn-large">
-              📂 Load Collection
+              <span class="emoji-placeholder" data-ui-key="ICON_FOLDER_OPEN"></span> Load Collection
             </button>
           </div>
 
           <div class="welcome-info">
             <h3>Quick Start:</h3>
             <ol>
-              <li><strong>First time?</strong> Click ⚙️ Settings (top right) and add your Numista API key
+              <li><strong>First time?</strong> Click <span class="emoji-placeholder" data-ui-key="ICON_GEAR"></span> Settings (top right) and add your Numista API key
                 <br><small>Get a free key at <a href="https://en.numista.com/api/" target="_blank">numista.com/api</a></small>
               </li>
               <li><strong>Load your collection</strong> - Select your OpenNumismat .db file</li>
@@ -85,7 +85,7 @@
             </ol>
             
             <p class="text-muted" style="margin-top: 20px;">
-              💡 <strong>Tip:</strong> You work on one coin at a time to ensure accuracy. 
+              <span class="emoji-placeholder" data-ui-key="ICON_BULB"></span> <strong>Tip:</strong> You work on one coin at a time to ensure accuracy. 
               Your progress is automatically saved!
             </p>
           </div>
@@ -258,10 +258,10 @@
         <div class="coin-list" id="coinList">
           <!-- Coins will be dynamically added here -->
           <div class="empty-state" style="text-align: center; padding: 40px; color: #666;">
-            <h3>📋 Click on any coin to get started</h3>
+            <h3><span class="emoji-placeholder" data-ui-key="ICON_CLIPBOARD"></span> Click on any coin to get started</h3>
             <p>Select a coin from the list to search Numista and enrich its data.</p>
             <p style="margin-top: 20px;">
-              💡 <strong>How it works:</strong><br>
+              <span class="emoji-placeholder" data-ui-key="ICON_BULB"></span> <strong>How it works:</strong><br>
               1. Click a coin → 2. Review matches → 3. Choose fields → 4. Apply changes
             </p>
           </div>
@@ -283,15 +283,15 @@
         <div class="match-controls">
           <div id="searchStatus" class="search-status">
             <p style="color: #666; margin: 10px 0;">
-              💡 <strong>How to choose:</strong> Look for the highest confidence score and verify the details match your coin.
+              <span class="emoji-placeholder" data-ui-key="ICON_BULB"></span> <strong>How to choose:</strong> Look for the highest confidence score and verify the details match your coin.
               Click on a match to see detailed field comparison.
             </p>
           </div>
           <button id="searchAgainBtn" class="btn btn-secondary">
-            🔄 Search Again
+            <span class="emoji-placeholder" data-ui-key="ICON_REFRESH"></span> Search Again
           </button>
           <button id="manualSearchBtn" class="btn btn-secondary">
-            🔍 Try Manual Search
+            <span class="emoji-placeholder" data-ui-key="ICON_SEARCH"></span> Try Manual Search
           </button>
         </div>
 
@@ -355,7 +355,7 @@
 
         <div class="field-selection-controls">
           <p style="color: #666; margin-bottom: 10px;">
-            💡 <strong>Select fields to import:</strong> Check the boxes for fields you want to update from Numista. 
+            <span class="emoji-placeholder" data-ui-key="ICON_BULB"></span> <strong>Select fields to import:</strong> Check the boxes for fields you want to update from Numista. 
             Fields in <strong>bold</strong> are different from your current data.
           </p>
           <button id="selectAllFieldsBtn" class="btn btn-small">Select All</button>
@@ -370,7 +370,7 @@
 
         <div class="comparison-actions">
           <button id="applyChangesBtn" class="btn btn-primary btn-large">
-            ✅ Apply Changes to Coin
+            <span class="emoji-placeholder" data-ui-key="ICON_CHECK"></span> Apply Changes to Coin
           </button>
           <button id="cancelMergeBtn" class="btn btn-secondary">
             Cancel
@@ -531,10 +531,10 @@
                 <button id="browseCacheLocationBtn" class="btn btn-secondary">Browse...</button>
               </div>
               <p class="setting-help">
-                ℹ️ <strong>Multi-Machine Setup:</strong> Select a folder on a network drive accessible from all computers.
+                <span class="emoji-placeholder" data-ui-key="ICON_INFO"></span> <strong>Multi-Machine Setup:</strong> Select a folder on a network drive accessible from all computers.
               </p>
               <p class="setting-help" style="color: #d97706;">
-                ⚠️ <strong>Requirements:</strong> The folder must be accessible with read/write permissions. Network shares and modern cloud sync services (Dropbox, OneDrive, etc.) work fine.
+                <span class="emoji-placeholder" data-ui-key="ICON_WARNING"></span> <strong>Requirements:</strong> The folder must be accessible with read/write permissions. Network shares and modern cloud sync services (Dropbox, OneDrive, etc.) work fine.
               </p>
             </div>
 
@@ -724,7 +724,7 @@
   <div id="dataSettingsModal" class="modal" style="display: none;">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>⚙️ Data Settings</h3>
+        <h3><span class="emoji-placeholder" data-ui-key="ICON_GEAR"></span> Data Settings</h3>
         <button id="dataSettingsCloseBtn" class="modal-close">×</button>
       </div>
       
@@ -787,7 +787,7 @@
                 <strong>Cost:</strong> +1 API call per coin
               </p>
               <p class="data-note">
-                ⚠️ If multiple mints exist, you'll be asked to choose the correct one.
+                <span class="emoji-placeholder" data-ui-key="ICON_WARNING"></span> If multiple mints exist, you'll be asked to choose the correct one.
               </p>
             </div>
           </div>
@@ -814,7 +814,7 @@
                 <strong>Cost:</strong> +1 API call per coin
               </p>
               <p class="data-note">
-                ⚠️ Pricing includes freshness tracking (how recent the prices are).
+                <span class="emoji-placeholder" data-ui-key="ICON_WARNING"></span> Pricing includes freshness tracking (how recent the prices are).
               </p>
             </div>
           </div>
@@ -938,7 +938,7 @@
 
         <div class="data-settings-info">
           <p>
-            <strong>💡 Tip:</strong> You can change these settings at any time. For coins you've already processed, 
+            <strong><span class="emoji-placeholder" data-ui-key="ICON_BULB"></span> Tip:</strong> You can change these settings at any time. For coins you've already processed, 
             use the "Fetch More Data" feature to add additional data types later.
           </p>
         </div>
@@ -1108,7 +1108,7 @@
   <div id="cacheCollisionModal" class="modal" style="display: none;">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>⚠️ Existing Cache Detected</h3>
+        <h3><span class="emoji-placeholder" data-ui-key="ICON_WARNING"></span> Existing Cache Detected</h3>
         <button id="cacheCollisionCloseBtn" class="modal-close">×</button>
       </div>
       <div class="modal-body">
@@ -1122,23 +1122,23 @@
         </div>
 
         <div id="collisionLockWarning" class="warning-box" style="display: none; margin-top: 15px;">
-          <strong>🔒 Cache In Use</strong>
+          <strong><span class="emoji-placeholder" data-ui-key="ICON_LOCK"></span> Cache In Use</strong>
           <p id="lockWarningText"></p>
         </div>
 
         <p style="margin-top: 20px;">What would you like to do?</p>
 
         <div class="info-box" style="margin-top: 15px;">
-          <strong>💡 Multi-Machine Tip:</strong> If you're setting up NumiSync Wizard on a second computer,
+          <strong><span class="emoji-placeholder" data-ui-key="ICON_BULB"></span> Multi-Machine Tip:</strong> If you're setting up NumiSync Wizard on a second computer,
           choose "Use Existing Cache" to share cached API data between machines and save API quota.
         </div>
       </div>
       <div class="modal-footer" style="flex-direction: column; gap: 10px;">
         <button id="useExistingCacheBtn" class="btn btn-primary" style="width: 100%;">
-          ✅ Use Existing Cache (Recommended)
+          <span class="emoji-placeholder" data-ui-key="ICON_CHECK"></span> Use Existing Cache (Recommended)
         </button>
         <button id="selectDifferentLocationBtn" class="btn btn-secondary" style="width: 100%;">
-          📁 Select Different Location
+          <span class="emoji-placeholder" data-ui-key="ICON_FOLDER"></span> Select Different Location
         </button>
         <button id="cancelCollisionBtn" class="btn btn-secondary" style="width: 100%;">
           Cancel
@@ -1151,7 +1151,7 @@
   <div id="cacheLockedModal" class="modal" style="display: none;">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>🔒 Cache Locked</h3>
+        <h3><span class="emoji-placeholder" data-ui-key="ICON_LOCK"></span> Cache Locked</h3>
         <button id="cacheLockedCloseBtn" class="modal-close">×</button>
       </div>
       <div class="modal-body">
@@ -1174,13 +1174,14 @@
         </p>
       </div>
       <div class="modal-footer">
-        <button id="retryLockedCacheBtn" class="btn btn-primary">🔄 Retry</button>
-        <button id="selectDifferentFromLockedBtn" class="btn btn-secondary">📁 Select Different Location</button>
+        <button id="retryLockedCacheBtn" class="btn btn-primary"><span class="emoji-placeholder" data-ui-key="ICON_REFRESH"></span> Retry</button>
+        <button id="selectDifferentFromLockedBtn" class="btn btn-secondary"><span class="emoji-placeholder" data-ui-key="ICON_FOLDER"></span> Select Different Location</button>
         <button id="cancelLockedBtn" class="btn btn-secondary">Cancel</button>
       </div>
     </div>
   </div>
 
+  <script src="ui-strings.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

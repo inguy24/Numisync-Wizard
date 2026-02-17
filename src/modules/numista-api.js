@@ -1,3 +1,22 @@
+/**
+ * @fileoverview numista-api.js — Numista API v3 client with rate limiting and persistent caching.
+ *
+ * Exports: NumistaAPI class
+ *   searchTypes(params) — search coin types by query/issuer/year/category
+ *   getType(typeId, lang?) — full type data: composition, rulers, references, images
+ *   getTypeIssues(typeId, lang?) — all issue variants (year, mint_letter, mintage, marks)
+ *   getIssuePricing(typeId, issueId, currency?) — grade-based prices for an issue
+ *   matchIssue(coin, issuesResponse, options?) — auto-match coin to issue by year/mintmark/type
+ *   fetchCoinData(typeId, coin, fetchSettings, currency?) — orchestrates type+issue+pricing fetch
+ *   calculateMatchConfidence(coin, numistaType) — 0-100 confidence score for search results
+ *   getIssuers() — full issuer list (cached 90 days by default)
+ *   resolveIssuerCode(countryName) — alias map + Dice fuzzy match → Numista issuer code
+ *   clearCache() — clears in-memory and issuerCode caches
+ * Storage: reads src/data/issuer-aliases.json at module load
+ * Note: resolveIssuerCode prefers highest-level (most specific) issuer when names collide (Lesson 20)
+ * Uses: axios, api-cache.js, mintmark-normalizer.js, denomination-normalizer.js, logger.js
+ * Called by: src/main/index.js (search-numista, fetch-coin-data, fetch-issue-data, resolve-issuer, fast-pricing-update)
+ */
 const fs = require('fs');
 const path = require('path');
 const axios = require('axios');

@@ -1,11 +1,19 @@
 /**
- * Denomination Normalizer
+ * @fileoverview denomination-normalizer.js — Denomination unit normalization and search form resolution.
  *
- * Normalizes denomination unit strings for consistent comparison between
- * OpenNumismat user data and Numista API data.
- *
- * Alias data is stored externally in src/data/denomination-aliases.json
- * so it can be updated without modifying code.
+ * Exports:
+ *   normalizeUnit(raw) — canonical form lookup via alias map + diacritic stripping + simple plural strip
+ *   unitsMatch(unitA, unitB) — true if both normalize to the same canonical form
+ *   getSearchForm(canonical, numericValue) — singular (1) or plural form for Numista search queries
+ *   getAlternateSearchForms(unit, numericValue) — all plural forms when alias spans multiple canonicals
+ *   DENOMINATION_ALIASES — flat map: raw variant → canonical form
+ *   DENOMINATION_PLURALS — canonical → plural form (from denomination-aliases.json)
+ *   ALL_CANONICALS — raw variant → array of all canonical forms it belongs to
+ *   ISSUER_DENOMINATION_OVERRIDES — canonical → issuer code → { singular, plural } (country exceptions)
+ * Storage: reads src/data/denomination-aliases.json and src/data/issuer-denomination-overrides.json at load
+ * Note: Lesson 17 — Numista API does not cross-match denomination languages; use getAlternateSearchForms()
+ * Note: Lesson 28 — issuer-specific plural overrides stored in issuer-denomination-overrides.json
+ * Called by: numista-api.js (denomination matching and search), src/main/index.js (search-numista)
  */
 
 const path = require('path');
@@ -63,6 +71,26 @@ function loadAliases() {
 }
 
 const { aliasMap: DENOMINATION_ALIASES, pluralMap: DENOMINATION_PLURALS, allCanonicalsMap: ALL_CANONICALS } = loadAliases();
+
+/**
+ * Issuer-specific denomination form overrides.
+ * Maps canonical denomination -> Numista issuer code -> { singular, plural } override forms.
+ * When a resolved issuer code matches an entry, its form takes priority over the
+ * default plural from DENOMINATION_PLURALS (denomination-aliases.json).
+ * Only exception cases are listed — issuers not present fall through to the default.
+ * Data source: src/data/issuer-denomination-overrides.json
+ * @type {Object.<string, Object.<string, {singular: string, plural: string}>>}
+ */
+const ISSUER_DENOMINATION_OVERRIDES = (() => {
+  const overridesPath = path.join(__dirname, '..', 'data', 'issuer-denomination-overrides.json');
+  const raw = JSON.parse(fs.readFileSync(overridesPath, 'utf8'));
+  const result = {};
+  for (const [canonical, value] of Object.entries(raw)) {
+    if (canonical.startsWith('_')) continue;
+    if (value && typeof value === 'object') result[canonical] = value;
+  }
+  return result;
+})();
 
 /**
  * Normalize a denomination unit string to its canonical form.
@@ -137,4 +165,4 @@ function getAlternateSearchForms(unit, numericValue) {
   return canonicals.map(c => getSearchForm(c, numericValue));
 }
 
-module.exports = { normalizeUnit, unitsMatch, getSearchForm, getAlternateSearchForms, DENOMINATION_ALIASES, DENOMINATION_PLURALS, ALL_CANONICALS };
+module.exports = { normalizeUnit, unitsMatch, getSearchForm, getAlternateSearchForms, DENOMINATION_ALIASES, DENOMINATION_PLURALS, ALL_CANONICALS, ISSUER_DENOMINATION_OVERRIDES };

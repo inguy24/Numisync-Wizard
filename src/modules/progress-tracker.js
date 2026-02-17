@@ -1,3 +1,26 @@
+/**
+ * @fileoverview progress-tracker.js — Enrichment progress persistence and per-collection statistics.
+ *
+ * Tracks status per coin across three data types: basicData, issueData, pricingData.
+ * Progress file is rebuilt from database metadata on startup; in-memory cache is the source of truth
+ * during a session. Actual status persistence is in the database via metadata-manager.js.
+ *
+ * Exports: ProgressTracker class
+ *   rebuildFromDatabase(dbConnection, fetchSettings) — scans all coins' note fields to rebuild stats
+ *   updateCoinInCache(coinId, metadata, fetchSettings) — updates in-memory cache + recalculates stats
+ *   getCoinStatus(coinId) — { status, basicData, issueData, pricingData, title }
+ *   getCoinData(coinId) — raw coin data from progress cache
+ *   getCoinDataStatus(coinId, dataType) — status object for one data type
+ *   getCoinsMatchingFilter(filters, fetchSettings) — filter by overallStatus / data type status / pricing freshness
+ *   getStatistics() — full stats object with totals, per-type counts, freshness breakdown, completionPercentage
+ *   incrementSessionCalls(count?) / getSessionCallCount() / resetSessionCallCount() — session API call counter
+ *   initializeCollection(totalCoins) — sets total count for percentage calculations
+ *   resetProgress() — clears all progress data (force rebuild)
+ *   exportProgressReport() — formatted text report for debugging
+ * Storage: {collectionDir}/.NumiSync/{basename}_progress.json (migrates from old path on first run)
+ * Uses: metadata-manager.js, logger.js
+ * Called by: src/main/index.js (get-progress-stats, update-coin-status, load-collection, merge-data)
+ */
 const fs = require('fs');
 const path = require('path');
 const metadataManager = require('./metadata-manager');

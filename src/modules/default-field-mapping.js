@@ -1,14 +1,17 @@
 /**
- * Default Field Mapping Configuration
- * NumiSync Wizard for OpenNumismat
- * 
- * Maps OpenNumismat database fields to Numista API response fields.
- * Users can customize these mappings in their preferences.
- * 
- * Based on final analysis of Numista API v3.29.0 Swagger specification
- * and OpenNumismat SQLite schema (110 fields analyzed)
- * 
- * Last Updated: 2026-01-21
+ * @fileoverview default-field-mapping.js — Canonical field mapping: OpenNumismat columns → Numista API paths.
+ *
+ * Exports:
+ *   DEFAULT_FIELD_MAPPING — per-field config: numistaPath, transform, priority, enabled, category, displayOrder
+ *   NUMISTA_SOURCES — registry of 40+ Numista data sources (path, displayName, group, transform)
+ *   getCatalogNumber(references, catalogCode) — extracts catalog number from references array
+ *   getNestedValue(obj, path) — dot-notation path traversal (e.g., 'obverse.description')
+ *   getCatalogDisplayName(code) — 'KM' → 'Krause', etc.
+ *   formatCatalogForDisplay(catalogCode, number) — 'KM', '13' → 'Krause# 13'
+ *   getSerializableSources() — IPC-safe NUMISTA_SOURCES (transform functions stripped)
+ * Note: price1=UNC, price2=XF, price3=VF, price4=F (Lesson 21 — canonical mapping, defined here at lines 121-126)
+ * Uses: (no external module dependencies — pure data and transform functions)
+ * Called by: field-mapper.js, settings-manager.js, src/main/index.js (get-available-sources, get-field-mappings)
  */
 
 /**

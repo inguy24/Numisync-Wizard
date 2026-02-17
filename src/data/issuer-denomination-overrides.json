@@ -1,0 +1,56 @@
+{
+  "_comment": "Issuer-specific denomination form overrides. Key = canonical denomination (from denomination-aliases.json). Value = map of Numista issuer code -> { singular, plural } override forms. Only exception cases are listed; issuers not listed here fall through to the denomination-aliases.json default. Keys starting with _ are ignored by the normalizer. WHY THIS FILE EXISTS: denomination-aliases.json answers 'what are the spelling variants of this denomination?' (normalization concern). This file answers 'what exact singular/plural form does Numista use for this denomination in a specific country?' (search concern). Keeping them separate means aliases.json stays a pure spelling-variant table while this file is a living search-form table: adding a new country-specific override requires one JSON entry here, no code changes.",
+
+  "_section_01": "=== CENTESIMO ===",
+  "_centesimo_note": "Default: centesimi (Italian). Italian-sphere issuers (italie, italy_kingdom, saint-marin, vatican) use the default and are NOT listed here. Spanish/Latin American countries use centesimo/centesimos (with accent on Numista: centesimo/centesimos).",
+  "centesimo": {
+    "uruguay":  { "singular": "cent\u00e9simo", "plural": "cent\u00e9simos" },
+    "panama":   { "singular": "cent\u00e9simo", "plural": "cent\u00e9simos" },
+    "chili":    { "singular": "cent\u00e9simo", "plural": "cent\u00e9simos" }
+  },
+
+  "_section_02": "=== CENTIMO ===",
+  "_centimo_note": "Default: centimos (no accent). Spanish-speaking countries use centimo/centimos with accent on Numista. Add others as discovered.",
+  "centimo": {
+    "espagne":    { "singular": "c\u00e9ntimo", "plural": "c\u00e9ntimos" },
+    "costa_rica": { "singular": "c\u00e9ntimo", "plural": "c\u00e9ntimos" },
+    "venezuela":  { "singular": "c\u00e9ntimo", "plural": "c\u00e9ntimos" },
+    "paraguay":   { "singular": "c\u00e9ntimo", "plural": "c\u00e9ntimos" }
+  },
+
+  "_section_03": "=== KRONE / KORUNA family ===",
+  "_krone_note": "Default: krone/kroner (Danish/Norwegian). Swedish uses krona/kronor. Czech/Slovak/Czechoslovak use koruna/korun — completely different from krone/kroner. Faroese and Icelandic use krona/kronur but accent stripping means krone is close enough for Numista search.",
+  "krone": {
+    "suede":              { "singular": "krona",  "plural": "kronor" },
+    "republique_tcheque": { "singular": "koruna", "plural": "korun" },
+    "tchecoslovaquie":    { "singular": "koruna", "plural": "korun" },
+    "slovaquie":          { "singular": "koruna", "plural": "korun" }
+  },
+
+  "_section_04": "=== LIRA ===",
+  "_lira_note": "Default: lira/lire (Italian). Turkish uses lira as both singular and plural. Israeli historical lira (1948-1980) uses lirot as plural.",
+  "lira": {
+    "turquie": { "singular": "lira", "plural": "lira" },
+    "israel":  { "singular": "lira", "plural": "lirot" }
+  },
+
+  "_section_05": "=== DINAR ===",
+  "_dinar_note": "Default: dinar/dinars. Arab-world dinars use dinars correctly. Yugoslav/Serbian coins inscribe dinara (Serbian plural).",
+  "dinar": {
+    "yougoslavie": { "singular": "dinar", "plural": "dinara" },
+    "serbie":      { "singular": "dinar", "plural": "dinara" }
+  },
+
+  "_section_06": "=== REAL ===",
+  "_real_note": "Default: real/reais (Brazilian Portuguese). Spanish colonial coins use reales. Covers the main issuers — add others as needed.",
+  "real": {
+    "espagne":   { "singular": "real", "plural": "reales" },
+    "mexique":   { "singular": "real", "plural": "reales" },
+    "perou":     { "singular": "real", "plural": "reales" },
+    "bolivie":   { "singular": "real", "plural": "reales" },
+    "colombie":  { "singular": "real", "plural": "reales" },
+    "argentine": { "singular": "real", "plural": "reales" },
+    "chili":     { "singular": "real", "plural": "reales" },
+    "equateur":  { "singular": "real", "plural": "reales" }
+  }
+}

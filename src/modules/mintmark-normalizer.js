@@ -1,10 +1,15 @@
 /**
- * Mintmark Normalizer
+ * @fileoverview mintmark-normalizer.js — Mintmark string normalization and mint name resolution.
  *
- * Normalizes mintmark strings for consistent comparison between
- * OpenNumismat user data and Numista API issue data.
- *
- * Handles variations like: "D" vs "(D)" vs "Denver" vs "d"
+ * Exports:
+ *   normalizeMintmark(raw) — city-name map lookup + strip parens/brackets → uppercase letter code
+ *   mintmarksMatch(userMintmark, apiMintLetter) — true if normalized marks are equal
+ *   resolveMintName(mintLetter, mintsArray) — matches a mint_letter to a mint name from type's mints array
+ *     (strategies: direct letter field, reverse city-name map lookup, parenthetical letter match)
+ *   US_MINT_MAP — city name → mintmark letter map for US mints
+ *   WORLD_MINT_MAP — city name → mintmark letter map for world mints
+ * Uses: (no external module dependencies — pure functions and data)
+ * Called by: numista-api.js (matchIssue — mintmark filtering), field-mapper.js (mint field resolution)
  */
 
 // US Mint city names to mintmark letters

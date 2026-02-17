@@ -10,9 +10,10 @@ const { contextBridge, ipcRenderer } = require('electron');
 /**
  * Denomination alias and plural lookup maps.
  * Loaded from main process via synchronous IPC at startup.
- * Source of truth: src/data/denomination-aliases.json
+ * Source of truth: src/data/denomination-aliases.json (aliases/defaults)
+ * and src/data/issuer-denomination-overrides.json (country-specific forms).
  */
-const { aliasMap: DENOMINATION_ALIASES, pluralMap: DENOMINATION_PLURALS, allCanonicalsMap: ALL_CANONICALS } = ipcRenderer.sendSync('get-denomination-aliases');
+const { aliasMap: DENOMINATION_ALIASES, pluralMap: DENOMINATION_PLURALS, allCanonicalsMap: ALL_CANONICALS, issuerOverrides: ISSUER_DENOMINATION_OVERRIDES } = ipcRenderer.sendSync('get-denomination-aliases');
 
 /**
  * Normalize a denomination unit string to its canonical form.
@@ -247,7 +248,8 @@ contextBridge.exposeInMainWorld('stringSimilarity', {
   normalizeUnit,
   getSearchForm,
   getAlternateSearchForms,
-  unitsMatch: denominationUnitsMatch
+  unitsMatch: denominationUnitsMatch,
+  issuerOverrides: ISSUER_DENOMINATION_OVERRIDES || {}
 });
 
 /**

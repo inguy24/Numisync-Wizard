@@ -1,3 +1,23 @@
+/**
+ * @fileoverview opennumismat-db.js — SQLite database access layer for OpenNumismat .db files.
+ *
+ * Exports: OpenNumismatDB class (use static open() factory, not constructor)
+ *   open(filePath) — async factory; opens, validates, and wraps a .db file
+ *   getCoins(options?) — paginated coin list with sort/filter options
+ *   getCoinById(id) — single coin lookup by primary key
+ *   updateCoin(coinId, data) — write coin fields; blocks protected FK columns
+ *   getTableSchema() — returns PRAGMA table_info for coins table
+ *   createBackup() — copies .db to {dir}/.NumiSync/backups/ with timestamp
+ *   pruneOldBackups(maxCount) — removes oldest backups beyond configured limit
+ *   searchCoins(params) — text search across title/country/series/catalognum1
+ *   getCoinImages(coinId) — returns { obverse, reverse, edge } Buffers from photos table
+ *   storeImagesForCoin(coinId, imageBuffers) — inserts into photos table, updates FK columns
+ *   close() — releases sql.js database instance
+ * Storage: User-provided .db file (read + write); backups in {dir}/.NumiSync/backups/
+ * Note: obverseimg/reverseimg/edgeimg reference photos table, NOT images table (Lesson 5)
+ * Uses: sql.js (pure-JS SQLite — no native binary), logger.js
+ * Called by: src/main/index.js (all collection + image IPC handlers)
+ */
 const initSqlJs = require('sql.js');
 const path = require('path');
 const fs = require('fs');

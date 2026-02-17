@@ -1,7 +1,7 @@
 # NumiSync Wizard for OpenNumismat - Project Reference
 
 **Purpose:** Architecture reference for implementation. Read when building features.
-**Last Updated:** February 10, 2026 (Settings Consolidation + License Validation Fixes + Polar Environment Guide)
+**Last Updated:** February 16, 2026 (Issuer-Aware Denomination Override System)
 
 ---
 
@@ -25,8 +25,9 @@ numismat-enrichment/
 │   ├── resources/            # Runtime bundled resources
 │   │   └── user-manual.html  # User manual (Help > User Manual, F1)
 │   ├── data/
-│   │   ├── denomination-aliases.json # Denomination variant mappings
-│   │   └── issuer-aliases.json      # Country/territory name aliases
+│   │   ├── denomination-aliases.json          # Denomination variant spellings → canonical + default plural
+│   │   ├── issuer-denomination-overrides.json # Country-specific denomination forms (canonical + issuer → singular/plural)
+│   │   └── issuer-aliases.json                # Country/territory name aliases
 │   └── modules/              # Business logic modules
 │       ├── opennumismat-db.js      # SQLite database access
 │       ├── numista-api.js          # Numista API wrapper
@@ -513,7 +514,7 @@ index.js (main process)
     ├── opennumismat-db.js    # Database operations
     ├── numista-api.js        # API calls (loads issuer-aliases.json)
     │   └── api-cache.js      # Persistent cache (shared singleton)
-    ├── denomination-normalizer.js # Denomination normalization (loads denomination-aliases.json)
+    ├── denomination-normalizer.js # Denomination normalization (loads denomination-aliases.json + issuer-denomination-overrides.json)
     ├── field-mapper.js       # Field mapping
     │   └── default-field-mapping.js
     ├── settings-manager.js   # Settings
@@ -524,6 +525,276 @@ index.js (main process)
 app.js (renderer)
     └── Communicates via preload.js bridge
 ```
+
+---
+
+## Denomination Normalization Architecture
+
+Two data files work together to produce the correct denomination string for Numista API searches:
+
+### File 1: `src/data/denomination-aliases.json`
+**Purpose:** Spelling normalization — "what are all the variant spellings of this denomination?"
+
+- Maps spelling variants → canonical (singular) form (e.g., "kopeks", "kopek", "kopeek" → "kopeck")
+- Stores the **default plural** form used by the majority of issuers (e.g., `centesimo.plural = "centesimi"` for Italian coins)
+- Used by `denomination-normalizer.js` to build `DENOMINATION_ALIASES` and `DENOMINATION_PLURALS` lookup maps
+- Default plural is correct for the primary issuer of that denomination; country-specific exceptions go in the override file
+
+### File 2: `src/data/issuer-denomination-overrides.json`
+**Purpose:** Search form selection — "what exact singular/plural form does Numista use for this denomination in a specific country?"
+
+- Maps `canonical → Numista issuer code → { singular, plural }` override forms
+- Only exception cases are listed; issuers not listed fall through to `denomination-aliases.json` defaults
+- Covers denomination families where the same canonical has language-specific plurals:
+  - **centesimo**: default "centesimi" (Italian); override "centésimos" for Uruguay, Panama, Chile
+  - **centimo**: default "centimos"; override "céntimos" for Spain, Costa Rica, Venezuela, Paraguay
+  - **krone**: default "kroner" (Danish/Norwegian); overrides for Sweden (kronor), Czech/Slovak/Czechoslovak (korun)
+  - **lira**: default "lire" (Italian); overrides for Turkey (lira unchanged) and Israel (lirot)
+  - **dinar**: default "dinars"; overrides for Yugoslavia/Serbia (dinara)
+  - **real**: default "reais" (Brazilian); overrides for Spanish colonial issuers (reales)
+
+### Data Flow
+
+```
+buildSearchParams(coin)
+  └── resolveIssuer(coin.country) → issuerCode          ← resolved FIRST
+  └── normalizeUnitForSearch(unit, value, issuerCode)
+        └── normalizeUnit(unit) → canonical              ← via preload.js / denomination-aliases.json
+        └── issuerOverrides[canonical][issuerCode]?      ← check override table first
+              YES → return override.singular or .plural
+              NO  → getSearchForm(canonical, value)       ← denomination-aliases.json default
+```
+
+**Why two files?**
+`denomination-aliases.json` answers the normalization question (variant spellings → canonical). `issuer-denomination-overrides.json` answers the search question (canonical + country → exact Numista form). Keeping them separate means the alias file stays a pure spelling-variant table while the override file is a living lookup table that can be extended with one JSON entry per new country/denomination combination — no code changes required.
+
+**Adding a new override:** Add a `"issuer_code": { "singular": "...", "plural": "..." }` entry under the appropriate canonical key in `issuer-denomination-overrides.json`. Use the Numista issuer code exactly as returned by `resolveIssuerCode()` (verified from `api-cache.json` → `entries['issuers:all']`).
+
+---
+
+## OpenNumismat Database Schema
+
+Schema introspected from `examples/test.db` via `PRAGMA table_info()`. All tables listed.
+
+### coins (primary coin records)
+
+#### Identity & Denomination
+| Column | Type | Notes |
+|--------|------|-------|
+| id | INTEGER PK | Auto-increment primary key |
+| title | TEXT | Coin name/title |
+| value | NUMERIC | Denomination face value (numeric) |
+| unit | TEXT | Denomination unit label (e.g., "Cent", "Franc") |
+| country | TEXT | Issuing country name |
+| year | INTEGER | Gregorian mint year |
+| native_year | TEXT | Era-specific year string (e.g., "Meiji 14") — see Lesson 15 |
+| period | TEXT | Historical period/era label |
+| ruler | TEXT | Ruling monarch/head of state |
+| region | TEXT | Geographic region |
+| emitent | TEXT | Issuing authority |
+
+#### Physical Characteristics
+| Column | Type | Notes |
+|--------|------|-------|
+| material | TEXT | Primary metal/material |
+| material2 | TEXT | Secondary material (bi-metallic) |
+| composition | TEXT | Full composition description |
+| fineness | INTEGER | Metal fineness (purity) |
+| shape | TEXT | Coin shape |
+| diameter | NUMERIC | Diameter in mm |
+| width | NUMERIC | Width in mm (non-round coins) |
+| height | NUMERIC | Height in mm (non-round coins) |
+| thickness | NUMERIC | Thickness in mm |
+| weight | NUMERIC | Specified weight in grams |
+| real_weight | NUMERIC | Actual measured weight |
+| real_diameter | NUMERIC | Actual measured diameter |
+| axis | INTEGER | Die axis in degrees |
+| technique | TEXT | Minting technique |
+| format | TEXT | Format description |
+
+#### Edge & Design
+| Column | Type | Notes |
+|--------|------|-------|
+| edge | TEXT | Edge type (reeded, plain, lettered…) |
+| edgelabel | TEXT | Lettering on edge |
+| edgevar | TEXT | Edge variety |
+| obversedesign | TEXT | Obverse design description |
+| obversedesigner | TEXT | Obverse designer name |
+| obverseengraver | TEXT | Obverse engraver name |
+| obversecolor | TEXT | Obverse color (colorized coins) |
+| obversevar | TEXT | Obverse variety label |
+| reversedesign | TEXT | Reverse design description |
+| reversedesigner | TEXT | Reverse designer name |
+| reverseengraver | TEXT | Reverse engraver name |
+| reversecolor | TEXT | Reverse color |
+| reversevar | TEXT | Reverse variety label |
+| subject | TEXT | Full commemorative subject text |
+| subjectshort | TEXT | Short subject label |
+
+#### Classification & Catalog
+| Column | Type | Notes |
+|--------|------|-------|
+| type | TEXT | Coin type classification |
+| series | TEXT | Series name |
+| category | TEXT | OpenNumismat collection category |
+| mint | TEXT | Mint name |
+| mintmark | TEXT | Mint mark character(s) |
+| issuedate | TEXT | Issue date string |
+| dateemis | TEXT | Emission date range |
+| mintage | INTEGER | Official mintage figure |
+| quality | TEXT | Strike quality (Proof, BU, etc.) |
+| obvrev | TEXT | Obverse/reverse orientation |
+| variety | TEXT | Variety label |
+| varietydesc | TEXT | Variety description |
+| modification | TEXT | Modification note |
+| rarity | TEXT | Rarity classification |
+| catalognum1 | TEXT | Catalog reference 1 |
+| catalognum2 | TEXT | Catalog reference 2 |
+| catalognum3 | TEXT | Catalog reference 3 |
+| catalognum4 | TEXT | Catalog reference 4 |
+| url | TEXT | Reference URL |
+| barcode | TEXT | Barcode/inventory number |
+
+#### Pricing — CRITICAL MAPPING (see Lesson 21 + field-mapper.js:121-126)
+| Column | Type | Grade |
+|--------|------|-------|
+| price1 | NUMERIC | UNC (Uncirculated) |
+| price2 | NUMERIC | XF (Extremely Fine) |
+| price3 | NUMERIC | VF (Very Fine) |
+| price4 | NUMERIC | F (Fine / Fair) |
+
+#### Collection Management
+| Column | Type | Notes |
+|--------|------|-------|
+| status | TEXT | Collection status (owned, wanted, sold…) |
+| grade | TEXT | Condition grade string |
+| condition | TEXT | Detailed condition notes |
+| defect | TEXT | Known defects |
+| grader | TEXT | Grading service name |
+| quantity | INTEGER | Number of specimens owned |
+| storage | TEXT | Physical storage location |
+| seat | TEXT | Album seat/slot |
+| features | TEXT | Special features |
+| rating | TEXT | Personal rating |
+| sort_id | INTEGER | Manual sort order |
+
+#### Acquisition & Sale
+| Column | Type | Notes |
+|--------|------|-------|
+| paydate | TEXT | Purchase date |
+| payprice | NUMERIC | Purchase price (per coin) |
+| totalpayprice | NUMERIC | Total purchase price (inc. fees) |
+| saller | TEXT | Seller name (note: typo in schema) |
+| payplace | TEXT | Purchase venue |
+| payinfo | TEXT | Purchase notes |
+| buying_invoice | TEXT | Invoice reference |
+| saledate | TEXT | Sale date |
+| saleprice | NUMERIC | Sale price (per coin) |
+| totalsaleprice | NUMERIC | Total sale price |
+| buyer | TEXT | Buyer name |
+| saleplace | TEXT | Sale venue |
+| saleinfo | TEXT | Sale notes |
+| sale_invoice | TEXT | Sale invoice reference |
+| address | TEXT | Postal address |
+| latitude | NUMERIC | GPS latitude |
+| longitude | NUMERIC | GPS longitude |
+
+#### Signature
+| Column | Type | Notes |
+|--------|------|-------|
+| signaturetype | TEXT | Signature type label |
+| signature | TEXT | Signature text |
+| signatureimg | INTEGER | FK → photos.id |
+
+#### Metadata & Timestamps
+| Column | Type | Notes |
+|--------|------|-------|
+| note | TEXT | **NumiSync metadata JSON stored here** — parsed by metadata-manager.js |
+| createdat | TEXT | Record creation timestamp |
+| updatedat | TEXT | Record last-update timestamp |
+
+#### Image Foreign Keys — CRITICAL (see Lesson 5)
+| Column | Type | References | Notes |
+|--------|------|------------|-------|
+| image | INTEGER | **images.id** | Composite thumbnail (ONLY column using images table) |
+| obverseimg | INTEGER | **photos.id** | Obverse full-resolution image |
+| reverseimg | INTEGER | **photos.id** | Reverse full-resolution image |
+| edgeimg | INTEGER | **photos.id** | Edge image |
+| photo1 | INTEGER | **photos.id** | Additional photo 1 |
+| photo2 | INTEGER | **photos.id** | Additional photo 2 |
+| photo3 | INTEGER | **photos.id** | Additional photo 3 |
+| photo4 | INTEGER | **photos.id** | Additional photo 4 |
+| photo5 | INTEGER | **photos.id** | Additional photo 5 |
+| photo6 | INTEGER | **photos.id** | Additional photo 6 |
+| varietyimg | INTEGER | **photos.id** | Variety image |
+
+---
+
+### photos (high-resolution images)
+| Column | Type | Notes |
+|--------|------|-------|
+| id | INTEGER PK | Referenced by coins.obverseimg, reverseimg, edgeimg, photo1-6, varietyimg, signatureimg |
+| title | TEXT | Image caption/title |
+| image | BLOB | Full-resolution image binary data |
+
+---
+
+### images (composite thumbnails)
+| Column | Type | Notes |
+|--------|------|-------|
+| id | INTEGER PK | Referenced ONLY by coins.image |
+| image | BLOB | Composite thumbnail binary data (side-by-side obverse+reverse) |
+
+---
+
+### Supporting Tables
+
+#### tags / coins_tags (tagging system)
+| Table | Columns | Notes |
+|-------|---------|-------|
+| tags | id, tag, parent_id, position | Hierarchical tag tree |
+| coins_tags | coin_id, tag_id | Many-to-many join |
+
+#### pages (collection views/pages)
+| Column | Type | Notes |
+|--------|------|-------|
+| id | INTEGER PK | |
+| title | TEXT | Page name |
+| isopen | INTEGER | Whether page is expanded |
+| position | INTEGER | Display order |
+| type | INTEGER | Page type enum |
+
+#### fields (column visibility config)
+| Column | Type | Notes |
+|--------|------|-------|
+| id | INTEGER PK | |
+| title | TEXT | Field/column name |
+| enabled | INTEGER | 1 = visible in UI |
+
+#### prices (price history log)
+| Column | Type | Notes |
+|--------|------|-------|
+| id | INTEGER PK | |
+| coin_id | INTEGER | FK → coins.id |
+| action | TEXT | Action type (buy/sell/estimate) |
+| date | TEXT | Price date |
+| quantity | INTEGER | |
+| price | NUMERIC | |
+| currency | TEXT | |
+| commission | NUMERIC | |
+| shipping | NUMERIC | |
+| grade | TEXT | Grade at time of pricing |
+
+#### Other tables
+| Table | Purpose |
+|-------|---------|
+| description | Collection-level metadata (title, description, author) |
+| settings | OpenNumismat app settings (key-value pairs) |
+| filters | Saved filter configurations per page |
+| lists | Column layout/order per page |
+| statistics | Saved statistics/chart configurations |
+| treeparam | Tree view parameters per page |
+| tags | Tag hierarchy |
 
 ---
 

@@ -26,7 +26,7 @@ const SettingsManager = require('../modules/settings-manager');
 const metadataManager = require('../modules/metadata-manager');
 const ImageHandler = require('../modules/image-handler');
 const { initAutoUpdater, checkForUpdatesManually } = require('./updater');
-const { DENOMINATION_ALIASES, DENOMINATION_PLURALS, ALL_CANONICALS } = require('../modules/denomination-normalizer');
+const { DENOMINATION_ALIASES, DENOMINATION_PLURALS, ALL_CANONICALS, ISSUER_DENOMINATION_OVERRIDES } = require('../modules/denomination-normalizer');
 const ApiCache = require('../modules/api-cache');
 const { CacheLock } = require('../modules/cache-lock');
 const log = require('./logger');
@@ -268,6 +268,7 @@ let menuState = {
   viewMode: 'list' // 'list' or 'grid'
 };
 
+// #region App Lifecycle & Window Management
 // ============================================================================
 // Window State Persistence
 // ============================================================================
@@ -862,6 +863,9 @@ app.on('activate', () => {
   }
 });
 
+// #endregion App Lifecycle & Window Management
+
+// #region Database Operations
 // ============================================================================
 // Database Safety - Lock Detection
 // ============================================================================
@@ -924,7 +928,7 @@ function checkDatabaseInUse(filePath) {
 // ============================================================================
 
 ipcMain.on('get-denomination-aliases', (event) => {
-  event.returnValue = { aliasMap: DENOMINATION_ALIASES, pluralMap: DENOMINATION_PLURALS, allCanonicalsMap: ALL_CANONICALS };
+  event.returnValue = { aliasMap: DENOMINATION_ALIASES, pluralMap: DENOMINATION_PLURALS, allCanonicalsMap: ALL_CANONICALS, issuerOverrides: ISSUER_DENOMINATION_OVERRIDES };
 });
 
 // ============================================================================
@@ -1131,6 +1135,9 @@ function getApiKey() {
   }
 }
 
+// #endregion Database Operations
+
+// #region Search & Enrichment
 // ============================================================================
 // IPC HANDLERS - Issuer Resolution (persistent instance for caching)
 // ============================================================================
@@ -1384,6 +1391,9 @@ ipcMain.handle('fetch-issue-data', async (event, { typeId, coin }) => {
   }
 });
 
+// #endregion Search & Enrichment
+
+// #region Field Mapping & Merge
 // ============================================================================
 // IPC HANDLERS - Field Mapping & Merge
 // ============================================================================
@@ -1559,6 +1569,9 @@ ipcMain.handle('merge-data', async (event, { coinId, selectedFields, numistaData
   }
 });
 
+// #endregion Field Mapping & Merge
+
+// #region Progress Tracking
 // ============================================================================
 // IPC HANDLERS - Progress Tracking
 // ============================================================================
@@ -1639,6 +1652,9 @@ ipcMain.handle('get-progress-stats', async () => {
   }
 });
 
+// #endregion Progress Tracking
+
+// #region Settings
 // ============================================================================
 // IPC HANDLERS - Legacy App Settings (Phase 1)
 // ============================================================================
@@ -2095,6 +2111,9 @@ ipcMain.handle('increment-api-calls', async (event, count = 1) => {
   }
 });
 
+// #endregion Settings
+
+// #region Image Handling
 // ============================================================================
 // IPC HANDLERS - Image Operations
 // ============================================================================
@@ -2223,6 +2242,9 @@ ipcMain.handle('download-and-store-images', async (event, { coinId, imageUrls })
   }
 });
 
+// #endregion Image Handling
+
+// #region Utility
 // Open external URLs in default browser
 ipcMain.handle('open-external', async (event, url) => {
   try {
@@ -2268,6 +2290,9 @@ ipcMain.handle('open-manual', async () => {
   return { success: true };
 });
 
+// #endregion Utility
+
+// #region Field Mapping Configuration
 // ============================================================================
 // Field Mapping IPC Handlers
 // ============================================================================
@@ -2399,6 +2424,9 @@ ipcMain.handle('reset-field-mappings', async () => {
   }
 });
 
+// #endregion Field Mapping Configuration
+
+// #region Menu & Recent Collections
 // ============================================================================
 // IPC HANDLERS - Menu State & Recent Collections
 // ============================================================================
@@ -2446,6 +2474,9 @@ ipcMain.handle('clear-recent-collections', async () => {
   }
 });
 
+// #endregion Menu & Recent Collections
+
+// #region Licensing (Polar SDK)
 // ============================================================================
 // IPC HANDLERS - Licensing & Supporter Status
 // ============================================================================
@@ -3097,6 +3128,9 @@ ipcMain.handle('check-feature-access', async (event, featureName) => {
   }
 });
 
+// #endregion Licensing (Polar SDK)
+
+// #region Batch Operations
 // =============================================================================
 // Fast Pricing Update Handlers
 // =============================================================================
@@ -3416,5 +3450,7 @@ ipcMain.handle('propagate-type-data', async (event, { coinId, numistaData, issue
     return { success: false, error: error.message };
   }
 });
+
+// #endregion Batch Operations
 
 log.info('NumiSync Wizard - Main process started');

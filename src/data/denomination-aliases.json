@@ -1,5 +1,5 @@
 {
-  "_comment": "Denomination alias families. Key = canonical (singular) form. Value = object with 'aliases' (all known variant spellings including plural) and 'plural' (correct plural form for Numista search). Keys starting with _ are ignored by the normalizer.",
+  "_comment": "Denomination alias families. Key = canonical (singular) form. Value = object with 'aliases' (all known variant spellings including plural) and 'plural' (correct plural form for Numista search). The 'plural' here is the DEFAULT form used when no issuer-specific override applies. For country-specific plural/singular forms (e.g., Italian 'centesimi' vs Spanish 'centésimos'), see src/data/issuer-denomination-overrides.json. Keys starting with _ are ignored by the normalizer.",
 
   "_section_01": "=== RUSSIAN / SOVIET / CIS ===",
   "kopeck": {
@@ -124,7 +124,7 @@
   },
   "centesimo": {
     "aliases": ["centesimo", "centesimos", "centesimi"],
-    "plural": "centesimos"
+    "plural": "centesimi"
   },
   "centimo": {
     "aliases": ["centimo", "centimos"],

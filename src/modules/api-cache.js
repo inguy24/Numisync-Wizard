@@ -1,3 +1,22 @@
+/**
+ * @fileoverview api-cache.js — Persistent disk cache for Numista API responses with monthly usage tracking.
+ *
+ * Cache is app-wide (not per-collection) since issuers/types/issues are global Numista catalog data.
+ *
+ * Exports: ApiCache class
+ *   get(key) — returns cached data or null if missing/expired
+ *   set(key, data, ttl) — stores data with TTL in milliseconds; prunes expired entries on first write
+ *   has(key) — returns true if a non-expired entry exists
+ *   clear() — removes all cache entries (preserves monthly usage and limit)
+ *   getStats() — returns { entryCount, monthlyUsage }
+ *   incrementUsage(endpoint) — increments per-endpoint call counter for current month
+ *   getMonthlyUsage() — returns { searchTypes, getType, ... , total } for current month
+ *   getMonthlyLimit() / setMonthlyLimit(n) — monthly API call quota
+ *   setMonthlyUsageTotal(total) — adjusts total usage proportionally across endpoints
+ * Storage: configurable path (default: userData/numisync-wizard/api-cache.json); lock file alongside it
+ * Uses: cache-lock.js (atomic write operations), logger.js
+ * Called by: numista-api.js (all persistent caching), src/main/index.js (get-cache-settings, clear-api-cache, get-monthly-usage, set-monthly-usage)
+ */
 const fs = require('fs');
 const path = require('path');
 const log = require('../main/logger').scope('ApiCache');
