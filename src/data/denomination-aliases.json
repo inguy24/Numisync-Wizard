@@ -36,6 +36,14 @@
     "aliases": ["thaler", "thalers", "taler", "taller", "daler", "tolar", "riksdaler", "rigsdaler"],
     "plural": "thalers"
   },
+  "riksdaler": {
+    "aliases": ["riksdaler"],
+    "plural": "riksdaler"
+  },
+  "rigsdaler": {
+    "aliases": ["rigsdaler"],
+    "plural": "rigsdaler"
+  },
   "mark": {
     "aliases": ["mark", "marks", "deutsche mark", "reichsmark", "rentenmark", "dm"],
     "plural": "marks"
@@ -43,6 +51,10 @@
   "markka": {
     "aliases": ["markka", "markkaa"],
     "plural": "markkaa"
+  },
+  "ducat": {
+    "aliases": ["ducat", "ducats", "ducato", "ducati", "ducaton", "ducatons", "ducatoon", "ducatoons", "dukaten", "dukat", "dukát", "dukáty"],
+    "plural": "ducats"
   },
 
   "_section_03": "=== SCANDINAVIAN ===",
@@ -96,6 +108,10 @@
     "aliases": ["florin", "florins", "guilder", "gulden"],
     "plural": "florins"
   },
+  "gulden": {
+    "aliases": ["gulden", "guilder"],
+    "plural": "gulden"
+  },
   "guinea": {
     "aliases": ["guinea", "guineas"],
     "plural": "guineas"
@@ -107,6 +123,72 @@
   "groat": {
     "aliases": ["groat", "groats"],
     "plural": "groats"
+  },
+  "noble": {
+    "aliases": ["noble", "nobles", "half noble", "quarter noble"],
+    "plural": "nobles"
+  },
+  "angel": {
+    "aliases": ["angel", "angels", "half angel"],
+    "plural": "angels"
+  },
+  "testoon": {
+    "aliases": ["testoon", "testoons", "teston", "testons"],
+    "plural": "testoons"
+  },
+
+  "_section_04b": "=== DUTCH HISTORICAL ===",
+  "stuiver": {
+    "aliases": ["stuiver", "stuivers", "stiver", "stivers", "stuber"],
+    "plural": "stuivers"
+  },
+  "duit": {
+    "aliases": ["duit", "duits"],
+    "plural": "duit"
+  },
+
+  "_section_04c": "=== FRENCH HISTORICAL ===",
+  "écu": {
+    "aliases": ["écu", "écus", "ecu", "ecus", "scudo", "scudi"],
+    "plural": "écus"
+  },
+  "denier": {
+    "aliases": ["denier", "deniers", "denier tournois"],
+    "plural": "deniers"
+  },
+  "liard": {
+    "aliases": ["liard", "liards"],
+    "plural": "liards"
+  },
+  "sou": {
+    "aliases": ["sou", "sous"],
+    "plural": "sous"
+  },
+
+  "_section_04d": "=== ITALIAN STATES ===",
+  "scudo": {
+    "aliases": ["scudo", "scudi", "écu", "écus", "ecu", "ecus"],
+    "plural": "scudi"
+  },
+  "soldo": {
+    "aliases": ["soldo", "soldi"],
+    "plural": "soldi"
+  },
+  "baiocco": {
+    "aliases": ["baiocco", "baiocchi", "baj"],
+    "plural": "baiocchi"
+  },
+  "grano": {
+    "aliases": ["grano", "grana"],
+    "plural": "grana"
+  },
+  "grosso": {
+    "aliases": ["grosso", "grossi", "gros"],
+    "plural": "grossi"
+  },
+  "quattrino": {
+    "aliases": ["quattrino", "quattrini"],
+    "plural": "quattrini"
   },
 
   "_section_05": "=== CENT FAMILY (used worldwide) ===",
@@ -183,7 +265,7 @@
     "plural": "soles"
   },
   "bolivar": {
-    "aliases": ["bolivar", "bolivares"],
+    "aliases": ["bolivar", "bolivares", "bolívar", "bolívares"],
     "plural": "bolivares"
   },
   "boliviano": {
@@ -195,7 +277,7 @@
     "plural": "guaranies"
   },
   "colon": {
-    "aliases": ["colon", "colones"],
+    "aliases": ["colon", "colones", "colón"],
     "plural": "colones"
   },
   "cruzeiro": {
@@ -215,17 +297,45 @@
     "plural": "quetzales"
   },
   "cordoba": {
-    "aliases": ["cordoba", "cordobas"],
+    "aliases": ["cordoba", "cordobas", "córdoba", "córdobas"],
     "plural": "cordobas"
   },
   "gourde": {
     "aliases": ["gourde", "gourdes"],
     "plural": "gourdes"
   },
+  "cruzado": {
+    "aliases": ["cruzado", "cruzados"],
+    "plural": "cruzados"
+  },
+  "tostão": {
+    "aliases": ["tostão", "tostao", "tostões", "tostoes"],
+    "plural": "tostões"
+  },
+  "vintém": {
+    "aliases": ["vintém", "vintem", "vinténs", "vintens"],
+    "plural": "vinténs"
+  },
+  "milréis": {
+    "aliases": ["milréis", "milreis", "mil réis", "mil reis"],
+    "plural": "milréis"
+  },
+  "sucre": {
+    "aliases": ["sucre", "sucres"],
+    "plural": "sucres"
+  },
+  "austral": {
+    "aliases": ["austral", "australes"],
+    "plural": "australes"
+  },
+  "inti": {
+    "aliases": ["inti", "intis"],
+    "plural": "intis"
+  },
 
   "_section_08": "=== DOLLAR / POUND / LIRA ===",
   "dollar": {
-    "aliases": ["dollar", "dollars", "dolar", "tala"],
+    "aliases": ["dollar", "dollars", "dolar"],
     "plural": "dollars"
   },
   "pound": {
@@ -376,6 +486,14 @@
     "aliases": ["baiza", "baisa", "baizas"],
     "plural": "baizas"
   },
+  "toman": {
+    "aliases": ["toman", "tomans", "tuman", "tumans"],
+    "plural": "tomans"
+  },
+  "qiran": {
+    "aliases": ["qiran", "qirans", "kran", "krans", "qran"],
+    "plural": "qirans"
+  },
 
   "_section_13": "=== SOUTH ASIA ===",
   "rupee": {
@@ -422,6 +540,14 @@
     "aliases": ["laari"],
     "plural": "laari"
   },
+  "mohar": {
+    "aliases": ["mohar", "mohars"],
+    "plural": "mohars"
+  },
+  "fanam": {
+    "aliases": ["fanam", "fanams", "fano"],
+    "plural": "fanams"
+  },
 
   "_section_14": "=== EAST ASIA ===",
   "yen": {
@@ -467,6 +593,64 @@
   "xu": {
     "aliases": ["xu"],
     "plural": "xu"
+  },
+
+  "_section_14b": "=== JAPAN HISTORICAL ===",
+  "mon": {
+    "aliases": ["mon"],
+    "plural": "mon"
+  },
+  "shu": {
+    "aliases": ["shu"],
+    "plural": "shu"
+  },
+  "bu": {
+    "aliases": ["bu"],
+    "plural": "bu"
+  },
+  "monme": {
+    "aliases": ["monme", "momme"],
+    "plural": "monme"
+  },
+  "ryō": {
+    "aliases": ["ryō", "ryo"],
+    "plural": "ryō"
+  },
+
+  "_section_14c": "=== KOREA HISTORICAL ===",
+  "mun": {
+    "aliases": ["mun"],
+    "plural": "mun"
+  },
+  "yang": {
+    "aliases": ["yang"],
+    "plural": "yang"
+  },
+  "fun": {
+    "aliases": ["fun", "pun"],
+    "plural": "fun"
+  },
+  "hwan": {
+    "aliases": ["hwan", "whan"],
+    "plural": "hwan"
+  },
+
+  "_section_14d": "=== CHINA HISTORICAL ===",
+  "cash": {
+    "aliases": ["cash", "kasu"],
+    "plural": "cash"
+  },
+  "tael": {
+    "aliases": ["tael", "taels", "liang"],
+    "plural": "taels"
+  },
+  "mace": {
+    "aliases": ["mace", "maces"],
+    "plural": "mace"
+  },
+  "candareen": {
+    "aliases": ["candareen", "candareens", "candarin", "candarins"],
+    "plural": "candareens"
   },
 
   "_section_15": "=== SOUTHEAST ASIA / OCEANIA ===",
@@ -522,9 +706,59 @@
     "aliases": ["att"],
     "plural": "att"
   },
+  "tala": {
+    "aliases": ["tala"],
+    "plural": "tala"
+  },
   "sene": {
     "aliases": ["sene"],
     "plural": "sene"
+  },
+
+  "_section_15b": "=== SOUTHEAST ASIA HISTORICAL ===",
+  "fuang": {
+    "aliases": ["fuang", "fueang"],
+    "plural": "fuang"
+  },
+  "salung": {
+    "aliases": ["salung", "salueng"],
+    "plural": "salung"
+  },
+  "solot": {
+    "aliases": ["solot"],
+    "plural": "solot"
+  },
+  "sapèque": {
+    "aliases": ["sapèque", "sapeque"],
+    "plural": "sapèques"
+  },
+  "pe": {
+    "aliases": ["pe"],
+    "plural": "pe"
+  },
+  "mu": {
+    "aliases": ["mu"],
+    "plural": "mu"
+  },
+  "mat": {
+    "aliases": ["mat"],
+    "plural": "mat"
+  },
+  "keping": {
+    "aliases": ["keping", "kepings"],
+    "plural": "keping"
+  },
+  "pitis": {
+    "aliases": ["pitis"],
+    "plural": "pitis"
+  },
+  "quarto": {
+    "aliases": ["quarto", "quartos", "cuarto", "cuartos"],
+    "plural": "quartos"
+  },
+  "octavo": {
+    "aliases": ["octavo", "octavos"],
+    "plural": "octavos"
   },
 
   "_section_16": "=== AFRICA ===",
@@ -632,6 +866,10 @@
     "aliases": ["metical", "meticais"],
     "plural": "meticais"
   },
+  "dobra": {
+    "aliases": ["dobra", "dobras"],
+    "plural": "dobras"
+  },
 
   "_section_17": "=== EURO ===",
   "euro": {
@@ -673,7 +911,7 @@
     "plural": "tenge"
   },
   "tyin": {
-    "aliases": ["tyin", "tiyn", "tiyin"],
+    "aliases": ["tyin", "tiyn"],
     "plural": "tyin"
   },
   "som": {
@@ -685,7 +923,7 @@
     "plural": "tyiyn"
   },
   "sum": {
-    "aliases": ["sum", "soum", "som"],
+    "aliases": ["sum", "soum"],
     "plural": "sum"
   },
   "tiyin": {
@@ -707,5 +945,39 @@
   "mongo": {
     "aliases": ["mongo", "mongoo", "mungu"],
     "plural": "mongo"
+  },
+
+  "_section_19": "=== ANCIENT / CLASSICAL ===",
+  "denarius": {
+    "aliases": ["denarius", "denarii"],
+    "plural": "denarii"
+  },
+  "sestertius": {
+    "aliases": ["sestertius", "sestertii", "sesterce", "sesterces"],
+    "plural": "sestertii"
+  },
+  "aureus": {
+    "aliases": ["aureus", "aurei"],
+    "plural": "aurei"
+  },
+  "solidus": {
+    "aliases": ["solidus", "solidi"],
+    "plural": "solidi"
+  },
+  "follis": {
+    "aliases": ["follis", "folles"],
+    "plural": "folles"
+  },
+  "antoninianus": {
+    "aliases": ["antoninianus", "antoniniani", "radiate"],
+    "plural": "antoniniani"
+  },
+  "as": {
+    "aliases": ["as", "asses"],
+    "plural": "asses"
+  },
+  "tremissis": {
+    "aliases": ["tremissis", "tremisses"],
+    "plural": "tremisses"
   }
 }

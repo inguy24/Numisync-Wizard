@@ -15,16 +15,18 @@
     "espagne":    { "singular": "c\u00e9ntimo", "plural": "c\u00e9ntimos" },
     "costa_rica": { "singular": "c\u00e9ntimo", "plural": "c\u00e9ntimos" },
     "venezuela":  { "singular": "c\u00e9ntimo", "plural": "c\u00e9ntimos" },
-    "paraguay":   { "singular": "c\u00e9ntimo", "plural": "c\u00e9ntimos" }
+    "paraguay":   { "singular": "c\u00e9ntimo", "plural": "c\u00e9ntimos" },
+    "perou":      { "singular": "c\u00e9ntimo", "plural": "c\u00e9ntimos" }
   },
 
   "_section_03": "=== KRONE / KORUNA family ===",
-  "_krone_note": "Default: krone/kroner (Danish/Norwegian). Swedish uses krona/kronor. Czech/Slovak/Czechoslovak use koruna/korun — completely different from krone/kroner. Faroese and Icelandic use krona/kronur but accent stripping means krone is close enough for Numista search.",
+  "_krone_note": "Default: krone/kroner (Danish/Norwegian). Swedish uses krona/kronor. Czech/Slovak/Czechoslovak use koruna/korun — completely different from krone/kroner. Estonian uses kroon/krooni. Faroese and Icelandic use krona/kronur but accent stripping means krone is close enough for Numista search.",
   "krone": {
     "suede":              { "singular": "krona",  "plural": "kronor" },
     "republique_tcheque": { "singular": "koruna", "plural": "korun" },
     "tchecoslovaquie":    { "singular": "koruna", "plural": "korun" },
-    "slovaquie":          { "singular": "koruna", "plural": "korun" }
+    "slovaquie":          { "singular": "koruna", "plural": "korun" },
+    "estonie":            { "singular": "kroon",  "plural": "krooni" }
   },
 
   "_section_04": "=== LIRA ===",
@@ -52,5 +54,32 @@
     "argentine": { "singular": "real", "plural": "reales" },
     "chili":     { "singular": "real", "plural": "reales" },
     "equateur":  { "singular": "real", "plural": "reales" }
+  },
+
+  "_section_07": "=== DUCAT ===",
+  "_ducat_note": "Default: ducat/ducats (English, used by Austria, Netherlands, Hungary, Yugoslavia on Numista). Czech and Slovak coins are listed as dukát/dukáty on Numista. Czechoslovak coins use the same Czech form.",
+  "ducat": {
+    "republique_tcheque": { "singular": "duk\u00e1t", "plural": "duk\u00e1ty" },
+    "tchecoslovaquie":    { "singular": "duk\u00e1t", "plural": "duk\u00e1ty" },
+    "slovaquie":          { "singular": "duk\u00e1t", "plural": "duk\u00e1ty" }
+  },
+
+  "_section_08": "=== BOL\u00cdVAR ===",
+  "_bolivar_note": "Default: bolivar/bolivares (unaccented, matches most OpenNumismat data). Venezuela's official form uses accented bol\u00edvar/bol\u00edvares — confirmed from Numista page titles ('1100 Bol\u00edvares - Venezuela').",
+  "bolivar": {
+    "venezuela": { "singular": "bol\u00edvar", "plural": "bol\u00edvares" }
+  },
+
+  "_section_09": "=== C\u00d3RDOBA ===",
+  "_cordoba_note": "Default: cordoba/cordobas (unaccented). Nicaragua uses accented c\u00f3rdoba/c\u00f3rdobas on Numista — confirmed ('1 C\u00f3rdoba - Nicaragua').",
+  "cordoba": {
+    "nicaragua": { "singular": "c\u00f3rdoba", "plural": "c\u00f3rdobas" }
+  },
+
+  "_section_10": "=== COL\u00d3N ===",
+  "_colon_note": "Default: colon/colones (unaccented). Costa Rica and El Salvador use accented col\u00f3n/colones (singular accent drops in Spanish plural per orthography rules) — confirmed from Numista ('1 Col\u00f3n', 'Colones').",
+  "colon": {
+    "costa_rica": { "singular": "col\u00f3n", "plural": "colones" },
+    "salvador":   { "singular": "col\u00f3n", "plural": "colones" }
   }
 }
