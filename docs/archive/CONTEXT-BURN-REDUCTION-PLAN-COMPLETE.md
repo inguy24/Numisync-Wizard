@@ -1,7 +1,7 @@
 # Plan: Reduce AI Context Burn in NumiSync Wizard
 
 **Created:** 2026-02-17
-**Status:** COMPLETE — All 8 fixes done (2026-02-17)
+**Status:** COMPLETE — All 8 fixes done (2026-02-17). Superseded by `docs/planning/CODE-SPLIT-PLAN.md` for the Future Phase (code splitting).
 **Scope:** Documentation improvements, emoji isolation, and MCP server to reduce per-session context consumption
 
 ---
