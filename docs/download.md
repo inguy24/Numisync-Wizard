@@ -144,7 +144,7 @@ title: Download NumiSync Wizard
 NumiSync Wizard is open source under the MIT License.
 
 <div style="text-align: center; margin: 2em 0;">
-  <a href="https://github.com/inguy24/numismat-enrichment" style="display: inline-block; padding: 10px 20px; background: #24292e; color: white; text-decoration: none; border-radius: 6px; font-weight: 500;">View on GitHub</a>
+  <a href="https://github.com/inguy24/Numisync-Wizard" style="display: inline-block; padding: 10px 20px; background: #24292e; color: white; text-decoration: none; border-radius: 6px; font-weight: 500;">View on GitHub</a>
 </div>
 
 ---

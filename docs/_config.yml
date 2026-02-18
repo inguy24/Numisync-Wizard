@@ -3,6 +3,7 @@ description: Enrich your OpenNumismat collection with data from Numista
 author: Shane Burkhardt
 baseurl: ""
 url: "https://numisync.com"
+repository: inguy24/Numisync-Wizard
 theme: jekyll-theme-cayman
 
 # Navigation links (for custom nav)
@@ -16,9 +17,9 @@ navigation:
   - title: Quick Start
     url: /quickstart
   - title: Documentation
-    url: https://github.com/inguy24/numismat-enrichment/tree/main/docs
+    url: https://github.com/inguy24/Numisync-Wizard/tree/main/docs
   - title: GitHub
-    url: https://github.com/inguy24/numismat-enrichment
+    url: https://github.com/inguy24/Numisync-Wizard
 
 # Plugins
 plugins:
