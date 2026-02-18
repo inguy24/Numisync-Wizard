@@ -33,6 +33,7 @@ win:
       arch:
         - x64
   icon: build/icon.ico
+  artifactName: NumiSync-Wizard-Setup.${ext}
 
 # NSIS installer configuration
 nsis:
@@ -74,7 +75,7 @@ appx:
     - en-US
 
   # Force .msix extension (required for Microsoft Store code signing)
-  artifactName: ${productName}-${version}.msix
+  artifactName: NumiSync-Wizard.${ext}
 
 # ============================================
 # LINUX CONFIGURATION
