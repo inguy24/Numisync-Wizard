@@ -269,7 +269,7 @@ server.tool(
     }
 
     const header =
-      "| Date | Files | Summary |\n|------|-------|---------|";
+      "| Date | Type | Files | Summary |\n|------|------|-------|---------|";
     const output = `${header}\n${recent.join("\n")}`;
     return { content: [{ type: "text", text: output }] };
   }

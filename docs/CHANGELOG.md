@@ -2,7 +2,26 @@
 
 All notable changes to NumiSync Wizard for OpenNumismat.
 
-## Fix History (Compressed)
+**Type key:** `Feature` = new functionality · `Fix` = bug fix · `Internal` = docs, CI, tooling, AI context
+
+> **Format note:** The `Type` column was introduced in v1.0.3. Earlier entries are in the [Pre-v1.0.3 History](#pre-v103-history-compressed--no-type-column) section without type classification.
+
+---
+
+## v1.0.3 *(unreleased)*
+
+| Date | Type | Files | Summary |
+|------|------|-------|---------|
+
+---
+
+## v1.0.2
+
+*Released February 2026. Full development log is in [Pre-v1.0.3 History](#pre-v103-history-compressed--no-type-column).*
+
+---
+
+## Pre-v1.0.3 History (Compressed — no Type column)
 
 | Date | Files | Summary |
 |------|-------|---------|

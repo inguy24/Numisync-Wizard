@@ -30,7 +30,7 @@
 ## 1. DOCUMENTATION HIERARCHY
 
 **NEVER assume project state — verify against documentation first.**
-**After completing any fix or feature, update `docs/CHANGELOG.md`.**
+**After completing any fix or feature, update `docs/CHANGELOG.md`** — prepend a new row to the `## v{current-version} *(unreleased)*` section using the 4-column format: `| {date} | {Type} | {files} | **{Title}** — {description} |`. Valid types: `Feature` (new functionality), `Fix` (bug fix), `Internal` (docs, CI, tooling, AI-context). Only `Feature` and `Fix` rows are published in GitHub release notes; `Internal` rows are excluded automatically.
 **After architecture/IPC changes, update `docs/reference/PROJECT-REFERENCE.md`.**
 **Archive completed work plans** to `docs/archive/` with `-COMPLETE` suffix (e.g., `PHASE2-WORK-PLAN-COMPLETE.md`).
 
