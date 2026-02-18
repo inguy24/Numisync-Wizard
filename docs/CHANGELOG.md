@@ -8,7 +8,9 @@ All notable changes to NumiSync Wizard for OpenNumismat.
 
 ---
 
-## v1.0.3 *(unreleased)*
+## v1.0.3
+
+*Released February 17, 2026.*
 
 | Date | Type | Files | Summary |
 |------|------|-------|---------|
