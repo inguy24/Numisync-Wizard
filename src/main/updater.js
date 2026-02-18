@@ -285,16 +285,21 @@ async function checkForUpdatesManually() {
   }
 
   // For NSIS version, use electron-updater
-  autoUpdater.checkForUpdates().then(result => {
-    if (!result || !result.updateInfo) {
-      dialog.showMessageBox(mainWindow, {
-        type: 'info',
-        title: 'No Updates',
-        message: 'You are running the latest version.',
-        buttons: ['OK']
-      });
-    }
-  }).catch(err => {
+  // Register a one-time listener so the "no updates" dialog only shows for manual checks
+  const onNotAvailable = () => {
+    dialog.showMessageBox(mainWindow, {
+      type: 'info',
+      title: 'No Updates Available',
+      message: 'You are running the latest version.',
+      detail: `Current version: ${app.getVersion()}`,
+      buttons: ['OK']
+    });
+  };
+
+  autoUpdater.once('update-not-available', onNotAvailable);
+
+  autoUpdater.checkForUpdates().catch(err => {
+    autoUpdater.removeListener('update-not-available', onNotAvailable);
     dialog.showMessageBox(mainWindow, {
       type: 'error',
       title: 'Update Check Failed',
