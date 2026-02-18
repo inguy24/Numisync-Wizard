@@ -79,7 +79,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-installer
-          path: dist/*.exe
+          path: |
+            dist/*.exe
+            dist/latest.yml
           if-no-files-found: error
 
   build-windows-msix:
@@ -193,6 +195,7 @@ jobs:
           generate_release_notes: true
           files: |
             windows-installer/*.exe
+            windows-installer/latest.yml
             windows-msix/*.msix
             windows-msix/*.appx
             linux-packages/*.AppImage
