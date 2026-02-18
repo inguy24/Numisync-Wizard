@@ -50,12 +50,12 @@ title: Download NumiSync Wizard
 
     <div style="margin: 1em 0;">
       <strong>Intel (x64)</strong><br/>
-      <a href="https://github.com/inguy24/numismat-enrichment/releases/latest/download/NumiSync.Wizard-1.0.0.dmg" style="display: inline-block; margin-top: 0.5em; padding: 8px 16px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 0.9em;">Download DMG</a>
+      <a href="https://github.com/inguy24/numismat-enrichment/releases/latest/download/NumiSync.Wizard-1.0.2.dmg" style="display: inline-block; margin-top: 0.5em; padding: 8px 16px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 0.9em;">Download DMG</a>
     </div>
 
     <div style="margin: 1em 0;">
       <strong>Apple Silicon (arm64)</strong><br/>
-      <a href="https://github.com/inguy24/numismat-enrichment/releases/latest/download/NumiSync.Wizard-1.0.0-arm64.dmg" style="display: inline-block; margin-top: 0.5em; padding: 8px 16px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 0.9em;">Download DMG</a>
+      <a href="https://github.com/inguy24/numismat-enrichment/releases/latest/download/NumiSync.Wizard-1.0.2-arm64.dmg" style="display: inline-block; margin-top: 0.5em; padding: 8px 16px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 0.9em;">Download DMG</a>
     </div>
 
     <p style="font-size: 0.85em; margin-top: 1.5em;">
@@ -113,17 +113,17 @@ title: Download NumiSync Wizard
 
     <div style="margin: 1em 0;">
       <strong>AppImage (Universal)</strong><br/>
-      <a href="https://github.com/inguy24/numismat-enrichment/releases/latest/download/NumiSync.Wizard-1.0.0.AppImage" style="display: inline-block; margin-top: 0.5em; padding: 8px 16px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 0.9em;">Download</a>
+      <a href="https://github.com/inguy24/numismat-enrichment/releases/latest/download/NumiSync.Wizard-1.0.2.AppImage" style="display: inline-block; margin-top: 0.5em; padding: 8px 16px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 0.9em;">Download</a>
     </div>
 
     <div style="margin: 1em 0;">
       <strong>Debian/Ubuntu (.deb)</strong><br/>
-      <a href="https://github.com/inguy24/numismat-enrichment/releases/latest/download/numisync-wizard_1.0.0_amd64.deb" style="display: inline-block; margin-top: 0.5em; padding: 8px 16px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 0.9em;">Download</a>
+      <a href="https://github.com/inguy24/numismat-enrichment/releases/latest/download/numisync-wizard_1.0.2_amd64.deb" style="display: inline-block; margin-top: 0.5em; padding: 8px 16px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 0.9em;">Download</a>
     </div>
 
     <div style="margin: 1em 0;">
       <strong>Fedora/RHEL (.rpm)</strong><br/>
-      <a href="https://github.com/inguy24/numismat-enrichment/releases/latest/download/numisync-wizard-1.0.0.x86_64.rpm" style="display: inline-block; margin-top: 0.5em; padding: 8px 16px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 0.9em;">Download</a>
+      <a href="https://github.com/inguy24/numismat-enrichment/releases/latest/download/numisync-wizard-1.0.2.x86_64.rpm" style="display: inline-block; margin-top: 0.5em; padding: 8px 16px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 0.9em;">Download</a>
     </div>
   </div>
 

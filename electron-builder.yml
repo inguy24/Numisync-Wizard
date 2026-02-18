@@ -87,6 +87,7 @@ linux:
       arch: [x64]
     - target: rpm
       arch: [x64]
+  artifactName: numisync-wizard-${arch}.${ext}
   icon: build/icons
   category: Utility
   synopsis: Enrich your OpenNumismat collection with Numista data
@@ -131,6 +132,7 @@ mac:
   category: public.app-category.utilities
 
 dmg:
+  artifactName: NumiSync-Wizard-${arch}.dmg
   contents:
     - x: 130
       y: 220
