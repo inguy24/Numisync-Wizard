@@ -55,7 +55,7 @@ async function checkGitHubVersion() {
 
     const options = {
       hostname: 'api.github.com',
-      path: '/repos/inguy24/numismat-enrichment/releases/latest',
+      path: '/repos/inguy24/Numisync-Wizard/releases/latest',
       method: 'GET',
       headers: {
         'User-Agent': 'NumiSync-Wizard',

@@ -113,17 +113,17 @@ title: Download NumiSync Wizard
 
     <div style="margin: 1em 0;">
       <strong>AppImage (Universal)</strong><br/>
-      <a href="https://github.com/inguy24/Numisync-Wizard/releases/latest/download/numisync-wizard-x64.AppImage" style="display: inline-block; margin-top: 0.5em; padding: 8px 16px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 0.9em;">Download</a>
+      <a href="https://github.com/inguy24/Numisync-Wizard/releases/latest/download/numisync-wizard-x86_64.AppImage" style="display: inline-block; margin-top: 0.5em; padding: 8px 16px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 0.9em;">Download</a>
     </div>
 
     <div style="margin: 1em 0;">
       <strong>Debian/Ubuntu (.deb)</strong><br/>
-      <a href="https://github.com/inguy24/Numisync-Wizard/releases/latest/download/numisync-wizard-x64.deb" style="display: inline-block; margin-top: 0.5em; padding: 8px 16px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 0.9em;">Download</a>
+      <a href="https://github.com/inguy24/Numisync-Wizard/releases/latest/download/numisync-wizard-amd64.deb" style="display: inline-block; margin-top: 0.5em; padding: 8px 16px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 0.9em;">Download</a>
     </div>
 
     <div style="margin: 1em 0;">
       <strong>Fedora/RHEL (.rpm)</strong><br/>
-      <a href="https://github.com/inguy24/Numisync-Wizard/releases/latest/download/numisync-wizard-x64.rpm" style="display: inline-block; margin-top: 0.5em; padding: 8px 16px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 0.9em;">Download</a>
+      <a href="https://github.com/inguy24/Numisync-Wizard/releases/latest/download/numisync-wizard-x86_64.rpm" style="display: inline-block; margin-top: 0.5em; padding: 8px 16px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 0.9em;">Download</a>
     </div>
   </div>
 
