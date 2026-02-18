@@ -1,0 +1,167 @@
+name: Bug Report
+description: Report a bug or unexpected behavior in NumiSync Wizard
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. The more detail you provide, the faster we can diagnose and fix the issue.
+
+        **Before submitting:** Please check that a similar issue hasn't already been reported.
+
+  - type: input
+    id: version
+    attributes:
+      label: NumiSync Wizard Version
+      description: Found in the title bar or Help menu. Example — 1.0.2
+      placeholder: "e.g. 1.0.2"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      options:
+        - Windows 11
+        - Windows 10
+        - macOS
+        - Linux
+    validations:
+      required: true
+
+  - type: input
+    id: os-version
+    attributes:
+      label: OS Version / Build
+      description: "Windows: Settings > System > About (e.g. 22H2 Build 22621). macOS: Apple menu > About This Mac."
+      placeholder: "e.g. Windows 11 22H2 Build 22621"
+    validations:
+      required: true
+
+  - type: input
+    id: opennumismat-version
+    attributes:
+      label: OpenNumismat Version
+      description: The version of OpenNumismat whose database file you are enriching.
+      placeholder: "e.g. 1.9.5"
+    validations:
+      required: false
+
+  - type: dropdown
+    id: install-method
+    attributes:
+      label: How did you install NumiSync Wizard?
+      options:
+        - Microsoft Store
+        - Direct download (installer)
+        - Portable (no installer)
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: A clear description of the bug. Include any error messages shown on screen.
+      placeholder: "Describe what went wrong..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Step-by-step instructions to reproduce the problem reliably.
+      placeholder: |
+        1. Open NumiSync Wizard
+        2. Load database file '...'
+        3. Click '...'
+        4. See error / unexpected result
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+      placeholder: "I expected..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened instead?
+      placeholder: "Instead, what happened was..."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: How often does this happen?
+      options:
+        - Every time (100%)
+        - Most of the time
+        - Occasionally / intermittent
+        - Happened only once
+    validations:
+      required: true
+
+  - type: input
+    id: coin-count
+    attributes:
+      label: Approximate number of coins in your database
+      description: Helps us understand scale-related issues.
+      placeholder: "e.g. 500"
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log File Contents
+      description: |
+        **This is the most important field for diagnosing bugs. Please do not skip it.**
+
+        To find your log file:
+        - **Windows:** Open File Explorer and navigate to `%APPDATA%\numisync-wizard\logs\`
+          (paste that path directly into the File Explorer address bar and press Enter)
+          Open `numisync-wizard.log` with Notepad and paste the full contents below.
+        - **macOS:** Open Finder, press Cmd+Shift+G, and go to `~/Library/Logs/numisync-wizard/`
+          Open `numisync-wizard.log` and paste the full contents below.
+
+        If the log is very long, please include at minimum the last 100 lines and any lines containing `ERROR` or `WARN`.
+
+        You can also drag and drop the `.log` file directly into this text box.
+      placeholder: "Paste log file contents here..."
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots or Screen Recording
+      description: If applicable, drag and drop screenshots or a short screen recording here. This can be very helpful for UI bugs.
+      placeholder: "Drag and drop images here, or describe what was visible on screen..."
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: |
+        Anything else that might be relevant:
+        - Did this work in a previous version?
+        - Are you using a VPN, proxy, or firewall that might affect API calls?
+        - Did you recently change any NumiSync settings?
+        - Any other unusual circumstances?
+      placeholder: "Any other details..."
+    validations:
+      required: false
