@@ -8,7 +8,7 @@ All notable changes to NumiSync Wizard for OpenNumismat.
 
 ---
 
-## v1.1.1 *(unreleased)*
+## v1.1.1
 
 | Date | Type | Files | Summary |
 |------|------|-------|---------|
