@@ -1763,7 +1763,7 @@ ipcMain.handle('save-app-settings', async (event, settings) => {
     // Write shared config to shared folder if supporter with custom cache
     const updatedSettings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
     if (updatedSettings.cache?.location === 'custom' && updatedSettings.cache?.customPath && updatedSettings.supporter?.isSupporter) {
-      await apiCache.writeSharedConfig({
+      await getApiCache().writeSharedConfig({
         apiKey: updatedSettings.apiKey || '',
         monthlyApiLimit: updatedSettings.monthlyApiLimit || 2000,
         searchDelay: updatedSettings.searchDelay || 2000,
