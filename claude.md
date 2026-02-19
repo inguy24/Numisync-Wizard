@@ -30,7 +30,7 @@
 ## 1. DOCUMENTATION HIERARCHY
 
 **NEVER assume project state — verify against documentation first.**
-**After completing any fix or feature, update `docs/CHANGELOG.md`** — prepend a new row to the `## v{current-version} *(unreleased)*` section using the 4-column format: `| {date} | {Type} | {files} | **{Title}** — {description} |`. Valid types: `Feature` (new functionality), `Fix` (bug fix), `Internal` (docs, CI, tooling, AI-context). Only `Feature` and `Fix` rows are published in GitHub release notes; `Internal` rows are excluded automatically.
+**After completing any fix or feature, update `docs/CHANGELOG.md`** — prepend a new row to the `## v{current-version} *(unreleased)*` section using the 4-column format: `| {date} | {Type} | {files} | **{Title}** — {description} |`. Valid types: `Feature` (new functionality), `Fix` (bug fix), `Internal` (docs, CI, tooling, AI-context). Only `Feature` and `Fix` rows are published in GitHub release notes; `Internal` rows are excluded automatically. **GitHub Pages files (`docs/*.md`, `docs/_layouts/`, `docs/_config.yml`) are always `Internal` — they are marketing/documentation, not app source code.**
 **After architecture/IPC changes, update `docs/reference/PROJECT-REFERENCE.md`.**
 **Archive completed work plans** to `docs/archive/` with `-COMPLETE` suffix (e.g., `PHASE2-WORK-PLAN-COMPLETE.md`).
 
@@ -132,6 +132,8 @@
 ### Settings & Configuration
 
 9. **Two settings systems exist** - Phase 1 app settings (`getAppSettings`) vs Phase 2 collection settings (`getSettings`) are different channels.
+
+29. **Cache path must be included in shared config AND applied on import** - The monthly API usage count lives in `api-cache.json`, whose path is controlled by `cache.location` + `cache.customPath` in `settings.json`. Three things must stay in sync: (1) `writeSharedConfig()` in `save-app-settings` must include `cachePath` in the payload so `numisync-shared-config.json` records where the cache lives; (2) `import-from-folder` must set `cache.location = 'custom'` + `cache.customPath` in the importing machine's `settings.json`; (3) `apply-shared-config` must do the same. All three must also reset `apiCache = null` so `getApiCache()` re-initializes with the shared path. **Path normalization:** `customPath` must always be the parent folder (e.g., `\\server\share\coins`), never the `.NumiSync` subfolder — `getApiCache()` appends `.NumiSync` internally. Any code writing `customPath` must strip a trailing `.NumiSync` segment (`path.basename(p) === '.NumiSync' ? path.dirname(p) : p`) since users may select the subfolder directly in a browse dialog.
 
 25. **Never create parallel settings files — always consolidate** - Creating a new settings file (e.g., `app-settings.json`) when adding features causes redundancy, sync issues, and confusion about which file controls which settings. Always extend the existing settings file with new fields. When adding cache configuration or other new features, add the fields to `settings.json` with backwards-compatible defaults. If dual files already exist, immediately consolidate by: (1) updating read/write functions to use one file, (2) reversing migration to merge the new file into the old, (3) documenting the single source of truth. See `docs/reference/SETTINGS-CONSOLIDATION.md` for full consolidation pattern.
 

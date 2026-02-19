@@ -65,7 +65,7 @@ function getApiCache() {
 
     let cachePath;
     if (appSettings.cache?.location === 'custom' && appSettings.cache?.customPath) {
-      cachePath = path.join(appSettings.cache.customPath, 'api-cache.json');
+      cachePath = path.join(appSettings.cache.customPath, '.NumiSync', 'api-cache.json');
       log.info('Using custom cache location:', cachePath);
     } else {
       cachePath = path.join(app.getPath('userData'), 'api-cache.json');
@@ -230,6 +230,23 @@ function migrateAppSettings() {
       log.info('Archived app-settings.json as app-settings.json.bak');
     } catch (error) {
       log.error('Failed to migrate app settings:', error.message);
+    }
+  }
+
+  // Normalize customPath: strip trailing .NumiSync if present.
+  // getApiCache() now appends .NumiSync transparently, so customPath should be the parent directory.
+  if (fs.existsSync(settingsPath)) {
+    try {
+      const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+      if (settings.cache?.location === 'custom' && settings.cache?.customPath &&
+          path.basename(settings.cache.customPath) === '.NumiSync') {
+        const normalized = path.dirname(settings.cache.customPath);
+        settings.cache.customPath = normalized;
+        fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+        log.info('Normalized cache customPath: stripped .NumiSync suffix, now:', normalized);
+      }
+    } catch (error) {
+      log.warn('Failed to normalize cache customPath:', error.message);
     }
   }
 
@@ -1743,6 +1760,23 @@ ipcMain.handle('save-app-settings', async (event, settings) => {
       log.info('Log level changed to:', settings.logLevel);
     }
 
+    // Write shared config to shared folder if supporter with custom cache
+    const updatedSettings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+    if (updatedSettings.cache?.location === 'custom' && updatedSettings.cache?.customPath && updatedSettings.supporter?.isSupporter) {
+      await apiCache.writeSharedConfig({
+        apiKey: updatedSettings.apiKey || '',
+        monthlyApiLimit: updatedSettings.monthlyApiLimit || 2000,
+        searchDelay: updatedSettings.searchDelay || 2000,
+        cacheTtl: updatedSettings.cacheTtl || { issuers: 90, types: 30, issues: 30 },
+        licenseKey: updatedSettings.supporter?.licenseKey || '',
+        defaultCollectionPath: updatedSettings.defaultCollectionPath || '',
+        // Store parent folder only — getApiCache() appends .NumiSync internally
+        cachePath: path.basename(updatedSettings.cache.customPath) === '.NumiSync'
+          ? path.dirname(updatedSettings.cache.customPath)
+          : updatedSettings.cache.customPath
+      });
+    }
+
     return { success: true };
   } catch (error) {
     log.error('Error saving app settings:', error);
@@ -1769,7 +1803,230 @@ ipcMain.handle('set-cache-settings', async (event, settings) => {
     lockTimeout: settings.lockTimeout
   };
   saveAppSettings(appSettings);
+  // Reset the singleton so the next getApiCache() call re-initializes with the new path.
+  // Without this, a running app that changes cache location keeps reading from the old path.
+  apiCache = null;
   return { success: true };
+});
+
+/**
+ * Read the shared config file from the custom cache directory (if present).
+ * @returns {{ found: boolean, config?: Object, exportedAt?: string }}
+ */
+ipcMain.handle('get-shared-config', async () => {
+  try {
+    const shared = getApiCache().readSharedConfig();
+    if (!shared) return { found: false };
+    return { found: true, config: shared.config, exportedAt: shared.exportedAt };
+  } catch (error) {
+    log.error('Error reading shared config:', error);
+    return { found: false };
+  }
+});
+
+/**
+ * Apply settings from the shared config file to the local settings.json.
+ * Merges: apiKey, monthlyApiLimit, searchDelay, cacheTtl, licenseKey (as pendingLicenseKey).
+ * Does NOT auto-activate license. Stores lastSharedConfigImport timestamp.
+ * @returns {{ success: boolean, settings?: Object }}
+ */
+ipcMain.handle('apply-shared-config', async () => {
+  try {
+    const shared = getApiCache().readSharedConfig();
+    if (!shared || !shared.config) return { success: false, error: 'No shared config found' };
+
+    const settingsPath = path.join(app.getPath('userData'), 'settings.json');
+    let settings = {};
+    if (fs.existsSync(settingsPath)) {
+      settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+    }
+
+    const { apiKey, monthlyApiLimit, searchDelay, cacheTtl, licenseKey, defaultCollectionPath, cachePath } = shared.config;
+    if (apiKey !== undefined) settings.apiKey = apiKey;
+    if (monthlyApiLimit !== undefined) settings.monthlyApiLimit = monthlyApiLimit;
+    if (searchDelay !== undefined) settings.searchDelay = searchDelay;
+    if (cacheTtl !== undefined) {
+      settings.cacheTtl = cacheTtl;
+      // Also update flat fields for backwards compatibility
+      if (cacheTtl.issuers !== undefined) settings.cacheTtlIssuers = cacheTtl.issuers;
+      if (cacheTtl.types !== undefined) settings.cacheTtlTypes = cacheTtl.types;
+      if (cacheTtl.issues !== undefined) settings.cacheTtlIssues = cacheTtl.issues;
+    }
+    if (licenseKey !== undefined) {
+      settings.supporter = settings.supporter || {};
+      settings.supporter.pendingLicenseKey = licenseKey; // Pre-fill only — not activated
+    }
+    // Only apply defaultCollectionPath if the file is actually reachable from this machine
+    if (defaultCollectionPath && fs.existsSync(defaultCollectionPath)) {
+      settings.defaultCollectionPath = defaultCollectionPath;
+      settings.recentCollections = settings.recentCollections || [];
+      if (!settings.recentCollections.includes(defaultCollectionPath)) {
+        settings.recentCollections.unshift(defaultCollectionPath);
+      }
+    }
+    // Point cache at the shared folder so this machine reads the same api-cache.json.
+    // Normalize: customPath must be the parent folder — strip .NumiSync if present.
+    if (cachePath) {
+      const normalizedCachePath = path.basename(cachePath) === '.NumiSync'
+        ? path.dirname(cachePath)
+        : cachePath;
+      settings.cache = {
+        location: 'custom',
+        customPath: normalizedCachePath,
+        lockTimeout: settings.cache?.lockTimeout || 30000
+      };
+      apiCache = null; // Reset singleton to re-initialize with shared path
+    }
+    settings.lastSharedConfigImport = new Date().toISOString();
+
+    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
+    log.info('Shared config applied to local settings');
+    return { success: true, settings };
+  } catch (error) {
+    log.error('Error applying shared config:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+/**
+ * Bootstrap import: read shared config from a user-selected folder, activate the license,
+ * and on success apply all portable settings to local settings.json.
+ * Aborts entirely if license activation fails — no partial writes.
+ * Looks for numisync-shared-config.json in folderPath/.NumiSync/ first, then folderPath/ as fallback.
+ * @param {string} folderPath - Absolute path to the parent folder selected by the user
+ * @returns {{ success: boolean, error?: string, settings?: Object }}
+ */
+ipcMain.handle('import-from-folder', async (event, folderPath) => {
+  try {
+    if (!folderPath || typeof folderPath !== 'string') {
+      return { success: false, error: 'No folder path provided.' };
+    }
+
+    // Look for shared config in .NumiSync subfolder first, then parent folder as fallback
+    let configPath = path.join(folderPath, '.NumiSync', 'numisync-shared-config.json');
+    if (!fs.existsSync(configPath)) {
+      configPath = path.join(folderPath, 'numisync-shared-config.json');
+      if (!fs.existsSync(configPath)) {
+        return { success: false, error: 'No shared settings file found in this folder. Make sure you selected the correct folder and that the primary machine has saved its settings at least once.' };
+      }
+    }
+
+    let shared;
+    try {
+      shared = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    } catch (e) {
+      return { success: false, error: 'Shared settings file could not be read. It may be corrupted.' };
+    }
+
+    if (!shared?.config?.licenseKey) {
+      return { success: false, error: 'Shared settings file does not contain a license key.' };
+    }
+
+    const licenseKey = shared.config.licenseKey.trim();
+
+    // Attempt license activation — abort entirely if this fails (no partial writes)
+    const { Polar } = require('@polar-sh/sdk');
+    const polar = new Polar({ server: POLAR_CONFIG.server });
+    const deviceLabel = getDeviceFingerprint();
+
+    let activationResult;
+    try {
+      activationResult = await polar.customerPortal.licenseKeys.activate({
+        key: licenseKey,
+        organizationId: POLAR_CONFIG.organizationId,
+        label: deviceLabel
+      });
+    } catch (activationError) {
+      log.error('import-from-folder: License activation error:', activationError);
+      if (activationError.statusCode === 404) {
+        return { success: false, error: 'The license key in the shared config was not found. It may have been revoked.' };
+      }
+      if (activationError.statusCode === 422) {
+        return { success: false, error: 'The license key in the shared config is invalid.' };
+      }
+      if (activationError.statusCode === 403 || (activationError.message && activationError.message.includes('activation'))) {
+        return { success: false, error: 'This license has reached its device limit (5 devices). Deactivate an unused device at polar.sh and try again.' };
+      }
+      return { success: false, error: 'Could not activate license. Please check your internet connection and try again.' };
+    }
+
+    const licenseStatus = activationResult?.licenseKey?.status;
+    if (!activationResult || licenseStatus !== 'granted') {
+      return { success: false, error: 'License activation was not successful (status: ' + (licenseStatus || 'unknown') + ').' };
+    }
+
+    // Post-activation validate to increment Polar's validation counter (non-fatal)
+    try {
+      await polar.customerPortal.licenseKeys.validate({
+        key: licenseKey,
+        organizationId: POLAR_CONFIG.organizationId,
+        activationId: activationResult.id
+      });
+    } catch (validateError) {
+      log.warn('import-from-folder: Post-activation validation failed (non-fatal):', validateError.message);
+    }
+
+    // Activation succeeded — write all settings atomically
+    const settingsPath = path.join(app.getPath('userData'), 'settings.json');
+    let settings = fs.existsSync(settingsPath)
+      ? JSON.parse(fs.readFileSync(settingsPath, 'utf8'))
+      : {};
+
+    const { apiKey, monthlyApiLimit, searchDelay, cacheTtl, defaultCollectionPath } = shared.config;
+    if (apiKey !== undefined) settings.apiKey = apiKey;
+    if (monthlyApiLimit !== undefined) settings.monthlyApiLimit = monthlyApiLimit;
+    if (searchDelay !== undefined) settings.searchDelay = searchDelay;
+    if (cacheTtl !== undefined) {
+      settings.cacheTtl = cacheTtl;
+      if (cacheTtl.issuers !== undefined) settings.cacheTtlIssuers = cacheTtl.issuers;
+      if (cacheTtl.types !== undefined) settings.cacheTtlTypes = cacheTtl.types;
+      if (cacheTtl.issues !== undefined) settings.cacheTtlIssues = cacheTtl.issues;
+    }
+    // Only apply defaultCollectionPath if the file is actually reachable from this machine
+    if (defaultCollectionPath && fs.existsSync(defaultCollectionPath)) {
+      settings.defaultCollectionPath = defaultCollectionPath;
+      settings.recentCollections = settings.recentCollections || [];
+      if (!settings.recentCollections.includes(defaultCollectionPath)) {
+        settings.recentCollections.unshift(defaultCollectionPath);
+      }
+    }
+    settings.supporter = {
+      isSupporter: true,
+      licenseKey: licenseKey,
+      activationId: activationResult.id || null,
+      licenseKeyId: activationResult.licenseKeyId || null,
+      deviceLabel: deviceLabel,
+      validatedAt: new Date().toISOString(),
+      customerId: activationResult.licenseKey?.customerId || null,
+      offlineSkipUsed: false
+    };
+    // Point cache at the shared folder so this machine reads the same api-cache.json
+    // (monthly usage, cached responses) as the primary machine.  Without this the
+    // second machine falls back to default userData path and starts at zero usage.
+    // Normalize: customPath must be the parent folder — strip .NumiSync if the user
+    // selected it directly (the fallback config lookup finds the file in folderPath/).
+    const cacheParent = path.basename(folderPath) === '.NumiSync'
+      ? path.dirname(folderPath)
+      : folderPath;
+    settings.cache = {
+      location: 'custom',
+      customPath: cacheParent,
+      lockTimeout: settings.cache?.lockTimeout || 30000
+    };
+    settings.lastSharedConfigImport = new Date().toISOString();
+
+    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
+
+    // Reset the apiCache singleton so the next getApiCache() call re-initializes
+    // with the shared path — otherwise it keeps reading from the old default location.
+    apiCache = null;
+
+    log.info('import-from-folder: Bootstrap import succeeded from', configPath, '— cache path set to', folderPath);
+    return { success: true, settings };
+  } catch (error) {
+    log.error('import-from-folder: Unexpected error:', error);
+    return { success: false, error: error.message };
+  }
 });
 
 ipcMain.handle('browse-cache-directory', async () => {
@@ -1802,8 +2059,8 @@ ipcMain.handle('validate-cache-path', async (event, customPath) => {
       return { valid: false, reason: 'No write permission in this directory' };
     }
 
-    // Check for existing cache collision
-    const cachePath = path.join(customPath, 'api-cache.json');
+    // Check for existing cache collision in the .NumiSync subfolder (where cache always lives)
+    const cachePath = path.join(customPath, '.NumiSync', 'api-cache.json');
     const lockStatus = await CacheLock.checkCacheLockStatus(cachePath);
     const cacheMetadata = CacheLock.getCacheMetadata(cachePath);
 
@@ -1837,13 +2094,13 @@ ipcMain.handle('migrate-cache', async (event, newLocation, newCustomPath, useExi
     let oldCachePath, newCachePath;
 
     if (oldLocation === 'custom' && oldCustomPath) {
-      oldCachePath = path.join(oldCustomPath, 'api-cache.json');
+      oldCachePath = path.join(oldCustomPath, '.NumiSync', 'api-cache.json');
     } else {
       oldCachePath = path.join(app.getPath('userData'), 'api-cache.json');
     }
 
     if (newLocation === 'custom' && newCustomPath) {
-      newCachePath = path.join(newCustomPath, 'api-cache.json');
+      newCachePath = path.join(newCustomPath, '.NumiSync', 'api-cache.json');
     } else {
       newCachePath = path.join(app.getPath('userData'), 'api-cache.json');
     }
@@ -2542,6 +2799,7 @@ const FEATURE_VERSIONS = {
   'fastPricing': '1.0.0',
   'batchEnrichment': '1.0.0',
   'advancedSearch': '1.0.0',
+  'multiMachineSync': '1.0.0',
 
   // V2 Features (planned for v2.0.0)
   'numismaticSync': '2.0.0',

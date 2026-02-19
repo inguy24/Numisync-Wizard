@@ -9,13 +9,16 @@
  *   has(key) — returns true if a non-expired entry exists
  *   clear() — removes all cache entries (preserves monthly usage and limit)
  *   getStats() — returns { entryCount, monthlyUsage }
- *   incrementUsage(endpoint) — increments per-endpoint call counter for current month
- *   getMonthlyUsage() — returns { searchTypes, getType, ... , total } for current month
+ *   incrementUsage(endpoint) — atomic disk-read-increment-write to prevent multi-machine count clobbering
+ *   getMonthlyUsage() — re-reads disk before returning, so UI shows combined total across all machines
  *   getMonthlyLimit() / setMonthlyLimit(n) — monthly API call quota
  *   setMonthlyUsageTotal(total) — adjusts total usage proportionally across endpoints
+ *   getSharedConfigPath() — returns path to numisync-shared-config.json, or null if using default path
+ *   readSharedConfig() — reads shared config from cache directory
+ *   writeSharedConfig(config) — writes portable settings to shared config file (supporter + custom path only)
  * Storage: configurable path (default: userData/numisync-wizard/api-cache.json); lock file alongside it
  * Uses: cache-lock.js (atomic write operations), logger.js
- * Called by: numista-api.js (all persistent caching), src/main/index.js (get-cache-settings, clear-api-cache, get-monthly-usage, set-monthly-usage)
+ * Called by: numista-api.js (all persistent caching), src/main/index.js (get-cache-settings, clear-api-cache, get-monthly-usage, set-monthly-usage, get-shared-config, apply-shared-config)
  */
 const fs = require('fs');
 const path = require('path');
@@ -52,6 +55,13 @@ class ApiCache {
     this.lock = new CacheLock(cacheFilePath, options.lockTimeout || 30000);
     this.data = this._load();
     this.pruned = false; // Track if pruning has occurred this session
+    // Track whether this is a custom (shared) path vs. the default userData location
+    try {
+      const defaultPath = path.join(require('electron').app.getPath('userData'), 'api-cache.json');
+      this._isCustomPath = (cacheFilePath !== defaultPath);
+    } catch (_) {
+      this._isCustomPath = options.isCustomPath || false;
+    }
   }
 
   /**
@@ -91,7 +101,10 @@ class ApiCache {
   }
 
   /**
-   * Save cache data to disk with file locking
+   * Save cache data to disk with file locking.
+   * Re-reads monthlyUsage and monthlyLimit from disk before writing to prevent
+   * clobbering counts or settings written by other machines between the last
+   * incrementUsage() call and this write. Only the entries portion uses in-memory state.
    * @async
    * @throws {Error} If lock cannot be acquired or write fails
    */
@@ -101,6 +114,15 @@ class ApiCache {
       const dir = path.dirname(this.cacheFilePath);
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
+      }
+      // Re-read monthly data from disk to prevent clobbering counts/settings
+      // written by other machines since our last incrementUsage() call.
+      if (fs.existsSync(this.cacheFilePath)) {
+        try {
+          const diskData = JSON.parse(fs.readFileSync(this.cacheFilePath, 'utf8'));
+          if (diskData.monthlyUsage) this.data.monthlyUsage = diskData.monthlyUsage;
+          if (diskData.monthlyLimit !== undefined) this.data.monthlyLimit = diskData.monthlyLimit;
+        } catch (_) { /* fall through — use in-memory state if disk read fails */ }
       }
       fs.writeFileSync(this.cacheFilePath, JSON.stringify(this.data, null, 2), 'utf8');
     } catch (error) {
@@ -239,18 +261,30 @@ class ApiCache {
    * @throws {Error} If lock cannot be acquired
    */
   async incrementUsage(endpoint) {
-    // Prune on first write operation
     if (!this.pruned) {
       await this._prune();
       this.pruned = true;
     }
-
-    const month = this._monthKey();
-    if (!this.data.monthlyUsage[month]) {
-      this.data.monthlyUsage[month] = {};
+    // Atomic: lock → re-read monthlyUsage from disk → increment → write → unlock
+    // Cannot call _save() here (it also acquires the lock — deadlock). Write directly.
+    await this.lock.acquire();
+    try {
+      // Re-read monthly usage from disk to prevent clobbering concurrent machine writes
+      if (fs.existsSync(this.cacheFilePath)) {
+        try {
+          const diskData = JSON.parse(fs.readFileSync(this.cacheFilePath, 'utf8'));
+          if (diskData.monthlyUsage) this.data.monthlyUsage = diskData.monthlyUsage;
+        } catch (_) { /* fall through — use in-memory state if disk read fails */ }
+      }
+      const month = this._monthKey();
+      if (!this.data.monthlyUsage[month]) this.data.monthlyUsage[month] = {};
+      this.data.monthlyUsage[month][endpoint] = (this.data.monthlyUsage[month][endpoint] || 0) + 1;
+      const dir = path.dirname(this.cacheFilePath);
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(this.cacheFilePath, JSON.stringify(this.data, null, 2), 'utf8');
+    } finally {
+      await this.lock.release();
     }
-    this.data.monthlyUsage[month][endpoint] = (this.data.monthlyUsage[month][endpoint] || 0) + 1;
-    await this._save();
   }
 
   /**
@@ -258,10 +292,66 @@ class ApiCache {
    * @returns {Object} Usage data with per-endpoint counts and total
    */
   getMonthlyUsage() {
+    // Re-read from disk so the UI shows the combined total across all machines
+    if (fs.existsSync(this.cacheFilePath)) {
+      try {
+        const diskData = JSON.parse(fs.readFileSync(this.cacheFilePath, 'utf8'));
+        if (diskData.monthlyUsage) this.data.monthlyUsage = diskData.monthlyUsage;
+      } catch (_) { /* fall through */ }
+    }
     const month = this._monthKey();
     const usage = this.data.monthlyUsage[month] || {};
     const total = Object.values(usage).reduce((sum, count) => sum + count, 0);
     return { ...usage, total };
+  }
+
+  /**
+   * Returns the path for the shared config file alongside the cache, or null if using default path.
+   * @returns {string|null}
+   */
+  getSharedConfigPath() {
+    if (!this._isCustomPath) return null;
+    return path.join(path.dirname(this.cacheFilePath), 'numisync-shared-config.json');
+  }
+
+  /**
+   * Reads the shared config file from the cache directory.
+   * @returns {{version: string, exportedAt: string, config: Object}|null}
+   */
+  readSharedConfig() {
+    const configPath = this.getSharedConfigPath();
+    if (!configPath) return null;
+    try {
+      if (!fs.existsSync(configPath)) return null;
+      return JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    } catch (e) {
+      log.warn('ApiCache: Failed to read shared config:', e.message);
+      return null;
+    }
+  }
+
+  /**
+   * Writes the shared config file to the cache directory.
+   * @param {Object} config - Portable settings to share across machines
+   * @async
+   */
+  async writeSharedConfig(config) {
+    const configPath = this.getSharedConfigPath();
+    if (!configPath) return;
+    const payload = {
+      version: '1.0',
+      exportedAt: new Date().toISOString(),
+      config
+    };
+    await this.lock.acquire();
+    try {
+      fs.writeFileSync(configPath, JSON.stringify(payload, null, 2), 'utf8');
+      log.info('ApiCache: Shared config written to', configPath);
+    } catch (e) {
+      log.error('ApiCache: Failed to write shared config:', e.message);
+    } finally {
+      await this.lock.release();
+    }
   }
 
   /**
@@ -273,41 +363,80 @@ class ApiCache {
   }
 
   /**
-   * Set the monthly API call limit
+   * Set the monthly API call limit.
+   * Uses atomic lock-read-write (like incrementUsage) so the new limit is written
+   * without clobbering monthlyUsage counts from other machines.
    * @async
    * @param {number} limit - New monthly limit
    * @throws {Error} If lock cannot be acquired
    */
   async setMonthlyLimit(limit) {
-    this.data.monthlyLimit = Math.max(100, Math.floor(limit));
-    await this._save();
+    await this.lock.acquire();
+    try {
+      // Re-read monthlyUsage from disk to not clobber concurrent machine counts
+      if (fs.existsSync(this.cacheFilePath)) {
+        try {
+          const diskData = JSON.parse(fs.readFileSync(this.cacheFilePath, 'utf8'));
+          if (diskData.monthlyUsage) this.data.monthlyUsage = diskData.monthlyUsage;
+        } catch (_) { /* fall through */ }
+      }
+      this.data.monthlyLimit = Math.max(100, Math.floor(limit));
+      const dir = path.dirname(this.cacheFilePath);
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(this.cacheFilePath, JSON.stringify(this.data, null, 2), 'utf8');
+    } catch (error) {
+      log.error('ApiCache: Failed to save cache file:', error.message);
+      throw error;
+    } finally {
+      await this.lock.release();
+    }
   }
 
   /**
    * Set the total monthly usage to a specific value.
    * Distributes across existing endpoint proportions, or sets as a flat 'manual' entry.
+   * Uses atomic lock-read-write so the new value is written without clobbering
+   * monthlyLimit or any counts added by other machines since the last read.
    * @async
    * @param {number} total - New total usage count
    * @throws {Error} If lock cannot be acquired
    */
   async setMonthlyUsageTotal(total) {
-    const month = this._monthKey();
-    const currentUsage = this.data.monthlyUsage[month] || {};
-    const currentTotal = Object.values(currentUsage).reduce((sum, count) => sum + count, 0);
-
-    if (currentTotal === 0 || Object.keys(currentUsage).length === 0) {
-      // No existing breakdown — set as flat total
-      this.data.monthlyUsage[month] = { manual: Math.max(0, Math.floor(total)) };
-    } else {
-      // Distribute proportionally across existing endpoints
-      const ratio = total / currentTotal;
-      const adjusted = {};
-      for (const [endpoint, count] of Object.entries(currentUsage)) {
-        adjusted[endpoint] = Math.max(0, Math.round(count * ratio));
+    await this.lock.acquire();
+    try {
+      // Re-read from disk for the most accurate current breakdown and to preserve monthlyLimit
+      if (fs.existsSync(this.cacheFilePath)) {
+        try {
+          const diskData = JSON.parse(fs.readFileSync(this.cacheFilePath, 'utf8'));
+          if (diskData.monthlyUsage) this.data.monthlyUsage = diskData.monthlyUsage;
+          if (diskData.monthlyLimit !== undefined) this.data.monthlyLimit = diskData.monthlyLimit;
+        } catch (_) { /* fall through */ }
       }
-      this.data.monthlyUsage[month] = adjusted;
+      const month = this._monthKey();
+      const currentUsage = this.data.monthlyUsage[month] || {};
+      const currentTotal = Object.values(currentUsage).reduce((sum, count) => sum + count, 0);
+
+      if (currentTotal === 0 || Object.keys(currentUsage).length === 0) {
+        // No existing breakdown — set as flat total
+        this.data.monthlyUsage[month] = { manual: Math.max(0, Math.floor(total)) };
+      } else {
+        // Distribute proportionally across existing endpoints
+        const ratio = total / currentTotal;
+        const adjusted = {};
+        for (const [endpoint, count] of Object.entries(currentUsage)) {
+          adjusted[endpoint] = Math.max(0, Math.round(count * ratio));
+        }
+        this.data.monthlyUsage[month] = adjusted;
+      }
+      const dir = path.dirname(this.cacheFilePath);
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(this.cacheFilePath, JSON.stringify(this.data, null, 2), 'utf8');
+    } catch (error) {
+      log.error('ApiCache: Failed to save cache file:', error.message);
+      throw error;
+    } finally {
+      await this.lock.release();
     }
-    await this._save();
   }
 }
 

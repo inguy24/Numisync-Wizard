@@ -3073,11 +3073,6 @@ function buildCoreQuery(coin, issuerCode) {
     }
   }
 
-  // Add year
-  if (coin.year && !isNaN(coin.year)) {
-    parts.push(coin.year.toString());
-  }
-
   return parts.join(' ');
 }
 
@@ -3147,8 +3142,8 @@ async function searchForMatches() {
     // Build initial search parameters
     const baseParams = await buildSearchParams(coin);
     console.log('=== AUTOMATIC SEARCH ===');
-    console.log('Current coin:', coin);
-    console.log('Search params (attempt 1):', baseParams);
+    console.log('Current coin:', JSON.stringify({ title: coin.title, country: coin.country, value: coin.value, unit: coin.unit, year: coin.year, category: coin.category }));
+    console.log('Search params (attempt 1):', JSON.stringify(baseParams));
 
     // Strategy 1: Full query as-is
     result = await window.electronAPI.searchNumista(baseParams);
@@ -3211,7 +3206,7 @@ async function searchForMatches() {
         for (const altForm of newForms) {
           if (AppState.currentMatches.length > 0) break;
           const altCoreQuery = coin.value ? `${coin.value} ${altForm}` : altForm;
-          const altQuery = coin.year ? `${altCoreQuery} ${coin.year}` : altCoreQuery;
+          const altQuery = altCoreQuery;
           searchAttempt++;
           console.log(`Search attempt ${searchAttempt}: Alternate denomination -> "${altQuery}"`);
           document.getElementById('searchStatus').textContent = `Trying alternate denomination (${altForm})...`;
@@ -3327,14 +3322,6 @@ async function buildSearchParams(coin) {
     usedStructuredDenom = true;
   }
 
-  // Add year if available
-  if (coin.year && !isNaN(coin.year)) {
-    const year = coin.year.toString();
-    if (!query.includes(year)) {
-      query = query ? `${query} ${year}` : year;
-    }
-  }
-
   // Fallback to title only when no structured denomination available
   if (!usedStructuredDenom && coin.title && coin.title.trim()) {
     let titleQuery = stripParenthetical(coin.title.trim());
@@ -3348,17 +3335,17 @@ async function buildSearchParams(coin) {
     if (titleQuery) {
       query = query ? `${query} ${titleQuery}` : titleQuery;
     }
-    // Append year if not already present
-    if (coin.year && !isNaN(coin.year)) {
-      const year = coin.year.toString();
-      if (!query.includes(year)) {
-        query = query ? `${query} ${year}` : year;
-      }
-    }
   }
 
   if (query) {
     params.q = query.trim();
+  }
+
+  // Pass year as dedicated date parameter — Numista filters types by issue date range.
+  // Do NOT include year in q text: type names ("100 Pesetas - Juan Carlos I") don't
+  // contain years, so putting "1981" in q returns 0 results.
+  if (coin.year && !isNaN(coin.year)) {
+    params.date = coin.year.toString();
   }
 
   params.page = 1;
@@ -5342,6 +5329,9 @@ async function loadCacheLocationSettings() {
 
       // Update custom controls visibility
       updateCacheLocationControlsVisibility();
+
+      // Check for shared config at the configured location
+      checkAndShowSharedConfigBanner();
     }
   } catch (error) {
     console.warn('Error loading cache location settings:', error.message);
@@ -5356,6 +5346,38 @@ function updateCacheLocationControlsVisibility() {
   const customControls = document.getElementById('customCacheLocationControls');
   if (customControls) {
     customControls.style.display = customRadio && customRadio.checked ? 'block' : 'none';
+  }
+}
+
+/**
+ * Check for a shared config file at the configured cache location.
+ * Shows the import banner if the shared config is newer than the last import.
+ * @async
+ */
+async function checkAndShowSharedConfigBanner() {
+  try {
+    const result = await window.electronAPI.getSharedConfig();
+    const banner = document.getElementById('sharedConfigBanner');
+    const dateSpan = document.getElementById('sharedConfigDate');
+    if (!banner) return;
+
+    if (!result.found) {
+      banner.style.display = 'none';
+      return;
+    }
+
+    const appSettings = await window.electronAPI.getAppSettings();
+    const lastImport = appSettings.settings?.lastSharedConfigImport;
+    const sharedDate = new Date(result.exportedAt);
+
+    if (!lastImport || sharedDate > new Date(lastImport)) {
+      if (dateSpan) dateSpan.textContent = sharedDate.toLocaleDateString();
+      banner.style.display = '';
+    } else {
+      banner.style.display = 'none';
+    }
+  } catch (e) {
+    console.error('Error checking shared config:', e);
   }
 }
 
@@ -5884,7 +5906,72 @@ function formatDuration(ms) {
 
 // Cache location radio button change handler
 document.getElementsByName('cacheLocation').forEach(radio => {
-  radio.addEventListener('change', updateCacheLocationControlsVisibility);
+  radio.addEventListener('change', async (e) => {
+    if (e.target.value === 'custom' && e.target.disabled) {
+      e.preventDefault();
+      document.querySelector('input[name="cacheLocation"][value="default"]').checked = true;
+      return;
+    }
+    updateCacheLocationControlsVisibility();
+  });
+});
+
+// Upgrade link for custom cache location premium gate
+const cacheLocationUpgradeLink = document.getElementById('cacheLocationUpgradeLink');
+if (cacheLocationUpgradeLink) {
+  cacheLocationUpgradeLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    showUpgradeModal('Multi-machine sync requires a Supporter Edition license.', null, '1.0.0');
+  });
+}
+
+// Wire shared config banner buttons
+document.getElementById('importSharedConfigBtn')?.addEventListener('click', async (e) => {
+  e.preventDefault();
+  const result = await window.electronAPI.applySharedConfig();
+  if (result.success) {
+    document.getElementById('sharedConfigBanner').style.display = 'none';
+    const appResult = await window.electronAPI.getAppSettings();
+    if (appResult.success) AppState.settings = appResult.settings;
+    loadSettingsScreen();
+    showStatus('Shared settings imported successfully.');
+  } else {
+    showModal('Import Failed', 'Could not import shared settings: ' + (result.error || 'Unknown error'));
+  }
+});
+
+document.getElementById('dismissSharedConfigBtn')?.addEventListener('click', async (e) => {
+  e.preventDefault();
+  await window.electronAPI.saveAppSettings({ lastSharedConfigImport: new Date().toISOString() });
+  document.getElementById('sharedConfigBanner').style.display = 'none';
+});
+
+/**
+ * Bootstrap import — browse for a shared folder and import settings + activate license.
+ * Visible to all users regardless of supporter status.
+ * The import is atomic: if license activation fails, nothing is written.
+ */
+document.getElementById('importFromFolderBtn')?.addEventListener('click', async () => {
+  const statusEl = document.getElementById('importFromFolderStatus');
+
+  const folderPath = await window.electronAPI.cacheSettings.browseDirectory();
+  if (!folderPath) return;
+
+  statusEl.textContent = 'Activating license and importing settings...';
+  statusEl.style.color = '';
+  statusEl.style.display = '';
+
+  const result = await window.electronAPI.importFromFolder(folderPath);
+
+  if (result.success) {
+    statusEl.style.display = 'none';
+    loadSettingsScreen();
+    await updateVersionBadge();
+    showStatus('Settings imported and license activated. You can now configure the cache location under Settings \u2192 Cache.');
+  } else {
+    statusEl.textContent = result.error || 'Import failed.';
+    statusEl.style.color = '#c0392b';
+  }
 });
 
 // Browse cache location button handler
@@ -6252,6 +6339,16 @@ async function updateVersionBadge() {
       fastPricingBtn.classList.add('btn-premium-locked');
       if (iconSpan) iconSpan.style.display = '';
     }
+  }
+
+  // Update cache location premium gate (multi-machine sync)
+  const customCacheRadio = document.getElementById('customCacheLocationRadio');
+  const cacheLocationPremiumBadge = document.getElementById('cacheLocationPremiumBadge');
+  const cacheLocationPremiumNote = document.getElementById('cacheLocationPremiumNote');
+  if (customCacheRadio) {
+    customCacheRadio.disabled = !isSupporter;
+    if (cacheLocationPremiumBadge) cacheLocationPremiumBadge.style.display = isSupporter ? 'none' : '';
+    if (cacheLocationPremiumNote) cacheLocationPremiumNote.style.display = isSupporter ? 'none' : '';
   }
 
   // Update menu state to show/hide purchase option

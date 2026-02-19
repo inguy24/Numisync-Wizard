@@ -1488,7 +1488,7 @@ body {
   border-radius: 0.5rem;
   border: 1px solid var(--border);
   display: grid;
-  grid-template-columns: 30px auto 1fr 1fr;
+  grid-template-columns: 30px 180px 1fr 1fr;
   gap: 1rem;
   align-items: start;
 }

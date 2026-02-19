@@ -522,19 +522,35 @@
             </p>
 
             <label style="display: block; margin-bottom: 8px;">
-              <input type="radio" name="cacheLocation" value="custom">
-              Custom Location (Advanced)
+              <input type="radio" name="cacheLocation" value="custom" id="customCacheLocationRadio">
+              Custom Location
+              <span id="cacheLocationPremiumBadge" class="premium-badge" style="display:none;">
+                <span class="emoji-placeholder" data-ui-key="ICON_GEM"></span>
+              </span>
             </label>
+            <p id="cacheLocationPremiumNote" class="setting-help" style="display:none; color: #6f42c1; margin-left: 24px; margin-top: -4px; margin-bottom: 8px;">
+              Requires a Supporter Edition license.
+              <a href="#" id="cacheLocationUpgradeLink">Get Supporter License &rarr;</a>
+            </p>
             <div id="customCacheLocationControls" style="margin-left: 24px; display: none;">
               <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
                 <input type="text" id="customCacheLocationInput" placeholder="Select cache directory..." style="flex: 1;" readonly>
                 <button id="browseCacheLocationBtn" class="btn btn-secondary">Browse...</button>
               </div>
               <p class="setting-help">
-                <span class="emoji-placeholder" data-ui-key="ICON_INFO"></span> <strong>Multi-Machine Setup:</strong> Select a folder on a network drive accessible from all computers.
+                <span class="emoji-placeholder" data-ui-key="ICON_INFO"></span> <strong>Multi-Machine Sync:</strong> Select a folder on a network drive accessible from all computers. NumiSync stores its files in a <code>.NumiSync</code> subfolder inside the folder you choose, keeping your directory tidy. Settings and API call counts are automatically shared across machines.
               </p>
               <p class="setting-help" style="color: #d97706;">
-                <span class="emoji-placeholder" data-ui-key="ICON_WARNING"></span> <strong>Requirements:</strong> The folder must be accessible with read/write permissions. Network shares and modern cloud sync services (Dropbox, OneDrive, etc.) work fine.
+                <span class="emoji-placeholder" data-ui-key="ICON_WARNING"></span> <strong>Requirements:</strong> The folder must be accessible with read/write permissions. Network drives, Dropbox, OneDrive, and NAS shares all work.
+              </p>
+            </div>
+
+            <div id="sharedConfigBanner" class="callout callout-info" style="display:none; margin-top: 12px; margin-left: 24px;">
+              <strong>Shared settings available</strong> &mdash; Updated <span id="sharedConfigDate"></span>.
+              <a href="#" id="importSharedConfigBtn" style="margin-left: 8px;">Import Now</a>
+              <a href="#" id="dismissSharedConfigBtn" style="margin-left: 8px; color: #666;">Dismiss</a>
+              <p class="setting-help" style="margin-top: 6px; margin-bottom: 0;">
+                Field mappings and collection settings are shared automatically when your .db file is on a shared network path &mdash; no extra steps needed.
               </p>
             </div>
 
@@ -658,6 +674,16 @@
               <strong>Device Label:</strong> Identifies this installation on Polar's website.<br>
               <strong>Deactivate:</strong> Frees up one of your 3 device slots so you can activate on another device.
             </p>
+          </div>
+
+          <div class="setting-group" id="bootstrapImportGroup">
+            <h3>Import from Another Machine</h3>
+            <p class="setting-help">
+              Already using NumiSync on another machine? Browse to your shared folder to import your API key and license in one step.
+              The import only succeeds if the license key can be activated on this device &mdash; no partial imports.
+            </p>
+            <button id="importFromFolderBtn" class="btn btn-secondary">Browse for Shared Folder...</button>
+            <p id="importFromFolderStatus" class="setting-help" style="display: none; margin-top: 8px;"></p>
           </div>
 
           <div class="setting-group">

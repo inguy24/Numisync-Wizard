@@ -39,7 +39,7 @@
 | Channel | Params | Returns | Delegates To |
 |---------|--------|---------|-------------|
 | `resolve-issuer` | `countryName: string` | `{ success, code: string \| null }` | `numista-api.js` → `resolveIssuerCode()` |
-| `search-numista` | `searchParams: { q?, issuer?, min_year?, max_year?, category? }` | `{ success, results: { types[], count } }` | `numista-api.js` → `searchTypes()` |
+| `search-numista` | `searchParams: { q?, issuer?, date?, category? }` — `date` is a Gregorian year string (e.g. `"1981"`) passed directly to the Numista `date` query param | `{ success, results: { types[], count } }` | `numista-api.js` → `searchTypes()` |
 | `manual-search-numista` | `{ query, coinId, category?, issuer?, page? }` | `{ success, results: { types[], count } }` | `numista-api.js` → `searchTypes()` |
 | `get-numista-type` | `typeId: number` | `{ success, typeData }` | `numista-api.js` → `getType()` |
 | `fetch-coin-data` | `{ typeId: number, coin: Coin }` | `{ success, basicData?, issueData?, pricingData?, issueMatchResult, issueOptions? }` | `numista-api.js` → `fetchCoinData()` |
@@ -110,6 +110,9 @@
 | `get-monthly-usage` | *(none)* | Monthly usage stats object | `api-cache.js` → `getMonthlyUsage()` |
 | `set-monthly-usage` | `limit: number` | `{ success }` | `api-cache.js` → `setMonthlyLimit()` |
 | `set-monthly-usage-total` | `total: number` | `{ success }` | `api-cache.js` → `setMonthlyUsageTotal()` |
+| `get-shared-config` | *(none)* | `{ found: boolean, config?: Object, exportedAt?: string }` | `api-cache.js` → `readSharedConfig()` |
+| `apply-shared-config` | *(none)* | `{ success: boolean, settings?: Object }` | `api-cache.js` → `readSharedConfig()`, writes `userData/settings.json` |
+| `import-from-folder` | `folderPath: string` | `{ success: boolean, error?: string, settings?: Object }` | Reads `folderPath/.NumiSync/numisync-shared-config.json` (fallback: `folderPath/`), activates license via Polar SDK, writes all portable settings atomically — aborts entirely on activation failure |
 
 ---
 

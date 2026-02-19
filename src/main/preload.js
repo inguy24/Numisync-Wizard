@@ -230,6 +230,11 @@ const apiMethods = {
     migrate: (newLocation, newCustomPath, useExisting = false) => ipcRenderer.invoke('migrate-cache', newLocation, newCustomPath, useExisting)
   },
 
+  // Shared config (multi-machine sync)
+  getSharedConfig: () => ipcRenderer.invoke('get-shared-config'),
+  applySharedConfig: () => ipcRenderer.invoke('apply-shared-config'),
+  importFromFolder: (folderPath) => ipcRenderer.invoke('import-from-folder', folderPath),
+
   // Logging
   exportLogFile: () => ipcRenderer.invoke('export-log-file'),
 

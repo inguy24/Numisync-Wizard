@@ -48,8 +48,9 @@ Batch-update pricing for all matched coins in seconds. No more clicking through 
 ### Auto-Propagate Type Data
 Automatically apply type-level data (mintage, composition, ruler, designer) to all matching coins in your collection. *(Requires Supporter License)*
 
-### Multi-Machine Support
-Configurable cache location with file locking prevents conflicts when multiple users access the same database.
+### Multi-Machine Sync *(Supporter Edition)*
+Share API cache and settings across multiple computers via a shared network drive, Dropbox, or NAS.
+API call counts accumulate correctly across all machines. One-click settings import on new machines.
 
 ### Smart Caching
 Persistent API cache reduces redundant requests and respects Numista rate limits. Works offline with cached data.
@@ -174,13 +175,14 @@ I built NumiSync Wizard to save myself countless hours cataloging my coin collec
 - Visual field comparison and selective updates
 - Issue variant selection
 - Image download and comparison
-- Smart caching and multi-machine support
+- Smart caching — reduces API calls and works offline with cached data
 - Advanced field mapping
 
 ### A Supporter License ($10) gets you:
 
 - **Fast Pricing Mode** - Batch update pricing across your collection
 - **Auto-Propagate** - Apply type data to matching coins automatically
+- **Multi-Machine Sync** - Share cache and settings across all your computers
 - **No more nag prompts!**
 - **Discounts on future premium features**
 - The warm fuzzy feeling of supporting independent software

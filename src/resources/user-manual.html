@@ -464,7 +464,11 @@
         <li><a href="#numista-quota">Numista API Quota</a></li>
       </ul>
     </li>
-    <li><a href="#cache-location">22. Cache Location Settings (Advanced)</a></li>
+    <li><a href="#cache-location">22. Cache Location Settings (Advanced)</a>
+      <ul>
+        <li><a href="#multi-machine-sync">Multi-Machine Sync <small>(Premium)</small></a></li>
+      </ul>
+    </li>
     <li><a href="#multi-machine">23. Multi-Machine Usage</a></li>
     <li><a href="#appendix-fields">Appendix A: Field Reference</a></li>
     <li><a href="#appendix-statuses">Appendix B: Status Reference</a></li>
@@ -1371,6 +1375,7 @@
   <tr><td>Filtering and sorting</td><td>&#x2705; Full access</td><td>&#x2705; Full access</td></tr>
   <tr><td>Fast Pricing Mode (batch updates)</td><td>&#x1F512; Locked</td><td>&#x2705; Unlocked</td></tr>
   <tr><td>Auto-Propagate (batch type data)</td><td>&#x1F512; Locked (detection free)</td><td>&#x2705; Unlocked</td></tr>
+  <tr><td>Multi-Machine Sync (shared cache &amp; settings)</td><td>&#x1F512; Locked</td><td>&#x2705; Unlocked</td></tr>
   <tr><td>License prompts</td><td>Every 20 enrichments</td><td>None</td></tr>
   <tr><td>Device limit</td><td>&mdash;</td><td>5 devices per license</td></tr>
 </table>
@@ -1956,6 +1961,77 @@
 <div class="callout callout-warning">
   <strong>Warning:</strong> If the custom path becomes unavailable (network disconnected, cloud service offline), the app will fall back to the default local cache location to avoid blocking your work.
 </div>
+
+<h3 id="multi-machine-sync">Multi-Machine Sync
+  <span class="badge" style="background: linear-gradient(135deg, #d4af37, #f4e4ba); color: #333;">PREMIUM</span>
+</h3>
+<p>
+  <strong>Multi-Machine Sync</strong> allows you to share your Numista API cache and app settings
+  across multiple computers &mdash; ideal if you work on your collection from both a desktop and a laptop.
+</p>
+<div class="callout callout-info">
+  <strong>Premium Feature:</strong> Multi-Machine Sync requires a Supporter Edition license.
+  The &ldquo;Import from Another Machine&rdquo; button is accessible without a license already entered, but the import will only succeed if the shared config contains a valid license key that can be activated on this device &mdash; it is not a free feature. The button is ungated solely to avoid the circular dependency of needing a license configured before you can reach the shared folder that contains the license.
+</div>
+<h4>Setting Up Your Primary Machine</h4>
+<ol class="steps">
+  <li>Go to <strong>Settings &rarr; Cache Location &rarr; Custom Location</strong>.</li>
+  <li>Select a folder on a shared network drive, Dropbox folder, or NAS. NumiSync stores its files
+      in a <code>.NumiSync</code> subfolder inside the folder you choose, keeping your directory tidy.</li>
+  <li>NumiSync automatically writes a <code>numisync-shared-config.json</code> file to that subfolder
+      whenever you save settings &mdash; containing your API key, rate limits, and other portable settings.</li>
+  <li>Your Numista API call counts now accumulate correctly across all machines that share this folder.</li>
+</ol>
+<h4>Setting Up Additional Machines (Bootstrap Import)</h4>
+<p>
+  On a brand-new machine you won&rsquo;t have a license yet &mdash; but you need the license to configure
+  the custom cache location. The bootstrap import breaks this circular dependency.
+</p>
+<ol class="steps">
+  <li>Install NumiSync on the new machine.</li>
+  <li>Go to <strong>Settings &rarr; Import from Another Machine</strong>.</li>
+  <li>Click <strong>Browse for Shared Folder&hellip;</strong> and select the same parent folder you
+      configured on your primary machine (e.g. <code>\\server\share\OpenNumismat</code>).</li>
+  <li>NumiSync reads the shared config and attempts to activate the license key on this device.
+      <strong>The import only proceeds if activation succeeds.</strong> If the key is invalid,
+      expired, or the device limit has been reached, the import is cancelled and a specific error is shown.
+      Nothing is written on failure.</li>
+  <li>On success, all shared settings are applied (API key, rate limits, TTL settings) and the
+      license is fully activated. Supporter features &mdash; including the custom cache location &mdash;
+      are unlocked immediately without restarting.</li>
+  <li>Go to <strong>Settings &rarr; Cache Location &rarr; Custom Location</strong> and point it at
+      the same shared folder to complete the setup.</li>
+</ol>
+<div class="callout callout-warning">
+  <strong>License requirement:</strong> The import will only succeed if the shared config contains
+  a valid license key that can be activated on this device. Each license supports up to 5 devices.
+  If you have reached the device limit, deactivate an unused device from your Polar license dashboard
+  before importing on the new machine. An internet connection is required at the time of import.
+</div>
+<h4>What Is Shared</h4>
+<ul>
+  <li><strong>API cache</strong> &mdash; Coin type data, search results, issue data (no re-fetching cached data)</li>
+  <li><strong>API call counts</strong> &mdash; Monthly usage accumulates correctly across all machines</li>
+  <li><strong>Numista API key</strong> &mdash; Enter once; other machines import it automatically</li>
+  <li><strong>Rate limits and TTL settings</strong> &mdash; Consistent cache behavior across machines</li>
+  <li><strong>License key</strong> &mdash; Automatically activated on bootstrap import (subject to device limit)</li>
+  <li><strong>Default collection</strong> &mdash; Applied on the new machine only if the path is reachable (same UNC path or network mount). Silently skipped if the file does not exist on the importing machine.</li>
+</ul>
+<h4>What Is NOT Shared via the Config File</h4>
+<ul>
+  <li><strong>Collection settings and field mappings</strong> &mdash; These live in the <code>.NumiSync/</code>
+      folder alongside your <code>.db</code> file. If your collection database is on the same shared
+      drive, these are already shared automatically with no extra steps.</li>
+  <li><strong>Recent collections list</strong> &mdash; Only the default collection is imported (if reachable); the full recent list is not transferred as paths may differ between machines</li>
+  <li><strong>License activation record</strong> &mdash; Each device activates individually (up to 5 devices per license)</li>
+</ul>
+<h4>Requirements</h4>
+<ul>
+  <li>Supporter Edition license with at least one available device slot</li>
+  <li>Internet connection at the time of bootstrap import (for license activation)</li>
+  <li>Shared folder with read/write access from all machines</li>
+  <li>Works with network drives, Dropbox, OneDrive, NAS, and similar</li>
+</ul>
 
 <a href="#introduction" class="back-to-top">Back to top &uarr;</a>
 
