@@ -21,7 +21,7 @@ const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
 const { mintmarksMatch } = require('./mintmark-normalizer');
-const { unitsMatch: denominationUnitsMatch } = require('./denomination-normalizer');
+const { unitsMatch: denominationUnitsMatch, valuesMatchViaSubunit } = require('./denomination-normalizer');
 const log = require('../main/logger').scope('NumistaAPI');
 
 /**
@@ -78,6 +78,67 @@ function diceCoefficient(a, b) {
   }
 
   return (2.0 * intersectionSize) / ((a.length - 1) + (b.length - 1));
+}
+
+// Unicode fraction → numeric value map (mirrors UNICODE_FRACTIONS in renderer)
+const UNICODE_FRACTIONS_BACKEND = {
+  '½': 0.5, '¼': 0.25, '¾': 0.75,
+  '⅓': 1/3, '⅔': 2/3,
+  '⅕': 0.2, '⅖': 0.4, '⅗': 0.6, '⅘': 0.8,
+  '⅙': 1/6, '⅚': 5/6,
+  '⅛': 0.125, '⅜': 0.375, '⅝': 0.625, '⅞': 0.875
+};
+
+// Character class matching digits, dots, and Unicode fractions — mirrors renderer DENOM_NUM_CHARS
+const DENOM_NUM_CHARS_BACKEND = '[\\d.½¼¾⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]';
+
+// US colloquial denominations — maps Numista denom name to equivalent cent value
+const US_DENOM_CENT_VALUES = {
+  'dime': 10,
+  'nickel': 5,
+  'quarter': 25,
+  'half dollar': 50
+};
+
+// ASCII fraction pattern: "1/2 franc", "3/4 dollar", etc.
+const ASCII_FRACTION_RE = /^(\d+)\/(\d+)\s+(.+)$/;
+
+/**
+ * Parse a numeric value string handling both Unicode fractions (½, ¼) and ASCII fractions (1/2, 3/4).
+ * Mirrors parseNumericValue() in the renderer for Lesson 19 parity.
+ */
+function _parseNumericValue(str) {
+  if (str == null) return null;
+  if (typeof str !== 'string') str = String(str);
+  if (!str) return null;
+  for (const [frac, val] of Object.entries(UNICODE_FRACTIONS_BACKEND)) {
+    if (str.includes(frac)) {
+      const prefix = str.replace(frac, '').trim();
+      const result = (prefix ? parseFloat(prefix) : 0) + val;
+      return isNaN(result) ? null : result;
+    }
+  }
+  // Handle ASCII fractions like "1/2", "3/4"
+  const asciiMatch = str.match(/^(\d+)\/(\d+)$/);
+  if (asciiMatch) {
+    return parseInt(asciiMatch[1]) / parseInt(asciiMatch[2]);
+  }
+  const result = parseFloat(str);
+  return isNaN(result) ? null : result;
+}
+
+/**
+ * Extract a leading ASCII fraction from a unit string and apply it as a multiplier to the value.
+ * Mirrors extractUnitFraction() in the renderer for Lesson 19 parity.
+ */
+function _extractUnitFraction(unit, value) {
+  if (!unit) return { adjValue: value, adjUnit: unit };
+  const m = unit.match(ASCII_FRACTION_RE);
+  if (m) {
+    const frac = parseInt(m[1]) / parseInt(m[2]);
+    return { adjValue: value != null ? value * frac : frac, adjUnit: m[3] };
+  }
+  return { adjValue: value, adjUnit: unit };
 }
 
 // Default persistent cache TTLs (overridden by user settings)
@@ -608,26 +669,30 @@ class NumistaAPI {
 
     // Value/denomination match (25 points) - compare numeric values first, then units
     // OpenNumismat stores value=1, unit="Cents" while Numista uses value.text="1 Cent"
-    const coinValue = coin.value ? parseFloat(coin.value) : null;
-    const coinUnit = coin.unit?.toLowerCase().trim();
+    // coin.value is a string from SQLite (e.g., "1/2" for half dollar); _parseNumericValue handles fractions
+    const rawCoinValue = coin.value ? _parseNumericValue(coin.value) : null;
+    const rawCoinUnit = coin.unit?.toLowerCase().trim();
+    // If unit contains an ASCII fraction prefix (e.g., "1/2 Franc"), absorb it into the value
+    const { adjValue: coinValue, adjUnit: coinUnit } = _extractUnitFraction(rawCoinUnit, rawCoinValue);
 
     // Try value.text first, fallback to extracting from title
     let matchDenomination = numistaType.value?.text?.toLowerCase().trim();
     if (!matchDenomination && numistaType.title) {
       // Extract denomination from start of title up to first separator (dash, paren, comma)
-      // Captures multi-word units: "2 Euro Cents - Beatrix" -> "2 Euro Cents"
-      const titleMatch = numistaType.title.match(/^([\d.]+\s*[^-–(,]+)/i);
+      // Includes Unicode fractions (½, ¼, etc.) in the numeric character class
+      const denomNumRe = new RegExp(`^(${DENOM_NUM_CHARS_BACKEND}+\\s*[^-–(,]+)`, 'i');
+      const titleMatch = numistaType.title.match(denomNumRe);
       if (titleMatch) {
         matchDenomination = titleMatch[1].toLowerCase().trim();
       }
     }
 
     if (coinValue && matchDenomination) {
-      // Extract numeric value from denomination text (e.g., "5 Cents" -> 5)
-      const matchValueMatch = matchDenomination.match(/^([\d.]+)/);
-      const matchValue = matchValueMatch ? parseFloat(matchValueMatch[1]) : null;
+      // Extract numeric value from denomination text (e.g., "5 Cents" -> 5, "½ Dime" -> 0.5)
+      const matchValueMatch = matchDenomination.match(new RegExp(`^(${DENOM_NUM_CHARS_BACKEND}+)`));
+      const matchValue = matchValueMatch ? _parseNumericValue(matchValueMatch[1]) : null;
       // Extract unit from denomination text (e.g., "5 Cents" -> "cents")
-      const matchUnit = matchDenomination.replace(/^[\d.]+\s*/, '').trim();
+      const matchUnit = matchDenomination.replace(new RegExp(`^${DENOM_NUM_CHARS_BACKEND}+\\s*`), '').trim();
 
       if (matchValue !== null) {
         // Check if units match (e.g., "cents" vs "cent" should match, "cent" vs "dime" should not)
@@ -644,14 +709,29 @@ class NumistaAPI {
           score += 15;
         } else {
           // Either numeric value differs OR units differ (e.g., "1 Cent" vs "1 Dime")
-          // This is a denomination mismatch - penalty
-          score -= 20;
+          // Check US colloquial denomination equivalence before applying penalty:
+          // "10 cents" (OpenNumismat) ↔ "1 dime" (Numista), "5 cents" ↔ "1 nickel", etc.
+          const matchUnitCentVal = matchUnit ? US_DENOM_CENT_VALUES[matchUnit.toLowerCase()] : null;
+          const coinUnitCentVal = coinUnit ? US_DENOM_CENT_VALUES[coinUnit.toLowerCase()] : null;
+          const coinIsCent = coinUnit && denominationUnitsMatch(coinUnit, 'cent');
+          const matchIsCent = matchUnit && denominationUnitsMatch(matchUnit, 'cent');
+          const isUSEquivalent = (
+            (matchUnitCentVal && coinIsCent && coinValue === matchUnitCentVal && matchValue === 1) ||
+            (coinUnitCentVal && matchIsCent && matchValue === coinUnitCentVal && coinValue === 1)
+          );
+          if (isUSEquivalent) {
+            score += 25;
+          } else if (valuesMatchViaSubunit(coinValue, coinUnit, matchValue, matchUnit)) {
+            score += 25;
+          } else {
+            score -= 20;
+          }
         }
       }
     } else if (coinUnit && matchDenomination) {
       // No numeric value from user's coin, but we have a unit to compare
       // This handles cases like unit="Euro" where value is empty in OpenNumismat
-      const matchUnit = matchDenomination.replace(/^[\d.]+\s*/, '').trim();
+      const matchUnit = matchDenomination.replace(new RegExp(`^${DENOM_NUM_CHARS_BACKEND}+\\s*`), '').trim();
       if (matchUnit) {
         const unitsAreMatch = (
           denominationUnitsMatch(coinUnit, matchUnit) ||

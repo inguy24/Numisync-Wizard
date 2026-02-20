@@ -9,6 +9,8 @@
  *   DENOMINATION_ALIASES — flat map: raw variant → canonical form
  *   DENOMINATION_PLURALS — canonical → plural form (from denomination-aliases.json)
  *   ALL_CANONICALS — raw variant → array of all canonical forms it belongs to
+ *   valuesMatchViaSubunit(v1,u1,v2,u2) — true if values are equivalent via subunit conversion
+ *   SUBUNIT_MAP — canonical subunit → { parentCanonical: ratio } (from denomination-aliases.json)
  *   ISSUER_DENOMINATION_OVERRIDES — canonical → issuer code → { singular, plural } (country exceptions)
  * Storage: reads src/data/denomination-aliases.json and src/data/issuer-denomination-overrides.json at load
  * Note: Lesson 17 — Numista API does not cross-match denomination languages; use getAlternateSearchForms()
@@ -29,7 +31,7 @@ const fs = require('fs');
  * canonical (for matching), while allCanonicalsMap tracks ALL canonicals per alias
  * (for generating alternate search forms).
  *
- * @returns {{ aliasMap: Object, pluralMap: Object, allCanonicalsMap: Object }}
+ * @returns {{ aliasMap: Object, pluralMap: Object, allCanonicalsMap: Object, subunitMap: Object }}
  */
 function loadAliases() {
   const aliasPath = path.join(__dirname, '..', 'data', 'denomination-aliases.json');
@@ -37,6 +39,7 @@ function loadAliases() {
   const aliasMap = {};
   const pluralMap = {};
   const allCanonicalsMap = {}; // alias -> Set of all canonicals it belongs to
+  const subunitMap = {};
   for (const [canonical, value] of Object.entries(raw)) {
     if (canonical.startsWith('_')) continue; // skip _comment, _section_* etc.
     if (Array.isArray(value)) {
@@ -60,6 +63,9 @@ function loadAliases() {
       if (value.plural) {
         pluralMap[canonical] = value.plural;
       }
+      if (value.subunitOf && typeof value.subunitOf === 'object') {
+        subunitMap[canonical] = value.subunitOf;
+      }
     }
   }
   // Convert Sets to arrays for serialization (IPC transfer to renderer)
@@ -67,10 +73,10 @@ function loadAliases() {
   for (const [key, canonicals] of Object.entries(allCanonicalsMap)) {
     allCanonicalsMapArr[key] = Array.from(canonicals);
   }
-  return { aliasMap, pluralMap, allCanonicalsMap: allCanonicalsMapArr };
+  return { aliasMap, pluralMap, allCanonicalsMap: allCanonicalsMapArr, subunitMap };
 }
 
-const { aliasMap: DENOMINATION_ALIASES, pluralMap: DENOMINATION_PLURALS, allCanonicalsMap: ALL_CANONICALS } = loadAliases();
+const { aliasMap: DENOMINATION_ALIASES, pluralMap: DENOMINATION_PLURALS, allCanonicalsMap: ALL_CANONICALS, subunitMap: SUBUNIT_MAP } = loadAliases();
 
 /**
  * Issuer-specific denomination form overrides.
@@ -99,11 +105,24 @@ const ISSUER_DENOMINATION_OVERRIDES = (() => {
  */
 function normalizeUnit(raw) {
   if (!raw || typeof raw !== 'string') return '';
-  const unit = raw.normalize('NFC').toLowerCase().trim().replace(/[.]/g, '');
+  let unit = raw.normalize('NFC').toLowerCase().trim().replace(/[.]/g, '');
   if (unit === '') return '';
+
+  // Convert ASCII fraction prefix to Unicode (e.g., "1/2 franc" → "½ franc")
+  // so search queries and unitsMatch() align with Numista's Unicode characters
+  const asciiToUnicode = { '1/2': '½', '1/4': '¼', '3/4': '¾', '1/3': '⅓', '2/3': '⅔',
+    '1/5': '⅕', '2/5': '⅖', '3/5': '⅗', '4/5': '⅘', '1/8': '⅛', '3/8': '⅜',
+    '5/8': '⅝', '7/8': '⅞' };
+  unit = unit.replace(/^(\d+\/\d+)\s+/, (_, frac) =>
+    (asciiToUnicode[frac] ? asciiToUnicode[frac] + ' ' : _ ));
 
   // Direct alias lookup
   if (DENOMINATION_ALIASES[unit]) return DENOMINATION_ALIASES[unit];
+
+  // If unit has a Unicode fraction prefix (e.g., "½ franc"), try the base denomination too
+  // Enables "½ franc" → not in aliases → try "franc" → return "franc"
+  const baseDenom = unit.replace(/^[½¼¾⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]\s+/, '');
+  if (baseDenom !== unit && DENOMINATION_ALIASES[baseDenom]) return DENOMINATION_ALIASES[baseDenom];
 
   // Strip diacritics (ö→o, é→e, ř→r, etc.) and retry alias lookup
   const stripped = unit.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -148,6 +167,37 @@ function unitsMatch(unitA, unitB) {
 }
 
 /**
+ * Check if two denomination value/unit pairs are equivalent via subunit conversion.
+ * E.g., (25, "cents") matches (0.25, "dollar") because 100 cents = 1 dollar.
+ * Uses SUBUNIT_MAP built from the subunitOf field in denomination-aliases.json.
+ * @param {number} value1 - First numeric value
+ * @param {string} unit1 - First unit string (raw, will be normalized)
+ * @param {number} value2 - Second numeric value
+ * @param {string} unit2 - Second unit string (raw, will be normalized)
+ * @returns {boolean} True if the values are equivalent via subunit conversion
+ */
+function valuesMatchViaSubunit(value1, unit1, value2, unit2) {
+  if (value1 == null || value2 == null || !unit1 || !unit2) return false;
+  const canon1 = normalizeUnit(unit1);
+  const canon2 = normalizeUnit(unit2);
+  if (!canon1 || !canon2 || canon1 === canon2) return false;
+
+  // Check if unit1 is a subunit of unit2: value1 subunits = value2 parent units
+  const sub1 = SUBUNIT_MAP[canon1];
+  if (sub1 && sub1[canon2] != null) {
+    if (Math.abs(value1 - value2 * sub1[canon2]) < 0.001) return true;
+  }
+
+  // Check if unit2 is a subunit of unit1: value2 subunits = value1 parent units
+  const sub2 = SUBUNIT_MAP[canon2];
+  if (sub2 && sub2[canon1] != null) {
+    if (Math.abs(value2 - value1 * sub2[canon1]) < 0.001) return true;
+  }
+
+  return false;
+}
+
+/**
  * Get all alternate search forms for a denomination unit.
  * When a denomination alias appears in multiple canonical entries (e.g., "heller"
  * is both its own canonical and an alias of "haléř"), this returns the plural
@@ -165,4 +215,4 @@ function getAlternateSearchForms(unit, numericValue) {
   return canonicals.map(c => getSearchForm(c, numericValue));
 }
 
-module.exports = { normalizeUnit, unitsMatch, getSearchForm, getAlternateSearchForms, DENOMINATION_ALIASES, DENOMINATION_PLURALS, ALL_CANONICALS, ISSUER_DENOMINATION_OVERRIDES };
+module.exports = { normalizeUnit, unitsMatch, getSearchForm, getAlternateSearchForms, valuesMatchViaSubunit, DENOMINATION_ALIASES, DENOMINATION_PLURALS, ALL_CANONICALS, ISSUER_DENOMINATION_OVERRIDES, SUBUNIT_MAP };

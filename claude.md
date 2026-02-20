@@ -9,6 +9,7 @@
 - **Modules:** src/modules/ (12 files) — see docs/reference/IPC-HANDLERS-QUICK-REF.md before reading source
 - **Data files:** src/data/ — denomination-aliases.json, issuer-denomination-overrides.json, issuer-aliases.json
 - **Settings:** Single file — numisync-wizard/settings.json in userData (see SETTINGS-CONSOLIDATION.md)
+- **Log file:** `C:\Users\shane.SHANEBURKHARDT\AppData\Roaming\numisync-wizard\logs\main.log` — read this FIRST when debugging errors
 - **License:** Polar SDK — activate() on first entry, validate() for periodic checks (see Lesson 24)
 - **Database:** OpenNumismat .db file — see DATABASE-SCHEMA section in PROJECT-REFERENCE.md
 - **Changelog:** docs/CHANGELOG.md — read for recent changes before touching any module
@@ -45,7 +46,7 @@
 | Change OpenNumismat DB schema | DATABASE-SCHEMA section in `docs/reference/PROJECT-REFERENCE.md` |
 | Add a new lesson learned | CLAUDE.md §5 under the correct `###` category |
 
-**Note:** The MCP server (`mcp/server.js`) reads CLAUDE.md §5, CHANGELOG.md, IPC-HANDLERS-QUICK-REF.md, and denomination-aliases.json at query time — keeping those files accurate keeps the MCP tools accurate automatically.
+**Note:** The MCP server (`mcp/server.js`) reads CLAUDE.md §5, CHANGELOG.md, IPC-HANDLERS-QUICK-REF.md, swagger.yaml, and denomination-aliases.json at query time — keeping those files accurate keeps the MCP tools accurate automatically.
 
 ### Task-Based Reading Guide
 
@@ -96,6 +97,8 @@
 19. **Keep automatic and manual search in parity** - Both `searchForMatches()` (automatic/inline) and the manual search handler must use the same query-building logic, normalization, and filters (issuer, category). When adding a capability to one search path, always apply it to the other unless explicitly discussed otherwise. Divergence causes silent differences in result quality.
 
 20. **Numista issuers have a parent/child hierarchy — always match most specific** - The `/issuers` endpoint returns issuers with `level` (1-5) and `parent` fields. Section-level issuers (lower level) group territories under a country (e.g., "United Kingdom" section includes Falkland Islands, Gibraltar). The specific country issuer has a higher level number. When resolving issuer codes, always prefer the most specific (highest level) match. Using a section-level code causes the search API to return coins from all grouped territories, polluting results with irrelevant coins and pushing the correct coin out of view.
+
+30. **Never hardcode external API identifiers without live verification — treat guessed values as destructive** - `issuer-aliases.json` was created with Numista issuer codes guessed by naming convention (e.g., "korea-south", "germany-federal-republic"). These codes did not exist in the Numista API at all, causing silent 400 errors on every Korean and German coin search. Two others ("united-states", "united-kingdom") existed but were section-level codes that polluted results with unrelated territories. The file caused more harm than good because half its values were fabricated. Rule: any file that stores external system identifiers (API codes, IDs, keys) must be populated exclusively from live API responses — never by pattern-guessing. When adding a new entry, call the relevant endpoint, inspect the actual response, and record the verified value. Document the verification source (endpoint + date) in a comment. Verified codes as of 2026-02-19: `united-states`→`etats-unis`, `united-kingdom`→`royaume-uni`, `west-germany`→`allemagne`, `east-germany`→`ddr`, `south-korea`→`coree_du_sud`, `north-korea`→`coree_du_nord`.
 
 ### Database & Data Persistence
 

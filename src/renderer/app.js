@@ -3459,7 +3459,39 @@ const UNICODE_FRACTIONS = {
 // Character class matching digits, dots, and Unicode fractions — used in denomination extraction
 const DENOM_NUM_CHARS = '[\\d.½¼¾⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]';
 
+// ASCII fraction pattern: "1/2", "3/4", etc. as a prefix in unit strings
+const ASCII_FRACTION_RE = /^(\d+)\/(\d+)\s+(.+)$/;
+
+// US colloquial denominations — maps Numista denom name to equivalent cent value
+// Used to equate "1 Dime" (Numista) with "10 Cents" (OpenNumismat) for US coins
+const US_DENOM_CENT_VALUES = {
+  'dime': 10,
+  'nickel': 5,
+  'quarter': 25,
+  'half dollar': 50
+};
+
+/**
+ * Extract a leading ASCII fraction from a unit string (e.g., "1/2 franc") and
+ * apply it as a multiplier to the coin value.  Returns adjusted value and unit.
+ * Handles denominations stored as value=1, unit="1/2 Franc" in OpenNumismat.
+ * @param {string|null} unit - Raw coin unit string
+ * @param {number|null} value - Coin face value
+ * @returns {{adjValue: number|null, adjUnit: string|null}}
+ */
+function extractUnitFraction(unit, value) {
+  if (!unit) return { adjValue: value, adjUnit: unit };
+  const m = unit.match(ASCII_FRACTION_RE);
+  if (m) {
+    const frac = parseInt(m[1]) / parseInt(m[2]);
+    return { adjValue: value != null ? value * frac : frac, adjUnit: m[3] };
+  }
+  return { adjValue: value, adjUnit: unit };
+}
+
 function parseNumericValue(str) {
+  if (str == null) return null;
+  if (typeof str !== 'string') str = String(str);
   if (!str) return null;
   for (const [frac, val] of Object.entries(UNICODE_FRACTIONS)) {
     if (str.includes(frac)) {
@@ -3467,6 +3499,11 @@ function parseNumericValue(str) {
       const result = (prefix ? parseFloat(prefix) : 0) + val;
       return isNaN(result) ? null : result;
     }
+  }
+  // Handle ASCII fractions like "1/2", "3/4"
+  const asciiMatch = str.match(/^(\d+)\/(\d+)$/);
+  if (asciiMatch) {
+    return parseInt(asciiMatch[1]) / parseInt(asciiMatch[2]);
   }
   const result = parseFloat(str);
   return isNaN(result) ? null : result;
@@ -3509,8 +3546,11 @@ function calculateConfidence(coin, match) {
 
   // Value/denomination match (25 points) - compare numeric values first, then units
   // OpenNumismat stores value=1, unit="Cents" while Numista uses value.text="1 Cent"
-  const coinValue = coin.value ? parseFloat(coin.value) : null;
-  const coinUnit = coin.unit?.toLowerCase().trim();
+  // coin.value is a string from SQLite (e.g., "1/2" for half dollar); parseNumericValue handles fractions
+  const rawCoinValue = coin.value ? parseNumericValue(coin.value) : null;
+  const rawCoinUnit = coin.unit?.toLowerCase().trim();
+  // If unit contains an ASCII fraction prefix (e.g., "1/2 Franc"), absorb it into the value
+  const { adjValue: coinValue, adjUnit: coinUnit } = extractUnitFraction(rawCoinUnit, rawCoinValue);
 
   // Try value.text first, fallback to extracting from title (e.g., "5 Cents Liberty Nickel")
   let matchDenomination = match.value?.text?.toLowerCase().trim();
@@ -3548,8 +3588,23 @@ function calculateConfidence(coin, match) {
         score += 15;
       } else {
         // Either numeric value differs OR units differ (e.g., "1 Cent" vs "1 Dime")
-        // This is a denomination mismatch - penalty
-        score -= 20;
+        // Check US colloquial denomination equivalence before applying penalty:
+        // "10 cents" (OpenNumismat) ↔ "1 dime" (Numista), "5 cents" ↔ "1 nickel", etc.
+        const matchUnitCentVal = matchUnit ? US_DENOM_CENT_VALUES[matchUnit.toLowerCase()] : null;
+        const coinUnitCentVal = coinUnit ? US_DENOM_CENT_VALUES[coinUnit.toLowerCase()] : null;
+        const coinIsCent = coinUnit && window.stringSimilarity.unitsMatch(coinUnit, 'cent');
+        const matchIsCent = matchUnit && window.stringSimilarity.unitsMatch(matchUnit, 'cent');
+        const isUSEquivalent = (
+          (matchUnitCentVal && coinIsCent && coinValue === matchUnitCentVal && matchValue === 1) ||
+          (coinUnitCentVal && matchIsCent && matchValue === coinUnitCentVal && coinValue === 1)
+        );
+        if (isUSEquivalent) {
+          score += 25;
+        } else if (window.stringSimilarity.valuesMatchViaSubunit(coinValue, coinUnit, matchValue, matchUnit)) {
+          score += 25;
+        } else {
+          score -= 20;
+        }
       }
     }
   } else if (coinUnit && matchDenomination) {
@@ -4459,15 +4514,16 @@ async function showIssuePicker(issueOptions, coin, typeId) {
   const scoredIssues = issueOptions.map((issue, originalIndex) => {
     const matchesYear = issue.year == coin.year;
 
-    // Fixed mintmark matching: "no mintmark" should match "no mintmark"
-    const userHasMintmark = coin.mintmark && coin.mintmark.trim() !== '';
-    const issueHasMintmark = issue.mint_letter && issue.mint_letter.trim() !== '';
+    // Normalize to booleans (!! required: Numista omits mint_letter entirely for no-mintmark
+    // issues so issue.mint_letter is undefined; null===undefined is false under strict equality)
+    const userHasMintmark = !!(coin.mintmark && coin.mintmark.trim() !== '');
+    const issueHasMintmark = !!(issue.mint_letter && issue.mint_letter.trim() !== '');
     const matchesMintmark = userHasMintmark === issueHasMintmark &&
                            (!userHasMintmark || issue.mint_letter.toLowerCase() === coin.mintmark.toLowerCase());
 
-    // Type/comment matching
-    const userHasType = coin.type && coin.type.trim() !== '';
-    const issueHasComment = issue.comment && issue.comment.trim() !== '';
+    // Type/comment matching (!! prevents null/undefined strict-equality mismatches)
+    const userHasType = !!(coin.type && coin.type.trim() !== '');
+    const issueHasComment = !!(issue.comment && issue.comment.trim() !== '');
     const matchesType = userHasType === issueHasComment ?
                        (!userHasType || issue.comment.toLowerCase().includes(coin.type.toLowerCase())) :
                        false;

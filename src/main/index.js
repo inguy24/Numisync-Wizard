@@ -26,7 +26,7 @@ const SettingsManager = require('../modules/settings-manager');
 const metadataManager = require('../modules/metadata-manager');
 const ImageHandler = require('../modules/image-handler');
 const { initAutoUpdater, checkForUpdatesManually } = require('./updater');
-const { DENOMINATION_ALIASES, DENOMINATION_PLURALS, ALL_CANONICALS, ISSUER_DENOMINATION_OVERRIDES } = require('../modules/denomination-normalizer');
+const { DENOMINATION_ALIASES, DENOMINATION_PLURALS, ALL_CANONICALS, ISSUER_DENOMINATION_OVERRIDES, SUBUNIT_MAP } = require('../modules/denomination-normalizer');
 const ApiCache = require('../modules/api-cache');
 const { CacheLock } = require('../modules/cache-lock');
 const log = require('./logger');
@@ -945,7 +945,7 @@ function checkDatabaseInUse(filePath) {
 // ============================================================================
 
 ipcMain.on('get-denomination-aliases', (event) => {
-  event.returnValue = { aliasMap: DENOMINATION_ALIASES, pluralMap: DENOMINATION_PLURALS, allCanonicalsMap: ALL_CANONICALS, issuerOverrides: ISSUER_DENOMINATION_OVERRIDES };
+  event.returnValue = { aliasMap: DENOMINATION_ALIASES, pluralMap: DENOMINATION_PLURALS, allCanonicalsMap: ALL_CANONICALS, issuerOverrides: ISSUER_DENOMINATION_OVERRIDES, subunitMap: SUBUNIT_MAP };
 });
 
 // ============================================================================

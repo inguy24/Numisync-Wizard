@@ -184,6 +184,7 @@
 | `get-app-version` | *(none)* | `string` (semver) | Electron `app.getVersion()` |
 | `open-manual` | *(none)* | `{ success }` | `openUserManual()` (local helper) |
 | `export-log-file` | *(none)* | `{ success, filePath? }` | `logger.js`, Electron dialog |
+| `get-denomination-aliases` | *(none)* | `{ aliasMap, pluralMap, allCanonicalsMap, issuerOverrides, subunitMap }` | `denomination-normalizer.js` |
 
 ---
 

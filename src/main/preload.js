@@ -13,7 +13,7 @@ const { contextBridge, ipcRenderer } = require('electron');
  * Source of truth: src/data/denomination-aliases.json (aliases/defaults)
  * and src/data/issuer-denomination-overrides.json (country-specific forms).
  */
-const { aliasMap: DENOMINATION_ALIASES, pluralMap: DENOMINATION_PLURALS, allCanonicalsMap: ALL_CANONICALS, issuerOverrides: ISSUER_DENOMINATION_OVERRIDES } = ipcRenderer.sendSync('get-denomination-aliases');
+const { aliasMap: DENOMINATION_ALIASES, pluralMap: DENOMINATION_PLURALS, allCanonicalsMap: ALL_CANONICALS, issuerOverrides: ISSUER_DENOMINATION_OVERRIDES, subunitMap: SUBUNIT_MAP } = ipcRenderer.sendSync('get-denomination-aliases');
 
 /**
  * Normalize a denomination unit string to its canonical form.
@@ -77,6 +77,34 @@ function getAlternateSearchForms(unit, numericValue) {
   const canonicals = ALL_CANONICALS[key];
   if (!canonicals || canonicals.length <= 1) return [];
   return canonicals.map(c => getSearchForm(c, numericValue));
+}
+
+/**
+ * Check if two denomination value/unit pairs are equivalent via subunit conversion.
+ * E.g., (25, "cents") matches (0.25, "dollar") because 100 cents = 1 dollar.
+ * @param {number} value1 - First numeric value
+ * @param {string} unit1 - First unit string
+ * @param {number} value2 - Second numeric value
+ * @param {string} unit2 - Second unit string
+ * @returns {boolean} True if values are equivalent via subunit conversion
+ */
+function valuesMatchViaSubunit(value1, unit1, value2, unit2) {
+  if (value1 == null || value2 == null || !unit1 || !unit2) return false;
+  const canon1 = normalizeUnit(unit1);
+  const canon2 = normalizeUnit(unit2);
+  if (!canon1 || !canon2 || canon1 === canon2) return false;
+
+  const sub1 = SUBUNIT_MAP[canon1];
+  if (sub1 && sub1[canon2] != null) {
+    if (Math.abs(value1 - value2 * sub1[canon2]) < 0.001) return true;
+  }
+
+  const sub2 = SUBUNIT_MAP[canon2];
+  if (sub2 && sub2[canon1] != null) {
+    if (Math.abs(value2 - value1 * sub2[canon1]) < 0.001) return true;
+  }
+
+  return false;
 }
 
 /**
@@ -254,6 +282,7 @@ contextBridge.exposeInMainWorld('stringSimilarity', {
   getSearchForm,
   getAlternateSearchForms,
   unitsMatch: denominationUnitsMatch,
+  valuesMatchViaSubunit,
   issuerOverrides: ISSUER_DENOMINATION_OVERRIDES || {}
 });
 

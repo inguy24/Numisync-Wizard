@@ -4,7 +4,8 @@
   "_section_01": "=== RUSSIAN / SOVIET / CIS ===",
   "kopeck": {
     "aliases": ["kopeck", "kopecks", "kopek", "kopeks", "copeck", "copecks", "kopeek", "kopeyka", "kopiejka", "kopiika", "kopiyka", "kopiyok", "kapiejka", "kop"],
-    "plural": "kopecks"
+    "plural": "kopecks",
+    "subunitOf": { "ruble": 100 }
   },
   "ruble": {
     "aliases": ["ruble", "rubles", "rouble", "roubles", "rubl", "rubel", "rub"],
@@ -14,11 +15,13 @@
   "_section_02": "=== GERMANIC ===",
   "pfennig": {
     "aliases": ["pfennig", "pfennigs", "pfenning", "pfennige", "pfennigen", "pf", "reichspfennig", "rentenpfennig"],
-    "plural": "pfennigs"
+    "plural": "pfennigs",
+    "subunitOf": { "mark": 100 }
   },
   "heller": {
     "aliases": ["heller", "hellers", "haller", "halier", "haléř", "haléře", "haléřů", "haleru", "halere", "halierov", "hal"],
-    "plural": "hellers"
+    "plural": "hellers",
+    "subunitOf": { "krone": 100 }
   },
   "haléř": {
     "aliases": ["haléř", "haléře", "haléřů", "haleru", "halere", "halierov", "hal", "heller", "hellers", "haller", "halier"],
@@ -26,11 +29,13 @@
   },
   "groschen": {
     "aliases": ["groschen", "gr"],
-    "plural": "groschen"
+    "plural": "groschen",
+    "subunitOf": { "mark": 100 }
   },
   "kreuzer": {
     "aliases": ["kreuzer", "kreuzers", "kreutzer", "krajczar", "krajcar"],
-    "plural": "kreuzers"
+    "plural": "kreuzers",
+    "subunitOf": { "gulden": 60 }
   },
   "thaler": {
     "aliases": ["thaler", "thalers", "taler", "taller", "daler", "tolar", "riksdaler", "rigsdaler"],
@@ -64,41 +69,50 @@
   },
   "ore": {
     "aliases": ["ore", "öre", "oere", "aurar", "eyrir"],
-    "plural": "ore"
+    "plural": "ore",
+    "subunitOf": { "krone": 100 }
   },
   "penni": {
     "aliases": ["penni", "pennia"],
-    "plural": "pennia"
+    "plural": "pennia",
+    "subunitOf": { "markka": 100 }
   },
   "skilling": {
     "aliases": ["skilling", "skillinge"],
-    "plural": "skillinge"
+    "plural": "skillinge",
+    "subunitOf": { "krone": 96 }
   },
 
   "_section_04": "=== BRITISH / COMMONWEALTH ===",
   "penny": {
     "aliases": ["penny", "pennies"],
-    "plural": "pennies"
+    "plural": "pennies",
+    "subunitOf": { "pound": 100, "shilling": 12 }
   },
   "pence": {
     "aliases": ["pence"],
-    "plural": "pence"
+    "plural": "pence",
+    "subunitOf": { "pound": 100, "shilling": 12 }
   },
   "halfpenny": {
     "aliases": ["halfpenny"],
-    "plural": "halfpennies"
+    "plural": "halfpennies",
+    "subunitOf": { "penny": 2 }
   },
   "halfpence": {
     "aliases": ["halfpence"],
-    "plural": "halfpence"
+    "plural": "halfpence",
+    "subunitOf": { "penny": 2 }
   },
   "farthing": {
     "aliases": ["farthing", "farthings"],
-    "plural": "farthings"
+    "plural": "farthings",
+    "subunitOf": { "penny": 4 }
   },
   "shilling": {
     "aliases": ["shilling", "shillings", "schilling", "shilingi", "sh", "shs"],
-    "plural": "shillings"
+    "plural": "shillings",
+    "subunitOf": { "pound": 20 }
   },
   "crown": {
     "aliases": ["crown", "crowns"],
@@ -122,7 +136,8 @@
   },
   "groat": {
     "aliases": ["groat", "groats"],
-    "plural": "groats"
+    "plural": "groats",
+    "subunitOf": { "shilling": 3 }
   },
   "noble": {
     "aliases": ["noble", "nobles", "half noble", "quarter noble"],
@@ -140,11 +155,13 @@
   "_section_04b": "=== DUTCH HISTORICAL ===",
   "stuiver": {
     "aliases": ["stuiver", "stuivers", "stiver", "stivers", "stuber"],
-    "plural": "stuivers"
+    "plural": "stuivers",
+    "subunitOf": { "gulden": 20 }
   },
   "duit": {
     "aliases": ["duit", "duits"],
-    "plural": "duit"
+    "plural": "duit",
+    "subunitOf": { "stuiver": 8 }
   },
 
   "_section_04c": "=== FRENCH HISTORICAL ===",
@@ -154,15 +171,18 @@
   },
   "denier": {
     "aliases": ["denier", "deniers", "denier tournois"],
-    "plural": "deniers"
+    "plural": "deniers",
+    "subunitOf": { "sou": 12 }
   },
   "liard": {
     "aliases": ["liard", "liards"],
-    "plural": "liards"
+    "plural": "liards",
+    "subunitOf": { "sou": 4 }
   },
   "sou": {
     "aliases": ["sou", "sous"],
-    "plural": "sous"
+    "plural": "sous",
+    "subunitOf": { "franc": 20 }
   },
 
   "_section_04d": "=== ITALIAN STATES ===",
@@ -172,11 +192,13 @@
   },
   "soldo": {
     "aliases": ["soldo", "soldi"],
-    "plural": "soldi"
+    "plural": "soldi",
+    "subunitOf": { "lira": 20 }
   },
   "baiocco": {
     "aliases": ["baiocco", "baiocchi", "baj"],
-    "plural": "baiocchi"
+    "plural": "baiocchi",
+    "subunitOf": { "scudo": 100 }
   },
   "grano": {
     "aliases": ["grano", "grana"],
@@ -188,49 +210,60 @@
   },
   "quattrino": {
     "aliases": ["quattrino", "quattrini"],
-    "plural": "quattrini"
+    "plural": "quattrini",
+    "subunitOf": { "baiocco": 5 }
   },
 
   "_section_05": "=== CENT FAMILY (used worldwide) ===",
   "cent": {
     "aliases": ["cent", "cents", "ct", "cts"],
-    "plural": "cents"
+    "plural": "cents",
+    "subunitOf": { "dollar": 100 }
   },
   "centime": {
     "aliases": ["centime", "centimes"],
-    "plural": "centimes"
+    "plural": "centimes",
+    "subunitOf": { "franc": 100 }
   },
   "centavo": {
     "aliases": ["centavo", "centavos", "cvo", "cvos"],
-    "plural": "centavos"
+    "plural": "centavos",
+    "subunitOf": { "peso": 100 }
   },
   "centesimo": {
     "aliases": ["centesimo", "centesimos", "centesimi"],
-    "plural": "centesimi"
+    "plural": "centesimi",
+    "subunitOf": { "lira": 100 }
   },
   "centimo": {
     "aliases": ["centimo", "centimos"],
-    "plural": "centimos"
+    "plural": "centimos",
+    "subunitOf": { "peseta": 100 }
   },
   "centas": {
     "aliases": ["centas", "centai"],
-    "plural": "centai"
+    "plural": "centai",
+    "subunitOf": { "litas": 100 }
   },
   "santims": {
     "aliases": ["santims"],
-    "plural": "santims"
+    "plural": "santims",
+    "subunitOf": { "lats": 100 }
   },
   "senti": {
     "aliases": ["senti"],
-    "plural": "senti"
+    "plural": "senti",
+    "subunitOf": { "shilling": 100 }
   },
   "sent": {
     "aliases": ["sent", "sents"],
-    "plural": "sents"
+    "plural": "sents",
+    "subunitOf": { "krone": 100 }
   },
   "sentimo": {
     "aliases": ["sentimo", "sentimos"],
-    "plural": "sentimos"
+    "plural": "sentimos",
+    "subunitOf": { "peso": 100 }
   },
 
   "_section_06": "=== FRANC FAMILY ===",
@@ -240,7 +273,8 @@
   },
   "rappen": {
     "aliases": ["rappen", "rp"],
-    "plural": "rappen"
+    "plural": "rappen",
+    "subunitOf": { "franc": 100 }
   },
 
   "_section_07": "=== IBERIAN / LATIN AMERICAN ===",
@@ -310,11 +344,13 @@
   },
   "tostão": {
     "aliases": ["tostão", "tostao", "tostões", "tostoes"],
-    "plural": "tostões"
+    "plural": "tostões",
+    "subunitOf": { "milréis": 10 }
   },
   "vintém": {
     "aliases": ["vintém", "vintem", "vinténs", "vintens"],
-    "plural": "vinténs"
+    "plural": "vinténs",
+    "subunitOf": { "milréis": 50 }
   },
   "milréis": {
     "aliases": ["milréis", "milreis", "mil réis", "mil reis"],
@@ -347,10 +383,29 @@
     "plural": "lire"
   },
 
+  "_section_US": "=== US COLLOQUIAL DENOMINATIONS ===",
+  "dime": {
+    "aliases": ["dime", "dimes"],
+    "plural": "dimes"
+  },
+  "nickel": {
+    "aliases": ["nickel", "nickels"],
+    "plural": "nickels"
+  },
+  "quarter": {
+    "aliases": ["quarter", "quarters", "quarter dollar", "quarter dollars"],
+    "plural": "quarters"
+  },
+  "half dollar": {
+    "aliases": ["half dollar", "half dollars", "half-dollar", "half-dollars"],
+    "plural": "half dollars"
+  },
+
   "_section_09": "=== EASTERN EUROPEAN ===",
   "grosz": {
     "aliases": ["grosz", "grosze", "groszy"],
-    "plural": "groszy"
+    "plural": "groszy",
+    "subunitOf": { "zloty": 100 }
   },
   "zloty": {
     "aliases": ["zloty", "zlotys", "zlote", "zlotych", "zl"],
@@ -362,7 +417,8 @@
   },
   "stotinka": {
     "aliases": ["stotinka", "stotinki"],
-    "plural": "stotinki"
+    "plural": "stotinki",
+    "subunitOf": { "lev": 100 }
   },
   "dinar": {
     "aliases": ["dinar", "dinars", "dinara", "dinari", "din"],
@@ -374,7 +430,8 @@
   },
   "para": {
     "aliases": ["para", "pare"],
-    "plural": "pare"
+    "plural": "pare",
+    "subunitOf": { "dinar": 100 }
   },
   "kuna": {
     "aliases": ["kuna", "kune"],
@@ -382,7 +439,8 @@
   },
   "lipa": {
     "aliases": ["lipa", "lipe"],
-    "plural": "lipe"
+    "plural": "lipe",
+    "subunitOf": { "kuna": 100 }
   },
   "leu": {
     "aliases": ["leu", "lei"],
@@ -390,7 +448,8 @@
   },
   "ban": {
     "aliases": ["ban", "bani"],
-    "plural": "bani"
+    "plural": "bani",
+    "subunitOf": { "leu": 100 }
   },
   "forint": {
     "aliases": ["forint", "ft"],
@@ -398,7 +457,8 @@
   },
   "filler": {
     "aliases": ["filler", "fillers"],
-    "plural": "fillers"
+    "plural": "fillers",
+    "subunitOf": { "forint": 100 }
   },
   "litas": {
     "aliases": ["litas", "litai"],
@@ -410,7 +470,8 @@
   },
   "fening": {
     "aliases": ["fening", "feninga"],
-    "plural": "feninga"
+    "plural": "feninga",
+    "subunitOf": { "mark": 100 }
   },
   "lek": {
     "aliases": ["lek", "leke", "leku"],
@@ -418,7 +479,8 @@
   },
   "qintar": {
     "aliases": ["qintar", "qindarka", "qindar", "qindar leku", "qindar ar", "qindar ari"],
-    "plural": "qindarka"
+    "plural": "qindarka",
+    "subunitOf": { "lek": 100 }
   },
   "hryvnia": {
     "aliases": ["hryvnia", "hryvni", "hryven", "hryvnya", "hryvna", "hrivna", "grivna", "gryvna"],
@@ -432,31 +494,37 @@
   },
   "lepton": {
     "aliases": ["lepton", "lepta"],
-    "plural": "lepta"
+    "plural": "lepta",
+    "subunitOf": { "drachma": 100 }
   },
   "obol": {
     "aliases": ["obol", "obolos", "obols"],
-    "plural": "obols"
+    "plural": "obols",
+    "subunitOf": { "drachma": 6 }
   },
 
   "_section_11": "=== TURKISH / OTTOMAN ===",
   "kurus": {
     "aliases": ["kurus", "kurush"],
-    "plural": "kurus"
+    "plural": "kurus",
+    "subunitOf": { "lira": 100 }
   },
   "piastre": {
     "aliases": ["piastre", "piastres", "piaster", "piasters", "qirsh", "girsh", "ghirsh", "guerche"],
-    "plural": "piastres"
+    "plural": "piastres",
+    "subunitOf": { "pound": 100 }
   },
   "akce": {
     "aliases": ["akce", "akche", "asper"],
-    "plural": "akce"
+    "plural": "akce",
+    "subunitOf": { "kurus": 3 }
   },
 
   "_section_12": "=== MIDDLE EAST ===",
   "fils": {
     "aliases": ["fils", "fulus", "fil"],
-    "plural": "fils"
+    "plural": "fils",
+    "subunitOf": { "dinar": 1000, "dirham": 100, "rial": 100 }
   },
   "rial": {
     "aliases": ["rial", "rials", "riyal", "riyals"],
@@ -468,7 +536,8 @@
   },
   "agora": {
     "aliases": ["agora", "agorot"],
-    "plural": "agorot"
+    "plural": "agorot",
+    "subunitOf": { "shekel": 100 }
   },
   "shekel": {
     "aliases": ["shekel", "shekels", "sheqel", "sheqalim"],
@@ -476,15 +545,18 @@
   },
   "pruta": {
     "aliases": ["pruta", "prutot", "prutah"],
-    "plural": "prutot"
+    "plural": "prutot",
+    "subunitOf": { "shekel": 1000 }
   },
   "halala": {
     "aliases": ["halala", "halalas"],
-    "plural": "halalas"
+    "plural": "halalas",
+    "subunitOf": { "rial": 100 }
   },
   "baiza": {
     "aliases": ["baiza", "baisa", "baizas"],
-    "plural": "baizas"
+    "plural": "baizas",
+    "subunitOf": { "rial": 1000 }
   },
   "toman": {
     "aliases": ["toman", "tomans", "tuman", "tumans"],
@@ -492,7 +564,8 @@
   },
   "qiran": {
     "aliases": ["qiran", "qirans", "kran", "krans", "qran"],
-    "plural": "qirans"
+    "plural": "qirans",
+    "subunitOf": { "toman": 10 }
   },
 
   "_section_13": "=== SOUTH ASIA ===",
@@ -502,15 +575,18 @@
   },
   "paisa": {
     "aliases": ["paisa", "paise", "poisha", "pice", "np"],
-    "plural": "paise"
+    "plural": "paise",
+    "subunitOf": { "rupee": 100 }
   },
   "anna": {
     "aliases": ["anna", "annas"],
-    "plural": "annas"
+    "plural": "annas",
+    "subunitOf": { "rupee": 16 }
   },
   "pie": {
     "aliases": ["pie", "pies"],
-    "plural": "pies"
+    "plural": "pies",
+    "subunitOf": { "anna": 12 }
   },
   "rupiah": {
     "aliases": ["rupiah"],
@@ -530,7 +606,8 @@
   },
   "chetrum": {
     "aliases": ["chetrum", "chetrums", "chhertum"],
-    "plural": "chetrums"
+    "plural": "chetrums",
+    "subunitOf": { "ngultrum": 100 }
   },
   "rufiyaa": {
     "aliases": ["rufiyaa", "rufiyah"],
@@ -538,7 +615,8 @@
   },
   "laari": {
     "aliases": ["laari"],
-    "plural": "laari"
+    "plural": "laari",
+    "subunitOf": { "rufiyaa": 100 }
   },
   "mohar": {
     "aliases": ["mohar", "mohars"],
@@ -556,11 +634,13 @@
   },
   "sen": {
     "aliases": ["sen"],
-    "plural": "sen"
+    "plural": "sen",
+    "subunitOf": { "yen": 100 }
   },
   "rin": {
     "aliases": ["rin"],
-    "plural": "rin"
+    "plural": "rin",
+    "subunitOf": { "sen": 10 }
   },
   "yuan": {
     "aliases": ["yuan"],
@@ -568,11 +648,13 @@
   },
   "jiao": {
     "aliases": ["jiao", "chiao"],
-    "plural": "jiao"
+    "plural": "jiao",
+    "subunitOf": { "yuan": 10 }
   },
   "fen": {
     "aliases": ["fen"],
-    "plural": "fen"
+    "plural": "fen",
+    "subunitOf": { "jiao": 10, "yuan": 100 }
   },
   "won": {
     "aliases": ["won"],
@@ -580,7 +662,8 @@
   },
   "jeon": {
     "aliases": ["jeon", "chon"],
-    "plural": "jeon"
+    "plural": "jeon",
+    "subunitOf": { "won": 100 }
   },
   "dong": {
     "aliases": ["dong"],
@@ -588,25 +671,30 @@
   },
   "hao": {
     "aliases": ["hao"],
-    "plural": "hao"
+    "plural": "hao",
+    "subunitOf": { "dong": 10 }
   },
   "xu": {
     "aliases": ["xu"],
-    "plural": "xu"
+    "plural": "xu",
+    "subunitOf": { "dong": 100 }
   },
 
   "_section_14b": "=== JAPAN HISTORICAL ===",
   "mon": {
     "aliases": ["mon"],
-    "plural": "mon"
+    "plural": "mon",
+    "subunitOf": { "shu": 250 }
   },
   "shu": {
     "aliases": ["shu"],
-    "plural": "shu"
+    "plural": "shu",
+    "subunitOf": { "bu": 4 }
   },
   "bu": {
     "aliases": ["bu"],
-    "plural": "bu"
+    "plural": "bu",
+    "subunitOf": { "ryō": 4 }
   },
   "monme": {
     "aliases": ["monme", "momme"],
@@ -620,7 +708,8 @@
   "_section_14c": "=== KOREA HISTORICAL ===",
   "mun": {
     "aliases": ["mun"],
-    "plural": "mun"
+    "plural": "mun",
+    "subunitOf": { "yang": 100 }
   },
   "yang": {
     "aliases": ["yang"],
@@ -628,7 +717,8 @@
   },
   "fun": {
     "aliases": ["fun", "pun"],
-    "plural": "fun"
+    "plural": "fun",
+    "subunitOf": { "won": 100 }
   },
   "hwan": {
     "aliases": ["hwan", "whan"],
@@ -638,7 +728,8 @@
   "_section_14d": "=== CHINA HISTORICAL ===",
   "cash": {
     "aliases": ["cash", "kasu"],
-    "plural": "cash"
+    "plural": "cash",
+    "subunitOf": { "tael": 1000 }
   },
   "tael": {
     "aliases": ["tael", "taels", "liang"],
@@ -646,11 +737,13 @@
   },
   "mace": {
     "aliases": ["mace", "maces"],
-    "plural": "mace"
+    "plural": "mace",
+    "subunitOf": { "tael": 10 }
   },
   "candareen": {
     "aliases": ["candareen", "candareens", "candarin", "candarins"],
-    "plural": "candareens"
+    "plural": "candareens",
+    "subunitOf": { "mace": 10 }
   },
 
   "_section_15": "=== SOUTHEAST ASIA / OCEANIA ===",
@@ -660,7 +753,8 @@
   },
   "satang": {
     "aliases": ["satang", "stang"],
-    "plural": "satang"
+    "plural": "satang",
+    "subunitOf": { "baht": 100 }
   },
   "ringgit": {
     "aliases": ["ringgit", "rm"],
@@ -672,7 +766,8 @@
   },
   "pya": {
     "aliases": ["pya"],
-    "plural": "pya"
+    "plural": "pya",
+    "subunitOf": { "kyat": 100 }
   },
   "kina": {
     "aliases": ["kina"],
@@ -680,7 +775,8 @@
   },
   "toea": {
     "aliases": ["toea"],
-    "plural": "toea"
+    "plural": "toea",
+    "subunitOf": { "kina": 100 }
   },
   "vatu": {
     "aliases": ["vatu"],
@@ -692,7 +788,8 @@
   },
   "seniti": {
     "aliases": ["seniti"],
-    "plural": "seniti"
+    "plural": "seniti",
+    "subunitOf": { "paanga": 100 }
   },
   "riel": {
     "aliases": ["riel", "riels"],
@@ -704,7 +801,8 @@
   },
   "att": {
     "aliases": ["att"],
-    "plural": "att"
+    "plural": "att",
+    "subunitOf": { "kip": 100 }
   },
   "tala": {
     "aliases": ["tala"],
@@ -712,21 +810,25 @@
   },
   "sene": {
     "aliases": ["sene"],
-    "plural": "sene"
+    "plural": "sene",
+    "subunitOf": { "tala": 100 }
   },
 
   "_section_15b": "=== SOUTHEAST ASIA HISTORICAL ===",
   "fuang": {
     "aliases": ["fuang", "fueang"],
-    "plural": "fuang"
+    "plural": "fuang",
+    "subunitOf": { "baht": 8 }
   },
   "salung": {
     "aliases": ["salung", "salueng"],
-    "plural": "salung"
+    "plural": "salung",
+    "subunitOf": { "baht": 4 }
   },
   "solot": {
     "aliases": ["solot"],
-    "plural": "solot"
+    "plural": "solot",
+    "subunitOf": { "fuang": 2 }
   },
   "sapèque": {
     "aliases": ["sapèque", "sapeque"],
@@ -772,7 +874,8 @@
   },
   "pesewa": {
     "aliases": ["pesewa", "pesewas"],
-    "plural": "pesewas"
+    "plural": "pesewas",
+    "subunitOf": { "cedi": 100 }
   },
   "naira": {
     "aliases": ["naira"],
@@ -780,7 +883,8 @@
   },
   "kobo": {
     "aliases": ["kobo"],
-    "plural": "kobo"
+    "plural": "kobo",
+    "subunitOf": { "naira": 100 }
   },
   "kwacha": {
     "aliases": ["kwacha"],
@@ -788,11 +892,13 @@
   },
   "tambala": {
     "aliases": ["tambala"],
-    "plural": "tambala"
+    "plural": "tambala",
+    "subunitOf": { "kwacha": 100 }
   },
   "ngwee": {
     "aliases": ["ngwee"],
-    "plural": "ngwee"
+    "plural": "ngwee",
+    "subunitOf": { "kwacha": 100 }
   },
   "dalasi": {
     "aliases": ["dalasi"],
@@ -800,7 +906,8 @@
   },
   "butut": {
     "aliases": ["butut", "bututs"],
-    "plural": "bututs"
+    "plural": "bututs",
+    "subunitOf": { "dalasi": 100 }
   },
   "birr": {
     "aliases": ["birr"],
@@ -808,7 +915,8 @@
   },
   "santim": {
     "aliases": ["santim", "santeem"],
-    "plural": "santim"
+    "plural": "santim",
+    "subunitOf": { "birr": 100 }
   },
   "kwanza": {
     "aliases": ["kwanza"],
@@ -820,7 +928,8 @@
   },
   "iraimbilanja": {
     "aliases": ["iraimbilanja"],
-    "plural": "iraimbilanja"
+    "plural": "iraimbilanja",
+    "subunitOf": { "ariary": 5 }
   },
   "leone": {
     "aliases": ["leone", "leones"],
@@ -836,7 +945,8 @@
   },
   "sente": {
     "aliases": ["sente", "lisente", "licente"],
-    "plural": "lisente"
+    "plural": "lisente",
+    "subunitOf": { "loti": 100 }
   },
   "pula": {
     "aliases": ["pula"],
@@ -844,7 +954,8 @@
   },
   "thebe": {
     "aliases": ["thebe"],
-    "plural": "thebe"
+    "plural": "thebe",
+    "subunitOf": { "pula": 100 }
   },
   "ouguiya": {
     "aliases": ["ouguiya"],
@@ -852,11 +963,13 @@
   },
   "khoums": {
     "aliases": ["khoums", "khoum"],
-    "plural": "khoums"
+    "plural": "khoums",
+    "subunitOf": { "ouguiya": 5 }
   },
   "millime": {
     "aliases": ["millime", "millimes"],
-    "plural": "millimes"
+    "plural": "millimes",
+    "subunitOf": { "dinar": 1000 }
   },
   "nakfa": {
     "aliases": ["nakfa", "naqfa"],
@@ -878,7 +991,8 @@
   },
   "euro cent": {
     "aliases": ["euro cent", "euro cents", "eurocent", "eurocents"],
-    "plural": "euro cents"
+    "plural": "euro cents",
+    "subunitOf": { "euro": 100 }
   },
 
   "_section_18": "=== CAUCASUS / CENTRAL ASIA ===",
@@ -888,7 +1002,8 @@
   },
   "luma": {
     "aliases": ["luma"],
-    "plural": "luma"
+    "plural": "luma",
+    "subunitOf": { "dram": 100 }
   },
   "manat": {
     "aliases": ["manat"],
@@ -896,7 +1011,8 @@
   },
   "qapik": {
     "aliases": ["qapik", "gapik", "gopik"],
-    "plural": "qapik"
+    "plural": "qapik",
+    "subunitOf": { "manat": 100 }
   },
   "lari": {
     "aliases": ["lari"],
@@ -904,7 +1020,8 @@
   },
   "tetri": {
     "aliases": ["tetri"],
-    "plural": "tetri"
+    "plural": "tetri",
+    "subunitOf": { "lari": 100 }
   },
   "tenge": {
     "aliases": ["tenge"],
@@ -912,7 +1029,8 @@
   },
   "tyin": {
     "aliases": ["tyin", "tiyn"],
-    "plural": "tyin"
+    "plural": "tyin",
+    "subunitOf": { "tenge": 100 }
   },
   "som": {
     "aliases": ["som"],
@@ -920,7 +1038,8 @@
   },
   "tyiyn": {
     "aliases": ["tyiyn", "tiyyin"],
-    "plural": "tyiyn"
+    "plural": "tyiyn",
+    "subunitOf": { "som": 100 }
   },
   "sum": {
     "aliases": ["sum", "soum"],
@@ -928,7 +1047,8 @@
   },
   "tiyin": {
     "aliases": ["tiyin", "tiin"],
-    "plural": "tiyin"
+    "plural": "tiyin",
+    "subunitOf": { "sum": 100 }
   },
   "somoni": {
     "aliases": ["somoni"],
@@ -936,7 +1056,8 @@
   },
   "diram": {
     "aliases": ["diram", "dirams"],
-    "plural": "dirams"
+    "plural": "dirams",
+    "subunitOf": { "somoni": 100 }
   },
   "togrog": {
     "aliases": ["togrog", "tugrik", "tugriks", "tugrug"],
@@ -944,17 +1065,20 @@
   },
   "mongo": {
     "aliases": ["mongo", "mongoo", "mungu"],
-    "plural": "mongo"
+    "plural": "mongo",
+    "subunitOf": { "togrog": 100 }
   },
 
   "_section_19": "=== ANCIENT / CLASSICAL ===",
   "denarius": {
     "aliases": ["denarius", "denarii"],
-    "plural": "denarii"
+    "plural": "denarii",
+    "subunitOf": { "aureus": 25 }
   },
   "sestertius": {
     "aliases": ["sestertius", "sestertii", "sesterce", "sesterces"],
-    "plural": "sestertii"
+    "plural": "sestertii",
+    "subunitOf": { "denarius": 4 }
   },
   "aureus": {
     "aliases": ["aureus", "aurei"],
@@ -966,7 +1090,8 @@
   },
   "follis": {
     "aliases": ["follis", "folles"],
-    "plural": "folles"
+    "plural": "folles",
+    "subunitOf": { "solidus": 288 }
   },
   "antoninianus": {
     "aliases": ["antoninianus", "antoniniani", "radiate"],
@@ -974,10 +1099,12 @@
   },
   "as": {
     "aliases": ["as", "asses"],
-    "plural": "asses"
+    "plural": "asses",
+    "subunitOf": { "sestertius": 4 }
   },
   "tremissis": {
     "aliases": ["tremissis", "tremisses"],
-    "plural": "tremisses"
+    "plural": "tremisses",
+    "subunitOf": { "solidus": 3 }
   }
 }

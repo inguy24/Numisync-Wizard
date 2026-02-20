@@ -52,7 +52,8 @@ function transformValueNumber(value) {
 
 function transformValueUnit(value) {
   if (!value) return null;
-  const match = value.match(/[\p{L}]+$/u);
+  const trimmed = typeof value === 'string' ? value.trim() : value;
+  const match = trimmed.match(/[\p{L}]+$/u);
   return match ? match[0] : null;
 }
 

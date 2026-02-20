@@ -11,6 +11,7 @@
  *   get_recent_changelog(n?)        — Last N entries from docs/CHANGELOG.md
  *   get_database_schema(table?)     — OpenNumismat schema from PROJECT-REFERENCE.md
  *   get_denomination_aliases(unit)  — Aliases and plural forms from denomination-aliases.json
+ *   get_swagger_endpoint(filter)    — Search Numista API swagger.yaml by path/method/keyword
  */
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -415,6 +416,164 @@ server.tool(
       .join("\n\n---\n\n");
 
     return { content: [{ type: "text", text: output }] };
+  }
+);
+
+// ---------------------------------------------------------------------------
+// Tool 7: get_swagger_endpoint
+// ---------------------------------------------------------------------------
+
+server.tool(
+  "get_swagger_endpoint",
+  "Search the Numista API swagger.yaml (4,700 lines) by path, HTTP method, or keyword. " +
+    "Returns the full YAML definition for matching endpoints (params, responses, schemas). " +
+    "Avoids reading the entire swagger spec for routine API lookups.",
+  {
+    filter: z
+      .string()
+      .describe(
+        "Search term to match against endpoint paths and summaries (case-insensitive). " +
+          "Examples: 'issues', 'prices', 'search', 'issuers', 'POST /types', 'image', 'collection'"
+      ),
+  },
+  async ({ filter }) => {
+    const content = readProjectFile("docs/reference/swagger.yaml");
+    const lines = content.split("\n");
+    const kw = filter.toLowerCase().trim();
+
+    // Parse out method filter if present (e.g., "GET /types" or "post issues")
+    const methodFilterMatch = kw.match(/^(get|post|put|patch|delete)\s+(.+)/);
+    const methodFilter = methodFilterMatch ? methodFilterMatch[1] : null;
+    const pathFilter = methodFilterMatch ? methodFilterMatch[2] : kw;
+
+    // Find the paths section boundaries
+    const pathsSectionStart = lines.findIndex((l) => /^paths:/.test(l));
+    const componentsSectionStart = lines.findIndex((l) => /^components:/.test(l));
+    const pathsEnd =
+      componentsSectionStart > pathsSectionStart
+        ? componentsSectionStart
+        : lines.length;
+
+    if (pathsSectionStart === -1) {
+      return {
+        content: [
+          { type: "text", text: "Could not find 'paths:' section in swagger.yaml." },
+        ],
+      };
+    }
+
+    // Build an index of all endpoints: [{path, method, summary, startLine, endLine}]
+    const endpoints = [];
+    let currentPath = null;
+    let currentMethod = null;
+    let currentSummary = null;
+    let methodStartLine = -1;
+
+    for (let i = pathsSectionStart + 1; i < pathsEnd; i++) {
+      const line = lines[i];
+
+      // Path-level line: exactly 2 spaces + /path:
+      if (/^  \/\S+:/.test(line)) {
+        // Close previous method if open
+        if (currentPath && currentMethod && methodStartLine >= 0) {
+          endpoints.push({
+            path: currentPath,
+            method: currentMethod,
+            summary: currentSummary || "",
+            startLine: methodStartLine,
+            endLine: i,
+          });
+        }
+        currentPath = line.trim().replace(/:$/, "");
+        currentMethod = null;
+        currentSummary = null;
+        methodStartLine = -1;
+        continue;
+      }
+
+      // Method-level line: exactly 4 spaces + get/post/put/patch/delete:
+      const methodMatch = line.match(/^    (get|post|put|patch|delete):$/);
+      if (methodMatch) {
+        // Close previous method if open
+        if (currentPath && currentMethod && methodStartLine >= 0) {
+          endpoints.push({
+            path: currentPath,
+            method: currentMethod,
+            summary: currentSummary || "",
+            startLine: methodStartLine,
+            endLine: i,
+          });
+        }
+        currentMethod = methodMatch[1];
+        currentSummary = null;
+        methodStartLine = i;
+        continue;
+      }
+
+      // Summary line within a method
+      if (currentMethod && !currentSummary && /^\s+summary:/.test(line)) {
+        currentSummary = line.replace(/^\s+summary:\s*/, "").replace(/^['"]|['"]$/g, "");
+      }
+    }
+    // Close last endpoint
+    if (currentPath && currentMethod && methodStartLine >= 0) {
+      endpoints.push({
+        path: currentPath,
+        method: currentMethod,
+        summary: currentSummary || "",
+        startLine: methodStartLine,
+        endLine: pathsEnd,
+      });
+    }
+
+    // Filter endpoints
+    const matches = endpoints.filter((ep) => {
+      const pathMatch = ep.path.toLowerCase().includes(pathFilter);
+      const summaryMatch = ep.summary.toLowerCase().includes(pathFilter);
+      const methodOk = !methodFilter || ep.method === methodFilter;
+      return methodOk && (pathMatch || summaryMatch);
+    });
+
+    if (matches.length === 0) {
+      const available = endpoints
+        .map((ep) => `${ep.method.toUpperCase()} ${ep.path} — ${ep.summary}`)
+        .join("\n");
+      return {
+        content: [
+          {
+            type: "text",
+            text:
+              `No endpoints found matching "${filter}".\n\n` +
+              `Available endpoints:\n${available}`,
+          },
+        ],
+      };
+    }
+
+    // If too many matches, return summary index instead of full YAML
+    if (matches.length > 4) {
+      const summary = matches
+        .map((ep) => `${ep.method.toUpperCase()} ${ep.path} — ${ep.summary}`)
+        .join("\n");
+      return {
+        content: [
+          {
+            type: "text",
+            text:
+              `${matches.length} endpoints match "${filter}". Narrow your search or pick one:\n\n${summary}`,
+          },
+        ],
+      };
+    }
+
+    // Return full YAML for matching endpoints
+    const sections = matches.map((ep) => {
+      const header = `## ${ep.method.toUpperCase()} ${ep.path}\n**${ep.summary}**\n`;
+      const yaml = lines.slice(ep.startLine, ep.endLine).join("\n");
+      return `${header}\n\`\`\`yaml\n${yaml}\n\`\`\``;
+    });
+
+    return { content: [{ type: "text", text: sections.join("\n\n---\n\n") }] };
   }
 );
 
