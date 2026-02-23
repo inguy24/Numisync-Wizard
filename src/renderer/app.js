@@ -3121,7 +3121,7 @@ async function searchForMatches() {
         const newForms = altForms.filter(f => f !== primaryForm);
         for (const altForm of newForms) {
           if (AppState.currentMatches.length > 0) break;
-          const altQuery = (coin.value && !/^\d+\/\d+\s/.test(altForm)) ? `${coin.value} ${altForm}` : altForm;
+          const altQuery = (coin.value && !/^\d+\/\d+\s/.test(altForm)) ? `${asciiToUnicodeFraction(coin.value.toString())} ${altForm}` : altForm;
           searchAttempt++;
           console.log(`Search attempt ${searchAttempt}: Alternate denomination -> "${altQuery}"`);
           document.getElementById('searchStatus').textContent = `Trying alternate denomination (${altForm})...`;
@@ -3150,7 +3150,7 @@ async function searchForMatches() {
       const denomPart = (() => {
         if (coin.value && coin.unit) {
           const normUnit = normalizeUnitForSearch(coin.unit, coin.value, baseParams.issuer);
-          return /^\d+\/\d+\s/.test(normUnit) ? normUnit : `${coin.value} ${normUnit}`;
+          return /^\d+\/\d+\s/.test(normUnit) ? normUnit : `${asciiToUnicodeFraction(coin.value.toString())} ${normUnit}`;
         }
         return coin.value?.toString() || (coin.unit ? normalizeUnitForSearch(coin.unit, null, baseParams.issuer) : null);
       })();
@@ -3271,9 +3271,12 @@ async function buildSearchParams(coin) {
     // If the unit already encodes the fraction face value (e.g., "1/80 rial"), don't prepend
     // coin.value — that would produce "1 1/80 rial" instead of the correct "1/80 rial".
     const unitIsFraction = normalizedUnit && /^\d+\/\d+\s/.test(normalizedUnit);
+    // Convert ASCII fraction to Unicode so Numista API matches coin titles that use
+    // Unicode fraction characters (e.g., "1/80" → "⅟₈₀" to match "⅟₈₀ Riyal - Yahya")
+    const queryValue = asciiToUnicodeFraction(coin.value.toString());
     query = normalizedUnit
-      ? (unitIsFraction ? normalizedUnit : `${coin.value} ${normalizedUnit}`)
-      : coin.value.toString();
+      ? (unitIsFraction ? normalizedUnit : `${queryValue} ${normalizedUnit}`)
+      : queryValue;
     usedStructuredDenom = true;
   }
 
@@ -3410,6 +3413,43 @@ const UNICODE_FRACTIONS = {
   '⅙': 1/6, '⅚': 5/6,
   '⅛': 0.125, '⅜': 0.375, '⅝': 0.625, '⅞': 0.875
 };
+
+/**
+ * Convert an ASCII fraction string (e.g., "1/80") to its Unicode equivalent
+ * for use in Numista API search queries.  Numista stores coin titles using
+ * Unicode fraction characters; sending an ASCII slash causes the API to miss
+ * coins whose titles use Unicode fraction notation.
+ *
+ * Standard vulgar fractions map to precomposed Unicode characters (½, ¼, …).
+ * Non-standard fractions with numerator 1 use FRACTION NUMERATOR ONE (U+215F)
+ * + subscript denominator digits (e.g., "1/80" → "⅟₈₀"), matching Numista's
+ * own representation of Yahya-era Yemeni 1/80 Riyal coins.
+ * Other non-standard fractions fall back to FRACTION SLASH (U+2044) notation.
+ *
+ * @param {string|null} valueStr - ASCII fraction string (e.g., "1/80") or plain numeric string
+ * @returns {string|null} Unicode fraction string, or original string if not a fraction
+ */
+function asciiToUnicodeFraction(valueStr) {
+  if (!valueStr || typeof valueStr !== 'string') return valueStr;
+  const VULGAR = {
+    '1/2': '½', '1/3': '⅓', '2/3': '⅔',
+    '1/4': '¼', '3/4': '¾',
+    '1/5': '⅕', '2/5': '⅖', '3/5': '⅗', '4/5': '⅘',
+    '1/6': '⅙', '5/6': '⅚',
+    '1/8': '⅛', '3/8': '⅜', '5/8': '⅝', '7/8': '⅞'
+  };
+  if (VULGAR[valueStr]) return VULGAR[valueStr];
+  const m = valueStr.match(/^(\d+)\/(\d+)$/);
+  if (!m) return valueStr;
+  // Numerator 1: use ⅟ (U+215F) + subscript denominator digits
+  if (m[1] === '1') {
+    const SUBS = { '0': '₀', '1': '₁', '2': '₂', '3': '₃', '4': '₄',
+                   '5': '₅', '6': '₆', '7': '₇', '8': '₈', '9': '₉' };
+    return '\u215F' + m[2].split('').map(d => SUBS[d] || d).join('');
+  }
+  // Other non-standard fractions: FRACTION SLASH (U+2044) notation
+  return m[1] + '\u2044' + m[2];
+}
 
 // Character class matching digits, dots, and Unicode fractions — used in denomination extraction
 const DENOM_NUM_CHARS = '[\\d.½¼¾⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]';
@@ -4919,8 +4959,10 @@ document.getElementById('performManualSearchBtn').addEventListener('click', asyn
     cleanedQuery = cleanedQuery.replace(new RegExp(escapedCountry, 'gi'), '').replace(/\s+/g, ' ').trim();
   }
 
-  // Normalize denomination singular/plural in the cleaned denomination query
-  const searchTerm = normalizeDenominationInQuery(cleanedQuery || rawSearchTerm);
+  // Normalize denomination singular/plural, then convert any ASCII fractions to Unicode
+  // so the Numista API can match coin titles that use Unicode fraction characters.
+  const searchTerm = normalizeDenominationInQuery(cleanedQuery || rawSearchTerm)
+    .replace(/\b(\d+\/\d+)\b/g, f => asciiToUnicodeFraction(f));
 
   try {
     showStatus('Searching Numista with custom term...');
