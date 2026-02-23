@@ -75,7 +75,7 @@ appx:
     - en-US
 
   # Force .msix extension (required for Microsoft Store code signing)
-  artifactName: NumiSync-Wizard.${ext}
+  artifactName: NumiSync-Wizard.msix
 
 # ============================================
 # LINUX CONFIGURATION

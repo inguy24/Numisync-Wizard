@@ -332,6 +332,13 @@
       h2 { page-break-before: always; }
       h2:first-of-type { page-break-before: avoid; }
     }
+
+    /* External links — indicate they open in the system browser */
+    a[target="_blank"]::after {
+      content: " \2197"; /* ↗ NORTH EAST ARROW */
+      font-size: 0.75em;
+      opacity: 0.6;
+    }
   </style>
 </head>
 <body>
@@ -492,9 +499,9 @@
 <h3 id="what-is">What Is This Tool?</h3>
 <p>
   The <strong>NumiSync Wizard</strong> is a desktop application that enhances your
-  <a href="https://opennumismat.github.io/" target="_blank">OpenNumismat</a> coin collection
+  <a href="https://opennumismat.github.io/" target="_blank" title="Opens in your browser">OpenNumismat</a> coin collection
   with comprehensive data from the
-  <a href="https://en.numista.com/" target="_blank">Numista</a> online coin database.
+  <a href="https://en.numista.com/" target="_blank" title="Opens in your browser">Numista</a> online coin database.
 </p>
 <p>
   It allows you to search Numista for each coin in your collection, compare the data side-by-side,
@@ -534,8 +541,8 @@
 <h3 id="api-key">Getting a Numista API Key</h3>
 <p>Before you can search and enrich coins, you need a free API key from Numista:</p>
 <ol class="steps">
-  <li>Go to <a href="https://en.numista.com/" target="_blank">numista.com</a> and create a free account (or log in if you already have one).</li>
-  <li>Visit the <a href="https://en.numista.com/api/" target="_blank">Numista API page</a>.</li>
+  <li>Go to <a href="https://en.numista.com/" target="_blank" title="Opens in your browser">numista.com</a> and create a free account (or log in if you already have one).</li>
+  <li>Visit the <a href="https://en.numista.com/api/" target="_blank" title="Opens in your browser">Numista API page</a>.</li>
   <li>Generate your personal API key.</li>
   <li>Copy the key &mdash; you will paste it into the tool's Settings screen.</li>
 </ol>
@@ -1596,7 +1603,7 @@
 <ul>
   <li>Open Settings and verify your API key is entered correctly.</li>
   <li>Ensure there are no leading or trailing spaces in the key.</li>
-  <li>Visit <a href="https://en.numista.com/api/" target="_blank">numista.com/api</a> to verify your key is active.</li>
+  <li>Visit <a href="https://en.numista.com/api/" target="_blank" title="Opens in your browser">numista.com/api</a> to verify your key is active.</li>
 </ul>
 
 <h4>Issue matching says "No Match"</h4>
@@ -1686,11 +1693,11 @@
 <table>
   <tr><th>Resource</th><th>Description</th></tr>
   <tr>
-    <td><a href="https://github.com/inguy24/Numisync-Wizard/issues" target="_blank">GitHub Issues</a></td>
+    <td><a href="https://github.com/inguy24/Numisync-Wizard/issues" target="_blank" title="Opens in your browser">GitHub Issues</a></td>
     <td>Report bugs, request features, or search existing issues</td>
   </tr>
   <tr>
-    <td><a href="https://en.numista.com/api/" target="_blank">Numista API Dashboard</a></td>
+    <td><a href="https://en.numista.com/api/" target="_blank" title="Opens in your browser">Numista API Dashboard</a></td>
     <td>Check your API key status and monthly usage</td>
   </tr>
 </table>
@@ -1833,7 +1840,7 @@
 
 <p>A typical enrichment with Basic + Issue + Pricing data costs <strong>4 API calls</strong> per coin (1 search + 1 type + 1 issues + 1 pricing). The persistent cache significantly reduces this for repeated lookups &mdash; if you enrich the same coin type again (or a different coin of the same type), the type and issue data come from cache at zero API cost.</p>
 
-<p>To check your actual server-side usage, visit the <a href="https://en.numista.com/api/dashboard.php" target="_blank">Numista API Dashboard</a>. You can also access this link from <strong>Settings &rarr; API Cache</strong>.</p>
+<p>To check your actual server-side usage, visit the <a href="https://en.numista.com/api/dashboard.php" target="_blank" title="Opens in your browser">Numista API Dashboard</a>. You can also access this link from <strong>Settings &rarr; API Cache</strong>.</p>
 
 <a href="#introduction" class="back-to-top">Back to top &uarr;</a>
 

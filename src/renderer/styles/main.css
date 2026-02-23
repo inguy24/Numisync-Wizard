@@ -3452,3 +3452,11 @@ body {
   margin: 8px 0;
   line-height: 1.6;
 }
+
+/* External links — indicate they open in the system browser */
+.ext-link::after {
+  content: " \2197"; /* ↗ NORTH EAST ARROW */
+  font-size: 0.75em;
+  opacity: 0.6;
+  font-style: normal;
+}

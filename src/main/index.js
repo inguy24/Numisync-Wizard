@@ -387,6 +387,16 @@ function createWindow() {
 
   mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
 
+  // Intercept all target="_blank" link clicks — route to system default browser.
+  // Without this, Electron opens a new BrowserWindow inside the app for every
+  // external link, which is both a security risk and a bad UX.
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (url.startsWith('https://') || url.startsWith('http://')) {
+      shell.openExternal(url);
+    }
+    return { action: 'deny' };
+  });
+
   // Open DevTools in development mode
   if (process.argv.includes('--dev')) {
     mainWindow.webContents.openDevTools();
@@ -442,6 +452,14 @@ function openUserManual() {
   manualWindow = new BrowserWindow(windowOptions);
   manualWindow.loadFile(path.join(__dirname, '../resources/user-manual.html'));
   manualWindow.setMenuBarVisibility(false);
+
+  // Route all target="_blank" clicks in the user manual to the system browser
+  manualWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (url.startsWith('https://') || url.startsWith('http://')) {
+      shell.openExternal(url);
+    }
+    return { action: 'deny' };
+  });
 
   manualWindow.on('closed', () => {
     manualWindow = null;

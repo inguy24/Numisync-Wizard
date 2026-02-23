@@ -511,6 +511,47 @@ Uses `electron-updater` with GitHub Releases (`src/main/updater.js`).
 
 ---
 
+## External Link Policy
+
+All links to external websites **must** open in the user's system default browser. Opening external sites inside the app (even in a new `BrowserWindow`) is a security risk and violates user expectations.
+
+### Enforcement (two layers, both required)
+
+**Layer 1 — `setWindowOpenHandler` in `src/main/index.js`** (safety net, covers all windows):
+```javascript
+window.webContents.setWindowOpenHandler(({ url }) => {
+  if (url.startsWith('https://') || url.startsWith('http://')) {
+    shell.openExternal(url);
+  }
+  return { action: 'deny' };
+});
+```
+Add this immediately after every `BrowserWindow.loadFile()` call — `mainWindow`, `manualWindow`, and any future windows. Without this, `target="_blank"` links open a new in-app `BrowserWindow` with no preload and no context isolation.
+
+**Layer 2 — Link markup per HTML context:**
+
+| HTML file | Has preload? | Correct pattern |
+|-----------|-------------|-----------------|
+| `src/renderer/index.html` | Yes (`preload.js`) | `<a href="#" class="ext-link" onclick="window.electronAPI.openExternal('URL'); return false;" title="Opens in your browser">text</a>` |
+| `src/resources/user-manual.html` | No | `<a href="URL" target="_blank" title="Opens in your browser">text</a>` — `setWindowOpenHandler` intercepts it |
+
+**Never use:**
+- `<a href="https://..." target="_blank">` in `index.html` (no preload interception before handler fires)
+- `<a href="https://...">` with no `onclick`/`target` anywhere — navigates the current window away from the app
+
+### Visual indicator (required on all external links)
+
+Every external link must display a `↗` arrow to signal it opens outside the app:
+
+| Context | CSS |
+|---------|-----|
+| `index.html` (via `main.css`) | `.ext-link::after { content: "\2197"; font-size: 0.75em; opacity: 0.6; }` |
+| `user-manual.html` (inline `<style>`) | `a[target="_blank"]::after { content: "\2197"; font-size: 0.75em; opacity: 0.6; }` |
+
+Also add `title="Opens in your browser"` to every external link for accessibility/tooltip.
+
+---
+
 ## Storage Architecture
 
 ```
