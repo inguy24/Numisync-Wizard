@@ -33,5 +33,13 @@
   "bohemia-and-moravia": {
     "aliases": ["bohemia and moravia", "protectorate of bohemia and moravia", "böhmen und mähren"],
     "code": "boheme_moravie"
+  },
+  "east-africa": {
+    "aliases": ["east africa", "east africa protectorate", "british east africa", "east africa colony"],
+    "code": "afrique_de_l_est"
+  },
+  "palestine": {
+    "aliases": ["palestine", "mandatory palestine", "british palestine", "british mandate of palestine", "british mandate palestine", "palestine mandate", "mandate of palestine"],
+    "code": "palestine"
   }
 }

@@ -3055,51 +3055,6 @@ function stripParenthetical(query) {
   return query.replace(/\s*\([^)]*\)\s*/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
-/**
- * Build a simplified core query from coin data (denomination + year).
- * @param {Object} coin - Coin object
- * @param {string|null} [issuerCode] - Resolved Numista issuer code for denomination form selection
- * @returns {string} Simplified query
- */
-function buildCoreQuery(coin, issuerCode) {
-  const parts = [];
-
-  // Add denomination (normalize spelling, use correct singular/plural for Numista search)
-  if (coin.value) {
-    if (coin.unit) {
-      parts.push(`${coin.value} ${normalizeUnitForSearch(coin.unit, coin.value, issuerCode)}`);
-    } else {
-      parts.push(coin.value.toString());
-    }
-  }
-
-  return parts.join(' ');
-}
-
-/**
- * Build a minimal query from coin data (country + denomination).
- * @param {Object} coin - Coin object
- * @returns {string} Minimal query
- */
-function buildMinimalQuery(coin) {
-  const parts = [];
-
-  // Add country
-  if (coin.country) {
-    // Strip parenthetical from country too
-    parts.push(stripParenthetical(coin.country));
-  }
-
-  // Add denomination unit only (not number, to broaden search)
-  // Use singular canonical form for broadest match
-  if (coin.unit) {
-    parts.push(normalizeUnitForSearch(coin.unit, null));
-  } else if (coin.value) {
-    parts.push(coin.value.toString());
-  }
-
-  return parts.join(' ');
-}
 
 // Fetch all pages for a search query, updating status as pages load.
 // Returns the complete array of types across all pages.
@@ -3155,48 +3110,9 @@ async function searchForMatches() {
       );
     }
 
-    // Strategy 2: Core terms only (denomination + year)
-    if (AppState.currentMatches.length === 0) {
-      const coreQuery = buildCoreQuery(coin, baseParams.issuer);
-      if (coreQuery && coreQuery !== baseParams.q) {
-        searchAttempt++;
-        console.log(`Search attempt ${searchAttempt}: Core query -> "${coreQuery}"`);
-        document.getElementById('searchStatus').textContent = 'Trying core terms...';
-
-        const params3 = { ...baseParams, q: coreQuery };
-        result = await window.electronAPI.searchNumista(params3);
-        if (result.success && (result.results.types || []).length > 0) {
-          AppState.currentMatches = await fetchAllSearchPages(
-            (page) => window.electronAPI.searchNumista({ ...params3, page }),
-            result, 'Trying core terms'
-          );
-          usedFallback = true;
-        }
-      }
-    }
-
-    // Strategy 3: Minimal query (country + denomination unit)
-    if (AppState.currentMatches.length === 0) {
-      const minimalQuery = buildMinimalQuery(coin);
-      if (minimalQuery) {
-        searchAttempt++;
-        console.log(`Search attempt ${searchAttempt}: Minimal query -> "${minimalQuery}"`);
-        document.getElementById('searchStatus').textContent = 'Trying broader search...';
-
-        const params4 = { ...baseParams, q: minimalQuery };
-        result = await window.electronAPI.searchNumista(params4);
-        if (result.success && (result.results.types || []).length > 0) {
-          AppState.currentMatches = await fetchAllSearchPages(
-            (page) => window.electronAPI.searchNumista({ ...params4, page }),
-            result, 'Trying broader search'
-          );
-          usedFallback = true;
-        }
-      }
-    }
-
-    // Strategy 4: Alternate denomination forms (e.g., "heller" vs "haléřů")
-    // When a denomination has cross-referenced entries, try each alternate search form
+    // Strategy 2: Alternate denomination forms (e.g., "heller" vs "haléřů")
+    // Keeps issuer filter — only the denomination spelling is varied.
+    // When a denomination has cross-referenced entries, try each alternate search form.
     if (AppState.currentMatches.length === 0 && coin.unit) {
       const altForms = window.stringSimilarity.getAlternateSearchForms(coin.unit, parseFloat(coin.value) || 0);
       if (altForms.length > 0) {
@@ -3205,8 +3121,7 @@ async function searchForMatches() {
         const newForms = altForms.filter(f => f !== primaryForm);
         for (const altForm of newForms) {
           if (AppState.currentMatches.length > 0) break;
-          const altCoreQuery = coin.value ? `${coin.value} ${altForm}` : altForm;
-          const altQuery = altCoreQuery;
+          const altQuery = coin.value ? `${coin.value} ${altForm}` : altForm;
           searchAttempt++;
           console.log(`Search attempt ${searchAttempt}: Alternate denomination -> "${altQuery}"`);
           document.getElementById('searchStatus').textContent = `Trying alternate denomination (${altForm})...`;
@@ -3220,6 +3135,37 @@ async function searchForMatches() {
             );
             usedFallback = true;
           }
+        }
+      }
+    }
+
+    // Strategy 3: No-issuer fallback — country name moves into q, issuer param dropped.
+    // Handles coins whose OpenNumismat country label resolves to a modern issuer code that
+    // doesn't cover historical sub-issuers (e.g. "South Africa" → afrique_du_sud misses
+    // pre-Union ZAR coins cataloged under "South African Republic"). Mirrors the Numista
+    // website's own full-text search which finds coins regardless of issuer hierarchy.
+    // date and category are kept for precision; issuer is the only param removed.
+    if (AppState.currentMatches.length === 0) {
+      const country = coin.country ? stripParenthetical(coin.country.trim()) : null;
+      const denomPart = coin.value && coin.unit
+        ? `${coin.value} ${normalizeUnitForSearch(coin.unit, coin.value, baseParams.issuer)}`
+        : coin.value?.toString() || (coin.unit ? normalizeUnitForSearch(coin.unit, null, baseParams.issuer) : null);
+      const noIssuerQuery = [country, denomPart].filter(Boolean).join(' ');
+
+      if (noIssuerQuery) {
+        searchAttempt++;
+        console.log(`Search attempt ${searchAttempt}: No-issuer fallback -> "${noIssuerQuery}"`);
+        document.getElementById('searchStatus').textContent = 'Trying broader issuer search...';
+
+        const noIssuerParams = { ...baseParams, q: noIssuerQuery };
+        delete noIssuerParams.issuer;
+        result = await window.electronAPI.searchNumista(noIssuerParams);
+        if (result.success && (result.results.types || []).length > 0) {
+          AppState.currentMatches = await fetchAllSearchPages(
+            (page) => window.electronAPI.searchNumista({ ...noIssuerParams, page }),
+            result, 'Trying broader issuer search'
+          );
+          usedFallback = true;
         }
       }
     }
@@ -3500,7 +3446,13 @@ function parseNumericValue(str) {
       return isNaN(result) ? null : result;
     }
   }
-  // Handle ASCII fractions like "1/2", "3/4"
+  // Handle mixed numbers: "2 1/2" or "21/2" (no space) → 2.5
+  // Non-greedy first group ensures "21/2" splits as 2 + 1/2, not 21/2
+  const mixedMatch = str.match(/^(\d+?)\s*(\d+)\/(\d+)$/);
+  if (mixedMatch) {
+    return parseInt(mixedMatch[1]) + parseInt(mixedMatch[2]) / parseInt(mixedMatch[3]);
+  }
+  // Handle pure ASCII fractions like "1/2", "3/4"
   const asciiMatch = str.match(/^(\d+)\/(\d+)$/);
   if (asciiMatch) {
     return parseInt(asciiMatch[1]) / parseInt(asciiMatch[2]);
@@ -3538,8 +3490,14 @@ function calculateConfidence(coin, match) {
 
   // Country match (20 points)
   if (coin.country && match.issuer?.name) {
-    if (coin.country.toLowerCase().includes(match.issuer.name.toLowerCase()) ||
-        match.issuer.name.toLowerCase().includes(coin.country.toLowerCase())) {
+    const coinCountry = coin.country.toLowerCase().trim();
+    const numistaCountry = match.issuer.name.toLowerCase().trim();
+    if (coinCountry === numistaCountry || numistaCountry.includes(coinCountry) || coinCountry.includes(numistaCountry)) {
+      score += 20;
+    } else if (window.stringSimilarity.issuerAliases?.[coinCountry] && match.issuer?.code &&
+               window.stringSimilarity.issuerAliases[coinCountry] === match.issuer.code) {
+      // Coin's country resolves to same Numista issuer code via alias map
+      // e.g. "Mandatory Palestine" -> "palestine" === match.issuer.code "palestine"
       score += 20;
     }
   }

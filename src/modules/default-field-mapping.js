@@ -44,8 +44,23 @@ function transformRulerPeriod(value) {
   return [...new Set(groups)].join(' / ');
 }
 
+// Numista stores fractional denominations using Unicode vulgar fractions (e.g. "2½ Shillings").
+// Map each to its ASCII equivalent for catalog-standard notation (Heritage, KM style).
+const UNICODE_FRACTIONS_TO_ASCII = {
+  '½': '1/2', '¼': '1/4', '¾': '3/4',
+  '⅓': '1/3', '⅔': '2/3',
+  '⅛': '1/8', '⅜': '3/8', '⅝': '5/8', '⅞': '7/8',
+  '⅕': '1/5', '⅖': '2/5', '⅗': '3/5', '⅘': '4/5'
+};
+
 function transformValueNumber(value) {
   if (!value) return null;
+  for (const [frac, ascii] of Object.entries(UNICODE_FRACTIONS_TO_ASCII)) {
+    if (value.includes(frac)) {
+      const prefix = value.substring(0, value.indexOf(frac)).trim();
+      return prefix ? `${prefix} ${ascii}` : ascii;
+    }
+  }
   const match = value.match(/^[\d\/\.]+/);
   return match ? match[0] : value;
 }

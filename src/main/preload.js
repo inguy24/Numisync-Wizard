@@ -5,6 +5,8 @@ const { contextBridge, ipcRenderer } = require('electron');
  *
  * Exposes IPC methods to the renderer process via contextBridge.
  * This is the secure bridge between the main process and renderer.
+ * NOTE: This script runs in Electron's sandbox — require('fs') and require('path')
+ * are NOT available. All file data must be fetched via ipcRenderer.sendSync().
  */
 
 /**
@@ -14,6 +16,16 @@ const { contextBridge, ipcRenderer } = require('electron');
  * and src/data/issuer-denomination-overrides.json (country-specific forms).
  */
 const { aliasMap: DENOMINATION_ALIASES, pluralMap: DENOMINATION_PLURALS, allCanonicalsMap: ALL_CANONICALS, issuerOverrides: ISSUER_DENOMINATION_OVERRIDES, subunitMap: SUBUNIT_MAP } = ipcRenderer.sendSync('get-denomination-aliases');
+
+/**
+ * Flat issuer alias map for renderer-side confidence scoring.
+ * Built in main process from src/data/issuer-aliases.json, returned via sync IPC.
+ * Maps alias string (lowercase) → Numista issuer code.
+ * e.g. "mandatory palestine" → "palestine", "west germany" → "allemagne"
+ * Used by calculateConfidence() in app.js to award full country-match points
+ * when the OpenNumismat country name differs from the Numista catalog name.
+ */
+const ISSUER_ALIASES = ipcRenderer.sendSync('get-issuer-aliases');
 
 /**
  * Normalize a denomination unit string to its canonical form.
@@ -275,7 +287,9 @@ const apiMethods = {
 contextBridge.exposeInMainWorld('electronAPI', apiMethods);
 contextBridge.exposeInMainWorld('api', apiMethods);
 
-// Expose diceCoefficient as a standalone utility for renderer-side confidence scoring
+// Expose string utilities for renderer-side confidence scoring and search normalization.
+// calculateConfidence() in app.js is the sole owner of match scoring — keep all scoring
+// utilities here so the renderer never needs a main-process round-trip to score results.
 contextBridge.exposeInMainWorld('stringSimilarity', {
   diceCoefficient,
   normalizeUnit,
@@ -283,7 +297,8 @@ contextBridge.exposeInMainWorld('stringSimilarity', {
   getAlternateSearchForms,
   unitsMatch: denominationUnitsMatch,
   valuesMatchViaSubunit,
-  issuerOverrides: ISSUER_DENOMINATION_OVERRIDES || {}
+  issuerOverrides: ISSUER_DENOMINATION_OVERRIDES || {},
+  issuerAliases: ISSUER_ALIASES
 });
 
 /**

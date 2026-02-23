@@ -185,6 +185,7 @@
 | `open-manual` | *(none)* | `{ success }` | `openUserManual()` (local helper) |
 | `export-log-file` | *(none)* | `{ success, filePath? }` | `logger.js`, Electron dialog |
 | `get-denomination-aliases` | *(none)* | `{ aliasMap, pluralMap, allCanonicalsMap, issuerOverrides, subunitMap }` | `denomination-normalizer.js` |
+| `get-issuer-aliases` | *(none)* | `{ [alias: string]: code }` flat map | `issuer-aliases.json` (built in index.js at startup) — sync IPC for preload sandbox |
 
 ---
 

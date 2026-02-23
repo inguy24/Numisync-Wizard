@@ -8,7 +8,6 @@
  *   getIssuePricing(typeId, issueId, currency?) — grade-based prices for an issue
  *   matchIssue(coin, issuesResponse, options?) — auto-match coin to issue by year/mintmark/type
  *   fetchCoinData(typeId, coin, fetchSettings, currency?) — orchestrates type+issue+pricing fetch
- *   calculateMatchConfidence(coin, numistaType) — 0-100 confidence score for search results
  *   getIssuers() — full issuer list (cached 90 days by default)
  *   resolveIssuerCode(countryName) — alias map + Dice fuzzy match → Numista issuer code
  *   clearCache() — clears in-memory and issuerCode caches
@@ -623,143 +622,6 @@ class NumistaAPI {
   }
 
   /**
-   * Calculate confidence score (0-100) indicating how well a Numista type matches the user's coin
-   * @param {Object} coin - OpenNumismat coin object
-   * @param {Object} numistaType - Numista type data from search results
-   * @returns {number} Confidence score from 0 to 100
-   */
-  calculateMatchConfidence(coin, numistaType) {
-    // Numista ID match is a perfect match (100%) - coin was previously enriched with this exact type
-    const coinNumistaId = coin.metadata?.basicData?.numistaId;
-    if (coinNumistaId && numistaType.id && coinNumistaId === numistaType.id) {
-      return 100;
-    }
-
-    let score = 0;
-
-    // Title match (30 points) - uses Dice coefficient for fuzzy comparison
-    if (coin.title && numistaType.title) {
-      const similarity = diceCoefficient(coin.title, numistaType.title);
-      score += Math.round(similarity * 30);
-    }
-
-    // Year match (25 points) or penalty (-15 points)
-    if (coin.year && numistaType.min_year) {
-      const coinYear = parseInt(coin.year);
-      const maxYear = numistaType.max_year || numistaType.min_year;
-      if (!isNaN(coinYear)) {
-        if (coinYear >= numistaType.min_year && coinYear <= maxYear) {
-          score += 25; // Year in range
-        } else {
-          // Year outside range - penalty (can't be this coin type)
-          score -= 15;
-        }
-      }
-    }
-
-    // Country match (20 points)
-    if (coin.country && numistaType.issuer && numistaType.issuer.name) {
-      const coinCountry = coin.country.toLowerCase().trim();
-      const numistaCountry = numistaType.issuer.name.toLowerCase().trim();
-
-      if (coinCountry === numistaCountry || numistaCountry.includes(coinCountry)) {
-        score += 20;
-      }
-    }
-
-    // Value/denomination match (25 points) - compare numeric values first, then units
-    // OpenNumismat stores value=1, unit="Cents" while Numista uses value.text="1 Cent"
-    // coin.value is a string from SQLite (e.g., "1/2" for half dollar); _parseNumericValue handles fractions
-    const rawCoinValue = coin.value ? _parseNumericValue(coin.value) : null;
-    const rawCoinUnit = coin.unit?.toLowerCase().trim();
-    // If unit contains an ASCII fraction prefix (e.g., "1/2 Franc"), absorb it into the value
-    const { adjValue: coinValue, adjUnit: coinUnit } = _extractUnitFraction(rawCoinUnit, rawCoinValue);
-
-    // Try value.text first, fallback to extracting from title
-    let matchDenomination = numistaType.value?.text?.toLowerCase().trim();
-    if (!matchDenomination && numistaType.title) {
-      // Extract denomination from start of title up to first separator (dash, paren, comma)
-      // Includes Unicode fractions (½, ¼, etc.) in the numeric character class
-      const denomNumRe = new RegExp(`^(${DENOM_NUM_CHARS_BACKEND}+\\s*[^-–(,]+)`, 'i');
-      const titleMatch = numistaType.title.match(denomNumRe);
-      if (titleMatch) {
-        matchDenomination = titleMatch[1].toLowerCase().trim();
-      }
-    }
-
-    if (coinValue && matchDenomination) {
-      // Extract numeric value from denomination text (e.g., "5 Cents" -> 5, "½ Dime" -> 0.5)
-      const matchValueMatch = matchDenomination.match(new RegExp(`^(${DENOM_NUM_CHARS_BACKEND}+)`));
-      const matchValue = matchValueMatch ? _parseNumericValue(matchValueMatch[1]) : null;
-      // Extract unit from denomination text (e.g., "5 Cents" -> "cents")
-      const matchUnit = matchDenomination.replace(new RegExp(`^${DENOM_NUM_CHARS_BACKEND}+\\s*`), '').trim();
-
-      if (matchValue !== null) {
-        // Check if units match (e.g., "cents" vs "cent" should match, "cent" vs "dime" should not)
-        const unitsAreMatch = coinUnit && matchUnit && (
-          denominationUnitsMatch(coinUnit, matchUnit) ||
-          diceCoefficient(coinUnit, matchUnit) > 0.7
-        );
-
-        if (coinValue === matchValue && unitsAreMatch) {
-          // Both numeric value AND unit match - full points
-          score += 25;
-        } else if (coinValue === matchValue && (!coinUnit || !matchUnit)) {
-          // Numeric matches but can't compare units - partial points
-          score += 15;
-        } else {
-          // Either numeric value differs OR units differ (e.g., "1 Cent" vs "1 Dime")
-          // Check US colloquial denomination equivalence before applying penalty:
-          // "10 cents" (OpenNumismat) ↔ "1 dime" (Numista), "5 cents" ↔ "1 nickel", etc.
-          const matchUnitCentVal = matchUnit ? US_DENOM_CENT_VALUES[matchUnit.toLowerCase()] : null;
-          const coinUnitCentVal = coinUnit ? US_DENOM_CENT_VALUES[coinUnit.toLowerCase()] : null;
-          const coinIsCent = coinUnit && denominationUnitsMatch(coinUnit, 'cent');
-          const matchIsCent = matchUnit && denominationUnitsMatch(matchUnit, 'cent');
-          const isUSEquivalent = (
-            (matchUnitCentVal && coinIsCent && coinValue === matchUnitCentVal && matchValue === 1) ||
-            (coinUnitCentVal && matchIsCent && matchValue === coinUnitCentVal && coinValue === 1)
-          );
-          if (isUSEquivalent) {
-            score += 25;
-          } else if (valuesMatchViaSubunit(coinValue, coinUnit, matchValue, matchUnit)) {
-            score += 25;
-          } else {
-            score -= 20;
-          }
-        }
-      }
-    } else if (coinUnit && matchDenomination) {
-      // No numeric value from user's coin, but we have a unit to compare
-      // This handles cases like unit="Euro" where value is empty in OpenNumismat
-      const matchUnit = matchDenomination.replace(new RegExp(`^${DENOM_NUM_CHARS_BACKEND}+\\s*`), '').trim();
-      if (matchUnit) {
-        const unitsAreMatch = (
-          denominationUnitsMatch(coinUnit, matchUnit) ||
-          diceCoefficient(coinUnit, matchUnit) > 0.7
-        );
-        if (unitsAreMatch) {
-          score += 15; // Unit matches but can't verify numeric value
-        } else {
-          score -= 10; // Unit mismatch
-        }
-      }
-    }
-
-    // Category scoring (10 points max / -10 penalty)
-    // Standard circulation coins are most likely what users have
-    const category = numistaType.object_type?.name?.toLowerCase() || numistaType.category?.toLowerCase() || '';
-    if (category.includes('standard circulation') || category.includes('circulating')) {
-      score += 10; // Boost for standard circulation
-    } else if (category.includes('pattern') || category.includes('proof') ||
-               category.includes('non-circulating') || category.includes('specimen')) {
-      score -= 10; // Penalty for rare/collector categories
-    }
-    // Commemorative coins get no adjustment (neutral)
-
-    return Math.max(0, Math.min(score, 100));
-  }
-
-  /**
    * Get the full list of issuers from Numista API.
    * Cached permanently for the session (issuers don't change).
    *
@@ -842,16 +704,34 @@ class NumistaAPI {
         return bestExact.code;
       }
 
-      // Fuzzy match — find the issuer with the highest Dice similarity
-      // Prefer more specific (higher level) issuers when scores are close
+      // Fuzzy match — find the issuer with the highest Dice similarity.
+      // Tie-breaking priority:
+      //   1. Higher name score wins outright.
+      //   2. On a name-score tie, score the parent name against the query —
+      //      an issuer whose parent is relevant to the query (e.g. "United Kingdom"
+      //      parent helps confirm the right sub-issuer) beats one with no parent.
+      //      Conversely, if the parent is irrelevant (e.g. "Islamic states" when
+      //      searching "East Africa Protectorate") its parent score is 0, so the
+      //      parentless standalone issuer wins instead.
+      //   3. If both parent scores also tie, prefer the higher level number
+      //      (more specific within the same hierarchy — see Lesson 20).
       let bestScore = 0;
+      let bestParentScore = 0;
       let bestCode = null;
       let bestLevel = 0;
       for (const issuer of issuers) {
         const score = diceCoefficient(normalized, issuer.name.toLowerCase());
         const level = issuer.level || 1;
-        if (score > bestScore || (score === bestScore && level > bestLevel)) {
+        const parentScore = issuer.parent
+          ? diceCoefficient(normalized, issuer.parent.name.toLowerCase())
+          : 0;
+        const betterScore = score > bestScore;
+        const tiedScore = score === bestScore;
+        const betterParent = tiedScore && parentScore > bestParentScore;
+        const tiedParent = tiedScore && parentScore === bestParentScore;
+        if (betterScore || betterParent || (tiedParent && level > bestLevel)) {
           bestScore = score;
+          bestParentScore = parentScore;
           bestCode = issuer.code;
           bestLevel = level;
         }
@@ -859,7 +739,7 @@ class NumistaAPI {
 
       // Only accept matches above a reasonable threshold
       if (bestScore >= 0.6) {
-        log.info(`Resolved issuer: "${countryName}" -> "${bestCode}" (score: ${bestScore.toFixed(2)})`);
+        log.info(`Resolved issuer: "${countryName}" -> "${bestCode}" (score: ${bestScore.toFixed(2)}, parentScore: ${bestParentScore.toFixed(2)})`);
         this.issuerCodeCache.set(normalized, bestCode);
         return bestCode;
       }

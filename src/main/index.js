@@ -948,6 +948,23 @@ ipcMain.on('get-denomination-aliases', (event) => {
   event.returnValue = { aliasMap: DENOMINATION_ALIASES, pluralMap: DENOMINATION_PLURALS, allCanonicalsMap: ALL_CANONICALS, issuerOverrides: ISSUER_DENOMINATION_OVERRIDES, subunitMap: SUBUNIT_MAP };
 });
 
+// Flat issuer alias map for renderer-side confidence scoring (used by preload.js).
+// Built once at startup from issuer-aliases.json; returned synchronously so preload
+// can expose it via window.stringSimilarity.issuerAliases without requiring fs/path.
+const _issuerAliasRaw = JSON.parse(fs.readFileSync(
+  path.join(__dirname, '..', 'data', 'issuer-aliases.json'), 'utf8'
+));
+const ISSUER_ALIASES_FLAT = {};
+for (const [key, value] of Object.entries(_issuerAliasRaw)) {
+  if (key.startsWith('_')) continue;
+  for (const alias of value.aliases) {
+    ISSUER_ALIASES_FLAT[alias.toLowerCase()] = value.code;
+  }
+}
+ipcMain.on('get-issuer-aliases', (event) => {
+  event.returnValue = ISSUER_ALIASES_FLAT;
+});
+
 // ============================================================================
 // IPC HANDLERS - File Operations
 // ============================================================================

@@ -160,7 +160,6 @@ numismat-enrichment/
 | `getIssuePricing(typeId, issueId, currency)` | Get pricing for specific issue |
 | `fetchCoinData(typeId, coin, fetchSettings)` | Main orchestration - conditional fetch |
 | `matchIssue(coin, issuesResponse)` | Auto-match logic (year/gregorian_year+mintmark+type) |
-| `calculateMatchConfidence(coin, type)` | Scoring with denomination normalization via `denomination-normalizer.js` (alias + plural/singular) |
 | `getIssuers()` | Fetch and cache full issuer list |
 | `resolveIssuerCode(countryName)` | Resolve country to issuer code (aliases loaded from `issuer-aliases.json`) |
 
@@ -194,6 +193,67 @@ numismat-enrichment/
    - Writes metadata to note field
    - Updates progress tracker
 ```
+
+---
+
+## Automatic Search Strategy
+
+**Owner: `searchForMatches()` in `src/renderer/app.js`**
+
+All strategies share a single `baseParams` object built by `buildSearchParams(coin)`, which contains:
+- `issuer` — resolved Numista issuer code (e.g., `afrique_du_sud`), absent if resolution fails
+- `q` — denomination string (e.g., `"1 shilling"`), built from structured `value`+`unit` fields; falls back to stripped title only when both are absent
+- `date` — Gregorian year string (e.g., `"1896"`); **never placed in `q`** — Numista type titles don't contain years, so putting year in `q` returns 0 results
+- `category` — from fetch settings (`coin`, `banknote`, `exonumia`, or absent for all)
+- `page` — always 1 for initial call; pagination handled by `fetchAllSearchPages()`
+
+Strategies fire in sequence; each is skipped if the previous one found results.
+
+| # | `issuer` | `q` | `date` | Purpose |
+|---|----------|-----|--------|---------|
+| S1 | resolved code | `"1 shilling"` | `"1896"` | Exact structured query — the common case |
+| S2 | resolved code | `"1 haléřů"` (alt form) | `"1896"` | Alternate denomination spelling (e.g., Czech "haléřů" vs English "heller") — issuer kept, only `q` varies |
+| S3 | *(omitted)* | `"South Africa 1 shilling"` | `"1896"` | No-issuer fallback — country name moves into `q`; handles coins whose country label maps to a modern issuer that doesn't cover historical sub-issuers |
+
+### Why this structure
+
+**S1** handles the vast majority of coins. The issuer parameter is the primary precision tool — it constrains results to the correct country without requiring the country name to appear in the Numista coin title (titles are just the denomination, e.g. "1 Shilling", never "South Africa 1 Shilling").
+
+**S2** handles denominations with language variants. When `denomination-aliases.json` has cross-referenced entries (e.g., "heller" ↔ "haléřů"), `getAlternateSearchForms()` returns the alternate forms and S2 retries with each, still keeping the issuer filter for precision.
+
+**S3** handles the historical issuer mismatch problem. Some coins in OpenNumismat are labeled with a modern country name (e.g., "South Africa") that resolves to a modern Numista issuer code (`afrique_du_sud`) that only covers post-Union coins. Pre-Union coins (e.g., 1896 ZAR Shilling) are cataloged under a completely different Numista sub-issuer ("South African Republic"). S1 and S2 both return 0 for these. S3 drops the `issuer` param entirely and puts the country name into `q`, mirroring how the Numista website's own full-text search finds coins regardless of issuer hierarchy. `date` and `category` are retained for precision.
+
+### What was removed and why (do not re-add)
+
+Two strategies and their builder functions were removed in Feb 2026 after analysis showed they were either dead code or architecturally contradictory:
+
+- **"Core query" (removed)** — `buildCoreQuery()` produced `value + normalizedUnit`, identical to what `buildSearchParams()` already produces when `coin.value` is present. The guard `coreQuery !== baseParams.q` prevented it from ever firing. Dead code; deleted.
+
+- **"Minimal query" (removed)** — `buildMinimalQuery()` produced `country + denominationUnit` (no value) and was passed to the API **with the issuer param still set**. This was contradictory: the issuer param already scopes results to the correct country, so adding the country name to `q` required it to appear in the Numista coin title too — which it never does. The combination was strictly more restrictive than S1 and always returned a subset of S1's results (usually 0 when S1 also returned 0). The "country in q" concept was correct but belongs only in S3 where the issuer is absent.
+
+---
+
+## Match Confidence Scoring
+
+**Single owner: `calculateConfidence(coin, match)` in `src/renderer/app.js`**
+
+Match confidence scoring lives entirely in the renderer. The main process has no scoring role.
+
+| Component | Points | Notes |
+|-----------|--------|-------|
+| Title (Dice) | 0–30 | `window.stringSimilarity.diceCoefficient` |
+| Year in range | +25 / −15 | Penalty if coin year outside `min_year`–`max_year` |
+| Country match | +20 | String inclusion OR alias-code match via `window.stringSimilarity.issuerAliases` |
+| Denomination | +25 / −20 | Value + unit match; partial credit when unit unknown |
+| Category | +10 / −10 | Boost for standard circulation; penalty for proof/pattern/specimen |
+
+**Country match logic** (in order of precedence):
+1. Exact or substring string match (`"British Palestine".includes("British Palestine")`)
+2. Alias-code match: `issuerAliases[coinCountry] === match.issuer.code` — handles cases where OpenNumismat country name differs from Numista catalog name (e.g. "Mandatory Palestine" → code `palestine` = `match.issuer.code`)
+
+**`window.stringSimilarity.issuerAliases`** is built in `preload.js` at startup by reading `src/data/issuer-aliases.json` and flattening all alias arrays into a single `alias → code` map. It is exposed via `contextBridge` alongside the denomination utilities.
+
+**Do not add scoring logic to `numista-api.js` or `index.js`** — the renderer cannot call main-process functions synchronously during UI rendering, so any scoring placed there is unreachable from the display path.
 
 ---
 
