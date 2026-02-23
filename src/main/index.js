@@ -1224,28 +1224,24 @@ ipcMain.handle('search-numista', async (event, searchParams) => {
   }
 });
 
-ipcMain.handle('manual-search-numista', async (event, { query, coinId, category, issuer, page }) => {
+ipcMain.handle('manual-search-numista', async (event, { query, coinId, category, issuer, date, page }) => {
   try {
-    log.info('Manual search requested:', query, 'for coin:', coinId, 'category:', category, 'issuer:', issuer, 'page:', page || 1);
-
     const apiKey = getApiKey();
     const api = new NumistaAPI(apiKey, getApiCache(), getCacheTTLs());
 
-    // Use the query directly as provided by user, with optional issuer filter
+    // Build search params: q=denomination, issuer=resolved code, date=year (separate param —
+    // year in q returns 0 results since Numista type titles don't contain years).
     const searchParams = { q: query };
-    if (category) {
-      searchParams.category = category;
-    }
-    if (issuer) {
-      searchParams.issuer = issuer;
-    }
-    if (page && page > 1) {
-      searchParams.page = page;
-    }
+    if (category) searchParams.category = category;
+    if (issuer) searchParams.issuer = issuer;
+    if (date) searchParams.date = date;
+    if (page && page > 1) searchParams.page = page;
+
+    log.info('Manual search:', JSON.stringify({ coinId, params: searchParams }));
 
     const results = await api.searchTypes(searchParams);
 
-    log.info('Manual search found:', results.count, 'results');
+    log.info('Manual search found:', results.count, 'results for q=' + query);
 
     // Note: Search tracking removed - status updates happen on merge
 

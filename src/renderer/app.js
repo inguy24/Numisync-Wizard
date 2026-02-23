@@ -3121,7 +3121,7 @@ async function searchForMatches() {
         const newForms = altForms.filter(f => f !== primaryForm);
         for (const altForm of newForms) {
           if (AppState.currentMatches.length > 0) break;
-          const altQuery = coin.value ? `${coin.value} ${altForm}` : altForm;
+          const altQuery = (coin.value && !/^\d+\/\d+\s/.test(altForm)) ? `${coin.value} ${altForm}` : altForm;
           searchAttempt++;
           console.log(`Search attempt ${searchAttempt}: Alternate denomination -> "${altQuery}"`);
           document.getElementById('searchStatus').textContent = `Trying alternate denomination (${altForm})...`;
@@ -3147,9 +3147,13 @@ async function searchForMatches() {
     // date and category are kept for precision; issuer is the only param removed.
     if (AppState.currentMatches.length === 0) {
       const country = coin.country ? stripParenthetical(coin.country.trim()) : null;
-      const denomPart = coin.value && coin.unit
-        ? `${coin.value} ${normalizeUnitForSearch(coin.unit, coin.value, baseParams.issuer)}`
-        : coin.value?.toString() || (coin.unit ? normalizeUnitForSearch(coin.unit, null, baseParams.issuer) : null);
+      const denomPart = (() => {
+        if (coin.value && coin.unit) {
+          const normUnit = normalizeUnitForSearch(coin.unit, coin.value, baseParams.issuer);
+          return /^\d+\/\d+\s/.test(normUnit) ? normUnit : `${coin.value} ${normUnit}`;
+        }
+        return coin.value?.toString() || (coin.unit ? normalizeUnitForSearch(coin.unit, null, baseParams.issuer) : null);
+      })();
       const noIssuerQuery = [country, denomPart].filter(Boolean).join(' ');
 
       if (noIssuerQuery) {
@@ -3264,7 +3268,12 @@ async function buildSearchParams(coin) {
   // Prefer structured denomination fields
   if (coin.value) {
     const normalizedUnit = coin.unit ? normalizeUnitForSearch(coin.unit, coin.value, issuerCode) : null;
-    query = normalizedUnit ? `${coin.value} ${normalizedUnit}` : coin.value.toString();
+    // If the unit already encodes the fraction face value (e.g., "1/80 rial"), don't prepend
+    // coin.value — that would produce "1 1/80 rial" instead of the correct "1/80 rial".
+    const unitIsFraction = normalizedUnit && /^\d+\/\d+\s/.test(normalizedUnit);
+    query = normalizedUnit
+      ? (unitIsFraction ? normalizedUnit : `${coin.value} ${normalizedUnit}`)
+      : coin.value.toString();
     usedStructuredDenom = true;
   }
 
@@ -4893,17 +4902,30 @@ document.getElementById('performManualSearchBtn').addEventListener('click', asyn
     return;
   }
 
-  // Normalize denomination singular/plural in the query
-  const searchTerm = normalizeDenominationInQuery(rawSearchTerm);
+  // Extract 4-digit Gregorian year to pass as dedicated date param.
+  // Year in q returns 0 results — Numista type titles don't contain years (Lesson 32).
+  const yearMatch = rawSearchTerm.match(/\b(1[0-9]{3}|20[0-9]{2})\b/);
+  const extractedYear = yearMatch ? yearMatch[1] : null;
+
+  // Build clean denomination query: strip extracted year and coin's country name.
+  // Country is handled by the issuer param; year by the date param.
+  let cleanedQuery = rawSearchTerm;
+  if (extractedYear) {
+    cleanedQuery = cleanedQuery.replace(extractedYear, '').replace(/\s+/g, ' ').trim();
+  }
+  if (AppState.currentCoin?.country) {
+    const escapedCountry = stripParenthetical(AppState.currentCoin.country.trim())
+      .replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    cleanedQuery = cleanedQuery.replace(new RegExp(escapedCountry, 'gi'), '').replace(/\s+/g, ' ').trim();
+  }
+
+  // Normalize denomination singular/plural in the cleaned denomination query
+  const searchTerm = normalizeDenominationInQuery(cleanedQuery || rawSearchTerm);
 
   try {
-    if (searchTerm !== rawSearchTerm) {
-      showStatus(`Searching Numista for "${searchTerm}" (corrected)...`);
-      document.getElementById('searchStatus').textContent = `Searching for "${searchTerm}" (corrected from "${rawSearchTerm}")...`;
-    } else {
-      showStatus('Searching Numista with custom term...');
-      document.getElementById('searchStatus').textContent = `Searching for "${searchTerm}"...`;
-    }
+    showStatus('Searching Numista with custom term...');
+    document.getElementById('searchStatus').textContent =
+      `Searching for "${rawSearchTerm}"${extractedYear ? ` (date=${extractedYear})` : ''}...`;
 
     // Resolve category from manual search dropdown
     const manualCategorySelect = document.getElementById('manualSearchCategory');
@@ -4922,23 +4944,41 @@ document.getElementById('performManualSearchBtn').addEventListener('click', asyn
       } catch (e) { console.warn('Issuer resolution failed (non-fatal):', e.message); }
     }
 
-    const result = await window.electronAPI.manualSearchNumista({
+    let result = await window.electronAPI.manualSearchNumista({
       query: searchTerm,
       coinId: AppState.currentCoin.id,
-      category: category,
-      issuer: issuer
+      category,
+      issuer,
+      date: extractedYear
     });
 
-    if (!result.success) {
-      throw new Error(result.error);
+    if (!result.success) throw new Error(result.error);
+
+    // S3 fallback: if no results with issuer constraint, retry without issuer —
+    // moves country into q, mirrors automatic searchForMatches() S3.
+    let winningParams = { query: searchTerm, coinId: AppState.currentCoin.id, category, issuer, date: extractedYear };
+    if ((result.results?.types || []).length === 0 && issuer && AppState.currentCoin?.country) {
+      const countryName = stripParenthetical(AppState.currentCoin.country.trim());
+      const s3Query = [countryName, searchTerm].filter(Boolean).join(' ');
+      document.getElementById('searchStatus').textContent = 'Retrying without issuer constraint...';
+      const s3Result = await window.electronAPI.manualSearchNumista({
+        query: s3Query,
+        coinId: AppState.currentCoin.id,
+        category,
+        issuer: null,
+        date: extractedYear
+      });
+      if (s3Result.success && (s3Result.results?.types || []).length > 0) {
+        result = s3Result;
+        winningParams = { query: s3Query, coinId: AppState.currentCoin.id, category, issuer: null, date: extractedYear };
+      }
     }
 
     // Fetch all pages if results span multiple pages
-    if (result.success && (result.results.types || []).length > 0) {
-      const manualParams = { query: searchTerm, coinId: AppState.currentCoin.id, category, issuer };
+    if ((result.results?.types || []).length > 0) {
       AppState.currentMatches = await fetchAllSearchPages(
-        (page) => window.electronAPI.manualSearchNumista({ ...manualParams, page }),
-        result, `Searching for "${searchTerm}"`
+        (page) => window.electronAPI.manualSearchNumista({ ...winningParams, page }),
+        result, `Searching for "${rawSearchTerm}"`
       );
     } else {
       AppState.currentMatches = [];
@@ -4949,11 +4989,11 @@ document.getElementById('performManualSearchBtn').addEventListener('click', asyn
 
     if (AppState.currentMatches.length === 0) {
       document.getElementById('searchStatus').textContent =
-        `No matches found for "${searchTerm}"`;
+        `No matches found for "${rawSearchTerm}"`;
       showStatus('No matches found - try different search terms');
     } else {
       document.getElementById('searchStatus').textContent =
-        `Found ${AppState.currentMatches.length} matches for "${searchTerm}"`;
+        `Found ${AppState.currentMatches.length} matches for "${rawSearchTerm}"`;
       showStatus(`Found ${AppState.currentMatches.length} matches`);
     }
 

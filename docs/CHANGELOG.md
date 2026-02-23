@@ -8,6 +8,14 @@ All notable changes to NumiSync Wizard for OpenNumismat.
 
 ---
 
+## v1.1.4
+
+| Date | Type | Files | Summary |
+|------|------|-------|---------|
+| Feb 22 | Fix | src/renderer/app.js, src/main/index.js | **Fractional denomination coins return no matches (Yemen 1/80 Rial 1931) + manual search year-in-q bug** — Two related bugs. (1) Automatic search: `buildSearchParams` prepended `coin.value` (e.g., `1`) to a unit that already encodes the fraction (e.g., `"1/80 rial"`), producing `"1 1/80 rial"` as the query — matches nothing. Fix: added `/^\d+\/\d+\s/` detection in S1, S2, and S3; when the normalized unit starts with a fraction prefix, it is used directly as the query without prepending the face-value integer. (2) Manual search: the raw user query (e.g., `"Yemen 1/80 rial 1931"`) was passed as `q` with no parsing. `"1931"` in `q` returns 0 results because Numista type titles don't contain years (Lesson 32). Fix: extract 4-digit Gregorian year from the user's query → pass as `date` param; strip the coin's country name from `q` (issuer param already handles country). S3 fallback added to manual search: if issuer-constrained search returns 0 results, retry without `issuer`, moving country into `q`. `manual-search-numista` IPC handler updated to accept `date` param and log final API params as JSON to `main.log`. |
+
+---
+
 ## v1.1.3
 
 | Date | Type | Files | Summary |
