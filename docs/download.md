@@ -21,7 +21,7 @@ title: Download NumiSync Wizard
 
     <div style="margin: 1em 0;">
       <strong>Microsoft Store</strong><br/>
-      <a href="https://apps.microsoft.com/detail/9N1TDJTPHSMN" target="_blank" rel="noopener">
+      <a href="https://apps.microsoft.com/detail/9N1TDJTPHSMN" target="_blank" rel="noopener" onclick="gtag('event', 'download_click', { platform: 'windows_store' })">
         <img src="https://get.microsoft.com/images/en-us%20light.svg" alt="Get it from Microsoft" style="height: 52px; margin-top: 0.5em;"/>
       </a>
     </div>
@@ -52,12 +52,12 @@ title: Download NumiSync Wizard
 
     <div style="margin: 1em 0;">
       <strong>Intel (x64)</strong><br/>
-      <a href="https://github.com/inguy24/Numisync-Wizard/releases/latest/download/NumiSync-Wizard-x64.dmg" style="display: inline-block; margin-top: 0.5em; padding: 8px 16px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 0.9em;">Download DMG</a>
+      <a href="https://github.com/inguy24/Numisync-Wizard/releases/latest/download/NumiSync-Wizard-x64.dmg" onclick="gtag('event', 'download_click', { platform: 'macos_intel' })" style="display: inline-block; margin-top: 0.5em; padding: 8px 16px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 0.9em;">Download DMG</a>
     </div>
 
     <div style="margin: 1em 0;">
       <strong>Apple Silicon (arm64)</strong><br/>
-      <a href="https://github.com/inguy24/Numisync-Wizard/releases/latest/download/NumiSync-Wizard-arm64.dmg" style="display: inline-block; margin-top: 0.5em; padding: 8px 16px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 0.9em;">Download DMG</a>
+      <a href="https://github.com/inguy24/Numisync-Wizard/releases/latest/download/NumiSync-Wizard-arm64.dmg" onclick="gtag('event', 'download_click', { platform: 'macos_arm' })" style="display: inline-block; margin-top: 0.5em; padding: 8px 16px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 0.9em;">Download DMG</a>
     </div>
 
     <p style="font-size: 0.85em; margin-top: 1.5em;">
@@ -115,17 +115,17 @@ title: Download NumiSync Wizard
 
     <div style="margin: 1em 0;">
       <strong>AppImage (Universal)</strong><br/>
-      <a href="https://github.com/inguy24/Numisync-Wizard/releases/latest/download/numisync-wizard-x86_64.AppImage" style="display: inline-block; margin-top: 0.5em; padding: 8px 16px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 0.9em;">Download</a>
+      <a href="https://github.com/inguy24/Numisync-Wizard/releases/latest/download/numisync-wizard-x86_64.AppImage" onclick="gtag('event', 'download_click', { platform: 'linux_appimage' })" style="display: inline-block; margin-top: 0.5em; padding: 8px 16px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 0.9em;">Download</a>
     </div>
 
     <div style="margin: 1em 0;">
       <strong>Debian/Ubuntu (.deb)</strong><br/>
-      <a href="https://github.com/inguy24/Numisync-Wizard/releases/latest/download/numisync-wizard-amd64.deb" style="display: inline-block; margin-top: 0.5em; padding: 8px 16px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 0.9em;">Download</a>
+      <a href="https://github.com/inguy24/Numisync-Wizard/releases/latest/download/numisync-wizard-amd64.deb" onclick="gtag('event', 'download_click', { platform: 'linux_deb' })" style="display: inline-block; margin-top: 0.5em; padding: 8px 16px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 0.9em;">Download</a>
     </div>
 
     <div style="margin: 1em 0;">
       <strong>Fedora/RHEL (.rpm)</strong><br/>
-      <a href="https://github.com/inguy24/Numisync-Wizard/releases/latest/download/numisync-wizard-x86_64.rpm" style="display: inline-block; margin-top: 0.5em; padding: 8px 16px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 0.9em;">Download</a>
+      <a href="https://github.com/inguy24/Numisync-Wizard/releases/latest/download/numisync-wizard-x86_64.rpm" onclick="gtag('event', 'download_click', { platform: 'linux_rpm' })" style="display: inline-block; margin-top: 0.5em; padding: 8px 16px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 0.9em;">Download</a>
     </div>
   </div>
 

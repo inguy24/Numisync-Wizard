@@ -6,7 +6,7 @@ title: Privacy Policy - NumiSync Wizard
 # Privacy Policy
 
 **Effective Date:** February 10, 2026
-**Last Updated:** February 10, 2026
+**Last Updated:** February 25, 2026
 
 ## Overview
 
@@ -16,15 +16,28 @@ NumiSync Wizard is committed to protecting your privacy. This privacy policy exp
 
 ## Data Collection
 
-**NumiSync Wizard does not collect, transmit, or store any personal data on our servers.**
+**The NumiSync Wizard desktop application does not collect, transmit, or store any personal data on our servers.** The numisync.com website uses Google Analytics 4 for anonymous traffic measurement — details below.
 
-### What We Don't Collect
+### What the Desktop Application Does Not Collect
 
 - **No Usage Analytics:** We do not track how you use the application
 - **No Telemetry:** We do not collect technical data or performance metrics
 - **No Crash Reports:** Crash data is not automatically sent to us
 - **No Personal Information:** We do not collect names, email addresses, or any identifying information
 - **No Coin Collection Data:** Your coin collection data stays on your local machine
+
+### Website Analytics (numisync.com only)
+
+The numisync.com website uses **Google Analytics 4** to measure anonymous traffic. This does **not** apply to the desktop application.
+
+Data collected by Google Analytics on this website:
+- Page views and navigation paths
+- Session duration and bounce rate
+- Country and region (derived from IP address, not stored)
+- Device type, operating system, and browser
+- Click events on download buttons (platform chosen) and the license purchase button
+
+This data is aggregated and anonymous — we cannot identify individual visitors. Google processes this data per their [Privacy Policy](https://policies.google.com/privacy). You can opt out using the [Google Analytics Opt-out Browser Add-on](https://tools.google.com/dlpage/gaoptout).
 
 ---
 
@@ -77,6 +90,7 @@ NumiSync Wizard integrates with the following third-party services:
 |---------|---------|-------------|----------------|
 | **Numista** | Coin catalog data and images | API requests (your API key, search queries) | [numista.com](https://www.numista.com/) |
 | **Polar.sh** | License purchases | Payment info, email (for license delivery) | [polar.sh/legal/privacy](https://polar.sh/legal/privacy) |
+| **Google Analytics 4** | Website traffic measurement (numisync.com only) | Anonymous page views, device type, country, click events | [policies.google.com/privacy](https://policies.google.com/privacy) |
 
 **Important:** We do not control these third-party services. Please review their privacy policies for information on how they handle your data.
 
@@ -116,8 +130,8 @@ If you have questions about this privacy policy or NumiSync Wizard's data practi
 ## Summary
 
 **In short:**
-- We don't collect any data from you
-- Everything stays on your computer
+- The **desktop app** collects no data — everything stays on your computer
+- The **website** (numisync.com) uses Google Analytics 4 for anonymous traffic statistics only
 - You make API calls directly to Numista (using your own key)
 - License purchases go through Polar.sh (not us)
 - You have complete control over all local data

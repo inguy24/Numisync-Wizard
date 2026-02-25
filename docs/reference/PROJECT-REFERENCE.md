@@ -578,7 +578,7 @@ Also add `title="Opens in your browser"` to every external link for accessibilit
    │  └─ Cache TTL settings (flat + structured format)
    ├─ api-cache.json (v3.0+, configurable location)
    │  └─ Persistent Numista API response cache (issuers, types, issues)
-   │  └─ Monthly usage tracking per endpoint
+   │  └─ Monthly usage tracking per endpoint, scoped per API key (keys[keyId][endpoint])
    └─ api-cache.lock (v3.0+)
       └─ File lock for multi-machine cache access
    └─ Survives: App restart, collection switches

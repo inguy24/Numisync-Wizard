@@ -187,6 +187,7 @@ class NumistaAPI {
     this.minRequestDelay = 2000;  // 2 seconds between requests (respectful rate limiting)
     this.persistentCache = persistentCache;
     this.apiCallCount = 0;  // Tracks real HTTP calls made (not cache hits)
+    if (apiKey && persistentCache) persistentCache.setActiveKey(apiKey);
 
     // Convert user TTLs from days to milliseconds (0 = no caching)
     const DAY_MS = 24 * 60 * 60 * 1000;
@@ -203,6 +204,7 @@ class NumistaAPI {
    */
   setApiKey(apiKey) {
     this.apiKey = apiKey;
+    if (this.persistentCache) this.persistentCache.setActiveKey(apiKey);
   }
 
   /**

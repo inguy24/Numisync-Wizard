@@ -9,6 +9,7 @@
  *   has(key) — returns true if a non-expired entry exists
  *   clear() — removes all cache entries (preserves monthly usage and limit)
  *   getStats() — returns { entryCount, monthlyUsage }
+ *   setActiveKey(apiKey) — sets the active API key identifier for per-key usage tracking
  *   incrementUsage(endpoint) — atomic disk-read-increment-write to prevent multi-machine count clobbering
  *   getMonthlyUsage() — re-reads disk before returning, so UI shows combined total across all machines
  *   getMonthlyLimit() / setMonthlyLimit(n) — monthly API call quota
@@ -19,6 +20,18 @@
  * Storage: configurable path (default: userData/numisync-wizard/api-cache.json); lock file alongside it
  * Uses: cache-lock.js (atomic write operations), logger.js
  * Called by: numista-api.js (all persistent caching), src/main/index.js (get-cache-settings, clear-api-cache, get-monthly-usage, set-monthly-usage, get-shared-config, apply-shared-config)
+ *
+ * Monthly usage disk format (per-key, as of v1.1 migration):
+ * {
+ *   "monthlyUsage": {
+ *     "2026-02": {
+ *       "keys": {
+ *         "abc12345": { "searchTypes": 5, "getType": 10, "getIssues": 3, "getPrices": 2 }
+ *       }
+ *     }
+ *   }
+ * }
+ * Old flat format (no "keys" wrapper) is automatically migrated to the current active key on first write.
  */
 const fs = require('fs');
 const path = require('path');
@@ -55,6 +68,7 @@ class ApiCache {
     this.lock = new CacheLock(cacheFilePath, options.lockTimeout || 30000);
     this.data = this._load();
     this.pruned = false; // Track if pruning has occurred this session
+    this.activeKeyId = 'default'; // Set via setActiveKey() when an API key is configured
     // Track whether this is a custom (shared) path vs. the default userData location
     try {
       const defaultPath = path.join(require('electron').app.getPath('userData'), 'api-cache.json');
@@ -255,6 +269,34 @@ class ApiCache {
   // =========================================================================
 
   /**
+   * Set the active API key identifier used for per-key usage tracking.
+   * Uses the first 8 characters of the key as a short identifier.
+   * @param {string} apiKey - Numista API key
+   */
+  setActiveKey(apiKey) {
+    this.activeKeyId = apiKey ? apiKey.substring(0, 8).toLowerCase() : 'default';
+  }
+
+  /**
+   * Migrate old flat monthly usage format to the per-key format.
+   * Must be called INSIDE an already-held lock, and only after re-reading disk data.
+   * Detects old format (monthlyUsage[month] has endpoint counts directly, no "keys" wrapper)
+   * and moves those counts under keys[this.activeKeyId].
+   * @param {string} month - Month key, e.g. "2026-02"
+   * @returns {boolean} True if migration was performed and data needs to be written to disk
+   */
+  _migrateMonthIfNeeded(month) {
+    const monthData = this.data.monthlyUsage[month];
+    if (!monthData) return false;
+    // Already in new format
+    if (monthData.keys) return false;
+    // Old flat format detected — migrate to new format under the active key
+    log.info(`ApiCache: Migrating flat usage data for ${month} to key-scoped format (key: ${this.activeKeyId})`);
+    this.data.monthlyUsage[month] = { keys: { [this.activeKeyId]: { ...monthData } } };
+    return true;
+  }
+
+  /**
    * Increment usage count for an endpoint in the current month
    * @async
    * @param {string} endpoint - Endpoint name (searchTypes, getType, getIssues, getPrices, getIssuers)
@@ -277,8 +319,13 @@ class ApiCache {
         } catch (_) { /* fall through — use in-memory state if disk read fails */ }
       }
       const month = this._monthKey();
-      if (!this.data.monthlyUsage[month]) this.data.monthlyUsage[month] = {};
-      this.data.monthlyUsage[month][endpoint] = (this.data.monthlyUsage[month][endpoint] || 0) + 1;
+      // Migrate old flat format if present (single-key users preserve their existing counts)
+      this._migrateMonthIfNeeded(month);
+      if (!this.data.monthlyUsage[month]) this.data.monthlyUsage[month] = { keys: {} };
+      if (!this.data.monthlyUsage[month].keys) this.data.monthlyUsage[month].keys = {};
+      const keyBucket = this.data.monthlyUsage[month].keys;
+      if (!keyBucket[this.activeKeyId]) keyBucket[this.activeKeyId] = {};
+      keyBucket[this.activeKeyId][endpoint] = (keyBucket[this.activeKeyId][endpoint] || 0) + 1;
       const dir = path.dirname(this.cacheFilePath);
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
       fs.writeFileSync(this.cacheFilePath, JSON.stringify(this.data, null, 2), 'utf8');
@@ -300,7 +347,14 @@ class ApiCache {
       } catch (_) { /* fall through */ }
     }
     const month = this._monthKey();
-    const usage = this.data.monthlyUsage[month] || {};
+    const monthData = this.data.monthlyUsage[month];
+    // Support both new per-key format and old flat format (pre-migration read)
+    let usage;
+    if (monthData && monthData.keys) {
+      usage = monthData.keys[this.activeKeyId] || {};
+    } else {
+      usage = monthData || {};
+    }
     const total = Object.values(usage).reduce((sum, count) => sum + count, 0);
     return { ...usage, total };
   }
@@ -413,20 +467,25 @@ class ApiCache {
         } catch (_) { /* fall through */ }
       }
       const month = this._monthKey();
-      const currentUsage = this.data.monthlyUsage[month] || {};
+      // Migrate old flat format if present before modifying
+      this._migrateMonthIfNeeded(month);
+      if (!this.data.monthlyUsage[month]) this.data.monthlyUsage[month] = { keys: {} };
+      if (!this.data.monthlyUsage[month].keys) this.data.monthlyUsage[month].keys = {};
+      const keyBucket = this.data.monthlyUsage[month].keys;
+      const currentUsage = keyBucket[this.activeKeyId] || {};
       const currentTotal = Object.values(currentUsage).reduce((sum, count) => sum + count, 0);
 
       if (currentTotal === 0 || Object.keys(currentUsage).length === 0) {
-        // No existing breakdown — set as flat total
-        this.data.monthlyUsage[month] = { manual: Math.max(0, Math.floor(total)) };
+        // No existing breakdown — set as flat total under the active key
+        keyBucket[this.activeKeyId] = { manual: Math.max(0, Math.floor(total)) };
       } else {
-        // Distribute proportionally across existing endpoints
+        // Distribute proportionally across existing endpoints for the active key
         const ratio = total / currentTotal;
         const adjusted = {};
         for (const [endpoint, count] of Object.entries(currentUsage)) {
           adjusted[endpoint] = Math.max(0, Math.round(count * ratio));
         }
-        this.data.monthlyUsage[month] = adjusted;
+        keyBucket[this.activeKeyId] = adjusted;
       }
       const dir = path.dirname(this.cacheFilePath);
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });

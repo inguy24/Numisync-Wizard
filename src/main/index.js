@@ -1779,6 +1779,10 @@ ipcMain.handle('save-app-settings', async (event, settings) => {
       settingsManager.setApiKey(settings.apiKey);
       log.info('API key synced to collection settings');
     }
+    // Propagate new key to the cache so usage tracking switches to the new key immediately
+    if (settings.apiKey) {
+      getApiCache().setActiveKey(settings.apiKey);
+    }
 
     // Sync rate limit to collection settings if a collection is loaded
     if (settingsManager && settings.searchDelay) {
@@ -3448,6 +3452,10 @@ ipcMain.handle('check-feature-access', async (event, featureName) => {
 ipcMain.handle('get-monthly-usage', async () => {
   try {
     const cache = getApiCache();
+    // Ensure the active key is set so the UI always shows the count for the current key,
+    // even if no API calls have been made this session.
+    const apiKey = getApiKey();
+    if (apiKey) cache.setActiveKey(apiKey);
     return { success: true, usage: cache.getMonthlyUsage(), limit: cache.getMonthlyLimit() };
   } catch (error) {
     log.error('Error getting monthly usage:', error);
@@ -3479,6 +3487,8 @@ ipcMain.handle('set-monthly-usage', async (event, limit) => {
 ipcMain.handle('set-monthly-usage-total', async (event, total) => {
   try {
     const cache = getApiCache();
+    const apiKey = getApiKey();
+    if (apiKey) cache.setActiveKey(apiKey);
     cache.setMonthlyUsageTotal(total);
     return { success: true };
   } catch (error) {
