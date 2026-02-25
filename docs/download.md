@@ -21,7 +21,9 @@ title: Download NumiSync Wizard
 
     <div style="margin: 1em 0;">
       <strong>Microsoft Store</strong><br/>
-      <span style="color: #888; font-style: italic;">Coming Soon &mdash; submitted for certification</span>
+      <a href="https://apps.microsoft.com/detail/9N1TDJTPHSMN" target="_blank" rel="noopener">
+        <img src="https://get.microsoft.com/images/en-us%20dark.svg" alt="Get it from Microsoft" style="height: 52px; margin-top: 0.5em;"/>
+      </a>
     </div>
 
     <div style="margin: 1em 0;">
