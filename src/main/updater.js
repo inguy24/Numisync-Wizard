@@ -208,6 +208,13 @@ function initAutoUpdater(window) {
     return;
   }
 
+  // Check if app was recently updated (show "What's New" on first launch after update)
+  setTimeout(() => {
+    checkIfRecentlyUpdated().catch(err => {
+      log.error('Failed to check if recently updated:', err);
+    });
+  }, 2000);
+
   // Check for updates after a delay (don't slow down startup)
   setTimeout(() => {
     autoUpdater.checkForUpdates().catch(err => {
