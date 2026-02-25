@@ -46,6 +46,45 @@ function compareVersions(v1, v2) {
 }
 
 /**
+ * Fetch release notes for a specific version tag from GitHub
+ * @param {string} version - Version string without 'v' prefix (e.g. '1.1.5')
+ * @returns {Promise<string>} Release notes markdown, or fallback string
+ */
+async function fetchVersionReleaseNotes(version) {
+  try {
+    const https = require('https');
+    const options = {
+      hostname: 'api.github.com',
+      path: `/repos/inguy24/Numisync-Wizard/releases/tags/v${version}`,
+      method: 'GET',
+      headers: {
+        'User-Agent': 'NumiSync-Wizard',
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    };
+
+    return new Promise((resolve) => {
+      const req = https.request(options, (res) => {
+        let data = '';
+        res.on('data', (chunk) => { data += chunk; });
+        res.on('end', () => {
+          try {
+            const release = JSON.parse(data);
+            resolve(release.body || 'See GitHub for release notes.');
+          } catch {
+            resolve('See GitHub for release notes.');
+          }
+        });
+      });
+      req.on('error', () => resolve('See GitHub for release notes.'));
+      req.end();
+    });
+  } catch {
+    return 'See GitHub for release notes.';
+  }
+}
+
+/**
  * Check GitHub API for latest version (for Store packages)
  * @returns {Promise<Object>} Update info
  */
@@ -120,14 +159,14 @@ async function checkIfRecentlyUpdated() {
     const currentVersion = app.getVersion();
 
     if (lastKnownVersion !== currentVersion && lastKnownVersion !== '0.0.0') {
-      // App was updated! Show What's New modal
-      const updateInfo = await checkGitHubVersion();
+      // App was updated! Fetch release notes for the current version specifically
+      const releaseNotes = await fetchVersionReleaseNotes(currentVersion);
 
       if (mainWindow && mainWindow.webContents) {
         mainWindow.webContents.send('show-whats-new', {
           version: currentVersion,
           previousVersion: lastKnownVersion,
-          releaseNotes: updateInfo.releaseNotes || 'Check GitHub for release notes.'
+          releaseNotes
         });
       }
 
@@ -165,17 +204,6 @@ function initAutoUpdater(window) {
         log.error('Failed to check if recently updated:', err);
       });
     }, 2000); // 2 second delay
-
-    // Check for available updates (show passive notification)
-    setTimeout(() => {
-      checkGitHubVersion().then(updateInfo => {
-        if (updateInfo.updateAvailable && mainWindow && mainWindow.webContents) {
-          mainWindow.webContents.send('store-update-available', updateInfo);
-        }
-      }).catch(err => {
-        log.error('Failed to check GitHub version:', err);
-      });
-    }, 10000); // 10 second delay (same as electron-updater)
 
     return;
   }
