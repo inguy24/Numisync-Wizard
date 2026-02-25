@@ -100,7 +100,8 @@ class SettingsManager {
         pricingData: false,   // Optional - can be independently fetched
         searchCategory: 'all', // 'all', 'default', 'coin', 'banknote', 'exonumia'
         emptyMintmarkInterpretation: 'no_mint_mark', // 'no_mint_mark' or 'unknown'
-        enableAutoPropagate: true // Auto-detect and offer to propagate type data to matching coins
+        enableAutoPropagate: true, // Auto-detect and offer to propagate type data to matching coins
+        useStoredNumistaId: true  // Skip search when Numista ID is already known (saves 1 API call)
       },
 
       // Pricing currency preference
@@ -256,6 +257,24 @@ class SettingsManager {
         merged[fieldName] = { ...config };
       }
     }
+
+    // Migrate pre-Feb-23-2026 reversed price mapping saved in settings
+    // Old (wrong): price1=pricing_unc, price2=pricing_xf, price3=pricing_vf, price4=pricing_f
+    // Correct:     price1=pricing_f,   price2=pricing_vf,  price3=pricing_xf,  price4=pricing_unc
+    const priceKeyMigration = {
+      price1: { wrong: 'pricing_unc', correct: 'pricing_f' },
+      price2: { wrong: 'pricing_xf',  correct: 'pricing_vf' },
+      price3: { wrong: 'pricing_vf',  correct: 'pricing_xf' },
+      price4: { wrong: 'pricing_f',   correct: 'pricing_unc' }
+    };
+    for (const [field, { wrong, correct }] of Object.entries(priceKeyMigration)) {
+      if (merged[field]?.sourceKey === wrong) {
+        log.info(`Migrating price field mapping: ${field} ${wrong} → ${correct}`);
+        merged[field].sourceKey = correct;
+        merged[field].description = defaults[field]?.description || merged[field].description;
+      }
+    }
+
     return merged;
   }
 
@@ -339,7 +358,8 @@ class SettingsManager {
       pricingData: fetchSettings.pricingData !== undefined ? fetchSettings.pricingData : this.settings.fetchSettings.pricingData,
       searchCategory: fetchSettings.searchCategory !== undefined ? fetchSettings.searchCategory : this.settings.fetchSettings.searchCategory,
       emptyMintmarkInterpretation: fetchSettings.emptyMintmarkInterpretation !== undefined ? fetchSettings.emptyMintmarkInterpretation : this.settings.fetchSettings.emptyMintmarkInterpretation,
-      enableAutoPropagate: fetchSettings.enableAutoPropagate !== undefined ? fetchSettings.enableAutoPropagate : this.settings.fetchSettings.enableAutoPropagate
+      enableAutoPropagate: fetchSettings.enableAutoPropagate !== undefined ? fetchSettings.enableAutoPropagate : this.settings.fetchSettings.enableAutoPropagate,
+      useStoredNumistaId: fetchSettings.useStoredNumistaId !== undefined ? fetchSettings.useStoredNumistaId : this.settings.fetchSettings.useStoredNumistaId
     };
     this.saveSettings();
   }

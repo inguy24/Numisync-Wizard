@@ -756,13 +756,13 @@ Schema introspected from `examples/test.db` via `PRAGMA table_info()`. All table
 | url | TEXT | Reference URL |
 | barcode | TEXT | Barcode/inventory number |
 
-#### Pricing — CRITICAL MAPPING (see Lesson 21 + field-mapper.js:121-126)
+#### Pricing — CRITICAL MAPPING (see Lessons 21, 34, 35 — driven by field mapping config, never hardcoded)
 | Column | Type | Grade |
 |--------|------|-------|
-| price1 | NUMERIC | UNC (Uncirculated) |
-| price2 | NUMERIC | XF (Extremely Fine) |
-| price3 | NUMERIC | VF (Very Fine) |
-| price4 | NUMERIC | F (Fine / Fair) |
+| price1 | NUMERIC | F (Fine / Fair) |
+| price2 | NUMERIC | VF (Very Fine) |
+| price3 | NUMERIC | XF (Extremely Fine) |
+| price4 | NUMERIC | UNC (Uncirculated) |
 
 #### Collection Management
 | Column | Type | Notes |

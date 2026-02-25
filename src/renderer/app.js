@@ -1748,6 +1748,18 @@ async function loadCollectionScreen() {
   document.getElementById('headerCollectionActions').style.display = 'flex';
   document.getElementById('dataSettingsBtn').style.display = 'flex';
 
+  // Cache which catalog column is mapped to the Numista ID source key
+  try {
+    const fmResult = await window.electronAPI.getFieldMappings();
+    if (fmResult.success) {
+      const entry = Object.entries(fmResult.fieldMappings)
+        .find(([, cfg]) => cfg.sourceKey === 'numista_id');
+      AppState.numistaIdColumn = entry ? entry[0] : null;
+    }
+  } catch (e) {
+    AppState.numistaIdColumn = null;
+  }
+
   // Load collection-specific fetch settings for counter strip
   try {
     const collectionSettings = await window.api.getSettings();
@@ -1778,6 +1790,9 @@ async function loadCollectionScreen() {
 
   // Load coins (uses restored filters/sort/page from view state)
   await loadCoins();
+
+  // Populate session and monthly API usage counters in status bar
+  await refreshSessionCounter();
 
   // Restore scroll position if we have a saved view state
   if (AppState.collectionScrollPosition > 0) {
@@ -2350,25 +2365,13 @@ function updateFastPricingCounts() {
 }
 
 /**
- * Format seconds into human-readable duration
- * @param {number} seconds - Total seconds
- * @returns {string} - Formatted duration string
- */
-function formatDuration(seconds) {
-  if (seconds < 60) return `~${seconds} seconds`;
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return secs > 0 ? `~${mins}m ${secs}s` : `~${mins} minutes`;
-}
-
-/**
  * Show confirmation dialog before starting batch update
  * @param {number} coinCount - Number of coins to update
  * @returns {Promise<boolean>} - True if user confirms
  */
 async function confirmFastPricingUpdate(coinCount) {
   const estimatedSeconds = coinCount + Math.ceil(coinCount * 0.1);
-  const estimatedTime = formatDuration(estimatedSeconds);
+  const estimatedTime = formatDuration(estimatedSeconds * 1000);
 
   const confirmed = await showModal(
     'Confirm Pricing Update',
@@ -2576,6 +2579,7 @@ async function startFastPricingUpdate() {
 
   await loadCoins();
   renderCoinList();
+  await refreshSessionCounter();
 }
 
 // Build a display label from structured fields when coin.title is empty
@@ -2918,13 +2922,24 @@ async function handleCoinClick(coin) {
     AppState.collectionScrollPosition = mainContent.scrollTop;
   }
 
-  showStatus(`Searching for ${coin.title || 'coin'}...`);
   showScreen('match');
-  
+
   // Show current coin info
   renderCurrentCoinInfo();
-  
-  // Perform search
+
+  // If a Numista ID is already known (from metadata or catalog field) and the
+  // setting is enabled, skip the search and load the type directly.
+  const storedNumistaId = resolveNumistaId(coin);
+  if (storedNumistaId) {
+    const settings = await window.api.getSettings();
+    if (settings.fetchSettings.useStoredNumistaId !== false) {
+      showStatus('Loading previously matched coin...');
+      await showDirectMatch(coin, storedNumistaId);
+      return;
+    }
+  }
+
+  showStatus(`Searching for ${coin.title || 'coin'}...`);
   await searchForMatches();
 }
 
@@ -3081,6 +3096,97 @@ async function fetchAllSearchPages(searchFn, firstResult, statusPrefix) {
   }
 
   return allTypes;
+}
+
+/**
+ * Resolve the Numista type ID for a coin from enrichment metadata
+ * or the catalog field mapped to the numista_id source key.
+ * Returns an integer typeId, or null if not known.
+ * @param {Object} coin - Coin from get-coins (has .metadata attached)
+ * @returns {number|null}
+ */
+function resolveNumistaId(coin) {
+  // Priority 1: enrichment metadata (set by NumiSync after merge — reliable integer)
+  const metaId = coin.metadata?.basicData?.numistaId;
+  if (metaId) return metaId;
+
+  // Priority 2: catalog field mapped to numista_id source key (manually pre-populated)
+  if (AppState.numistaIdColumn) {
+    const raw = coin[AppState.numistaIdColumn];
+    if (raw) {
+      const parsed = parseInt(raw, 10);
+      if (!isNaN(parsed) && parsed > 0) return parsed;
+    }
+  }
+  return null;
+}
+
+/**
+ * Show the match screen with the previously stored Numista type pre-selected.
+ * Calls GET /types/{typeId} directly (no search API call). Falls back to
+ * searchForMatches() if the stored ID is invalid (404) or any error occurs.
+ * @param {Object} coin - AppState.currentCoin
+ * @param {number} typeId - Resolved Numista type ID from resolveNumistaId()
+ */
+async function showDirectMatch(coin, typeId) {
+  document.getElementById('searchStatus').textContent = 'Loading stored match...';
+
+  try {
+    const result = await window.electronAPI.getNumistaType(typeId);
+
+    if (!result.success) {
+      const isNotFound = result.error && result.error.toLowerCase().includes('not found');
+      console.warn(`[Direct Match] Stored numistaId ${typeId} lookup failed (${result.error}) — falling back to search`);
+      showStatus(
+        isNotFound
+          ? 'Previously matched coin no longer found on Numista. Searching again...'
+          : `Could not load stored match. Searching again...`
+      );
+      document.getElementById('searchStatus').textContent = 'Searching...';
+      await searchForMatches();
+      return;
+    }
+
+    // Adapt type data to match the shape of a search result (what AppState.selectedMatch
+    // holds when basicData=false in the normal search flow). Only include the fields that
+    // the /types/search API returns — id, title, issuer, value, min_year, max_year,
+    // category, object_type — plus flat thumbnail keys for renderMatches() card display.
+    // Deep type-level fields (ruler, weight, composition, etc.) are intentionally omitted
+    // because when basicData=false those fields should not appear in the comparison screen;
+    // they only populate via result.basicData when basicData=true, at which point
+    // handleMatchSelection overwrites AppState.selectedMatch with result.basicData anyway.
+    const typeData = result.typeData;
+    const adaptedMatch = {
+      id: typeData.id,
+      title: typeData.title,
+      issuer: typeData.issuer,
+      min_year: typeData.min_year,
+      max_year: typeData.max_year,
+      category: typeData.category,
+      object_type: typeData.object_type,
+      value: typeData.value,             // denomination — present in search results
+      obverse_thumbnail: typeData.obverse?.thumbnail || null,
+      reverse_thumbnail: typeData.reverse?.thumbnail || null,
+      edge_thumbnail: typeData.edge?.thumbnail || null
+    };
+
+    // Render single pre-selected card using existing renderMatches() infrastructure
+    AppState.currentMatches = [adaptedMatch];
+    renderMatches();
+
+    // Apply pre-selected state after render
+    const firstCard = document.querySelector('.match-card[data-match-index="0"]');
+    if (firstCard) firstCard.classList.add('selected');
+
+    showStatus('Previously matched coin loaded. Click the card to proceed, or Search Again to find a different match.');
+    document.getElementById('searchStatus').textContent = 'Stored match found';
+
+  } catch (error) {
+    console.error('[Direct Match] Unexpected error:', error);
+    showStatus('Error loading stored match. Searching again...');
+    document.getElementById('searchStatus').textContent = 'Searching...';
+    await searchForMatches();
+  }
 }
 
 async function searchForMatches() {
@@ -4884,6 +4990,14 @@ document.getElementById('backToListBtn').addEventListener('click', () => {
   // Leaving match screen
   updateMenuState({ fieldComparisonActive: false });
 });
+
+const searchAgainBtn = document.getElementById('searchAgainBtn');
+if (searchAgainBtn) {
+  searchAgainBtn.addEventListener('click', () => {
+    AppState.currentMatches = [];
+    searchForMatches();
+  });
+}
 
 document.getElementById('backToMatchesBtn').addEventListener('click', () => {
   showScreen('match');
@@ -6724,6 +6838,12 @@ class DataSettingsUI {
     if (autoPropagateCheckbox) {
       autoPropagateCheckbox.checked = fetchSettings.enableAutoPropagate !== false;
     }
+
+    // Use Stored Numista ID toggle
+    const useStoredIdCheckbox = document.getElementById('useStoredNumistaId');
+    if (useStoredIdCheckbox) {
+      useStoredIdCheckbox.checked = fetchSettings.useStoredNumistaId !== false;
+    }
   }
 
   /**
@@ -6780,13 +6900,18 @@ class DataSettingsUI {
       const autoPropagateCheckbox = document.getElementById('enableAutoPropagate');
       const enableAutoPropagate = autoPropagateCheckbox ? autoPropagateCheckbox.checked : true;
 
+      // Get Use Stored Numista ID setting
+      const useStoredNumistaIdCheckbox = document.getElementById('useStoredNumistaId');
+      const useStoredNumistaId = useStoredNumistaIdCheckbox ? useStoredNumistaIdCheckbox.checked : true;
+
       const newSettings = {
         basicData: basicCheckbox ? basicCheckbox.checked : true,
         issueData: issueCheckbox ? issueCheckbox.checked : false,
         pricingData: pricingCheckbox ? pricingCheckbox.checked : false,
         searchCategory: categorySelect ? categorySelect.value : 'all',
         emptyMintmarkInterpretation: emptyMintmarkValue,
-        enableAutoPropagate: enableAutoPropagate
+        enableAutoPropagate: enableAutoPropagate,
+        useStoredNumistaId: useStoredNumistaId
       };
       
       // Save fetch settings to main process
@@ -6806,6 +6931,16 @@ class DataSettingsUI {
       if (this.fieldMappingsLoaded && this.fieldMappingsDirty) {
         await this.saveFieldMappings();
       }
+
+      // Refresh numistaIdColumn cache in case field mapping changed
+      try {
+        const fmResult = await window.electronAPI.getFieldMappings();
+        if (fmResult.success) {
+          const entry = Object.entries(fmResult.fieldMappings)
+            .find(([, cfg]) => cfg.sourceKey === 'numista_id');
+          AppState.numistaIdColumn = entry ? entry[0] : null;
+        }
+      } catch (e) { /* non-critical */ }
 
 // Close modal
       this.closeModal();
@@ -7840,23 +7975,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // No default collection or failed to load - show welcome screen
     showScreen('welcome');
     showStatus('Ready');
-  } else {
-    // Collection was loaded - update status bar displays
-    window.api.getSettings().then(settings => {
-      if (dataSettingsUI) {
-        dataSettingsUI.updateStatusBarDisplay(settings.fetchSettings);
-      }
-    }).catch(error => {
-      console.error('Error loading initial settings:', error);
-    });
-
-    window.api.getStatistics().then(stats => {
-      if (dataSettingsUI) {
-        dataSettingsUI.updateSessionCallDisplay(stats.sessionCallCount || 0);
-      }
-    }).catch(error => {
-      console.error('Error loading statistics:', error);
-    });
   }
 
   // Wire up "View EULA" link in Settings

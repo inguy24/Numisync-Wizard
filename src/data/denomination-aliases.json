@@ -421,8 +421,12 @@
     "subunitOf": { "lev": 100 }
   },
   "dinar": {
-    "aliases": ["dinar", "dinars", "dinara", "dinari", "din"],
+    "aliases": ["dinar", "dinars", "dinara", "dinari", "din", "dīnār", "dīnārs"],
     "plural": "dinars"
+  },
+  "dīnār": {
+    "aliases": ["dīnār", "dīnārs", "dinar", "dinars", "dinara", "dinari", "din"],
+    "plural": "dīnār"
   },
   "denar": {
     "aliases": ["denar", "denari", "deni"],
@@ -515,8 +519,13 @@
     "subunitOf": { "pound": 100 }
   },
   "akce": {
-    "aliases": ["akce", "akche", "asper"],
+    "aliases": ["akce", "akche", "asper", "manghir", "manghirs"],
     "plural": "akce",
+    "subunitOf": { "kurus": 3 }
+  },
+  "manghir": {
+    "aliases": ["manghir", "manghirs", "akce", "akche", "asper"],
+    "plural": "manghir",
     "subunitOf": { "kurus": 3 }
   },
 

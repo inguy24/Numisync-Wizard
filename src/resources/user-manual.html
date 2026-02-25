@@ -1125,6 +1125,54 @@
 </ol>
 <p>With this setting disabled, enrichments complete silently without showing the matching coins prompt.</p>
 
+<!-- ──────────────────────────────────────────────────────────────────────── -->
+<h3 id="use-stored-numista-id">Use Stored Numista ID</h3>
+<p>
+  When enabled (the default), NumiSync skips the search step for coins that already have a known
+  Numista type ID and loads the previously matched coin directly. This saves 1 API call per
+  enrichment session for any coin you have matched before.
+</p>
+
+<h4>Where the ID Comes From</h4>
+<p>NumiSync checks two sources, in order:</p>
+<ol>
+  <li><strong>Enrichment metadata</strong> &mdash; Set automatically when you merge Basic Data. This is the most reliable source.</li>
+  <li><strong>Your mapped Numista catalog field</strong> &mdash; If you have manually entered a Numista type ID in the catalog field mapped to the Numista ID source (by default, <em>Catalog Number 4</em>), NumiSync will use it even if you have never enriched that coin through NumiSync before.</li>
+</ol>
+
+<h4>What You See</h4>
+<p>
+  When a stored Numista ID is found, the Match screen loads the previously matched coin as a
+  single pre-selected card instead of showing search results. The card displays the coin&rsquo;s
+  title, issuer, year range, and images &mdash; identical in appearance to a normal search result card.
+</p>
+<ul>
+  <li><strong>Click the card</strong> to confirm the match and proceed to field comparison.</li>
+  <li><strong>Click Search Again</strong> to ignore the stored ID and run a fresh search. If you select a different match, the stored ID is updated automatically.</li>
+</ul>
+
+<h4>Automatic Fallback</h4>
+<p>
+  If the stored Numista ID is no longer valid (for example, if Numista has renumbered or removed
+  the coin type), NumiSync detects the error and falls back to a regular search automatically.
+  No action is required on your part.
+</p>
+
+<h4>Disabling Use Stored Numista ID</h4>
+<p>
+  If you prefer to always re-confirm matches from fresh search results:
+</p>
+<ol>
+  <li>Open <strong>Settings</strong> &rarr; <strong>Data Settings</strong>.</li>
+  <li>Uncheck <strong>Use Stored Numista ID</strong>.</li>
+  <li>Click <strong>Save Settings</strong>.</li>
+</ol>
+<p>
+  With this setting disabled, every coin click runs a full Numista search regardless of whether
+  a Numista ID is stored. The stored ID is still preserved in your data; it is only used for
+  confidence scoring (100% badge) rather than bypassing the search.
+</p>
+
 <a href="#introduction" class="back-to-top">Back to top &uarr;</a>
 
 <!-- ──────────────────────────────────────────────────────────────────────── -->

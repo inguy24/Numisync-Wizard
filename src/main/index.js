@@ -1663,8 +1663,21 @@ ipcMain.handle('update-coin-status', async (event, { coinId, status, metadata })
     } else if (status === 'no_matches' || status === 'NO_MATCHES') {
       phase2Metadata.basicData = { status: 'NO_MATCH', timestamp };
     } else if (status === 'matched' || status === 'MATCHED') {
-      // Just tracking that a match was found - not merged yet
-      phase2Metadata.basicData = { status: 'PENDING', timestamp, numistaId: metadata?.numistaId };
+      // Read existing metadata from the database so that already-MERGED sections are not
+      // regressed. A match being found means we know which Numista type to use, but it does
+      // not undo data that was previously applied. Only move basicData to PENDING if basic
+      // data retrieval is enabled in settings and basicData is not already MERGED.
+      const matchedCoin = db.getCoinById(coinId);
+      if (matchedCoin) {
+        const { metadata: existingMetadata } = metadataManager.readEnrichmentMetadata(matchedCoin.note || '');
+        if (existingMetadata) {
+          phase2Metadata = { ...existingMetadata };
+        }
+      }
+      const matchFetchSettings = settingsManager ? settingsManager.getFetchSettings() : { basicData: true };
+      if (matchFetchSettings.basicData && phase2Metadata.basicData?.status !== 'MERGED') {
+        phase2Metadata.basicData = { status: 'PENDING', timestamp, numistaId: metadata?.numistaId };
+      }
     } else if (status === 'error' || status === 'ERROR') {
       phase2Metadata.basicData = { status: 'ERROR', timestamp, error: metadata?.error };
     }
@@ -3563,16 +3576,19 @@ ipcMain.handle('fast-pricing-update', async (event, { coinId, numistaId, issueId
       return { success: true, noPricing: true };
     }
 
-    // Map to price fields
+    // Map all 4 price columns using field mapping config (respects user settings)
+    // Grades not returned by Numista are written as null, clearing any stale values
     const grades = {};
-    pricingData.prices.forEach(p => grades[p.grade.toLowerCase()] = p.price);
+    pricingData.prices.forEach(p => { grades[p.grade.toLowerCase()] = p.price; });
 
-    // Map price1=UNC, price2=XF, price3=VF, price4=F (must match field-mapper.js)
+    const fieldConfig = settingsManager ? settingsManager.buildFieldMapperConfig() : null;
     const priceFields = {};
-    if (grades.unc !== undefined) priceFields.price1 = grades.unc;
-    if (grades.xf !== undefined) priceFields.price2 = grades.xf;
-    if (grades.vf !== undefined) priceFields.price3 = grades.vf;
-    if (grades.f !== undefined) priceFields.price4 = grades.f;
+    for (const field of ['price1', 'price2', 'price3', 'price4']) {
+      const cfg = fieldConfig?.[field];
+      const gradeKey = cfg?.numistaPath?.split('.').pop()
+        || { price1: 'f', price2: 'vf', price3: 'xf', price4: 'unc' }[field];
+      priceFields[field] = grades[gradeKey] !== undefined ? grades[gradeKey] : null;
+    }
 
     // Update metadata
     const coin = db.getCoinById(coinId);
@@ -3583,7 +3599,7 @@ ipcMain.handle('fast-pricing-update', async (event, { coinId, numistaId, issueId
       timestamp: new Date().toISOString(),
       issueId,
       currency,
-      fieldsMerged: Object.keys(priceFields),
+      fieldsMerged: Object.keys(priceFields).filter(k => priceFields[k] !== null),
       lastPrices: grades
     };
 
@@ -3630,9 +3646,11 @@ ipcMain.handle('propagate-type-data', async (event, { coinId, numistaData, issue
 
     // Type-level fields that can be propagated - only include if user selected them
     const typeLevelFields = [
-      'title', 'category', 'country', 'ruler', 'period', 'value', 'unit',
+      'title', 'category', 'series', 'country', 'ruler', 'period', 'value', 'unit',
       'material', 'weight', 'diameter', 'thickness', 'shape', 'edge', 'edgelabel',
-      'obversedesign', 'reversedesign', 'mint', 'catalognum1', 'catalognum2', 'catalognum3', 'catalognum4'
+      'obversedesign', 'obversedesigner', 'obverseengraver', 'obverseimg',
+      'reversedesign', 'reversedesigner', 'reverseengraver', 'reverseimg',
+      'edgeimg', 'mint', 'catalognum1', 'catalognum2', 'catalognum3', 'catalognum4'
     ];
 
     const typeFields = {};

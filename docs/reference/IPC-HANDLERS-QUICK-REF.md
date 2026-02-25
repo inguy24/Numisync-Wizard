@@ -169,7 +169,7 @@
 | Channel | Params | Returns | Delegates To |
 |---------|--------|---------|-------------|
 | `create-backup-before-batch` | *(none)* | `{ success, backupPath }` | `opennumismat-db.js` → `createBackup()` |
-| `fast-pricing-update` | `{ coinId, numistaId, issueId }` | `{ success, updated, priceFields? }` | `numista-api.js` → `getIssuePricing()`, `opennumismat-db.js` → `updateCoin()`, `metadata-manager.js` |
+| `fast-pricing-update` | `{ coinId, numistaId, issueId }` | `{ success, updated, priceFields? }` | `numista-api.js` → `getIssuePricing()`, `settings-manager.js` → `buildFieldMapperConfig()`, `opennumismat-db.js` → `updateCoin()`, `metadata-manager.js` — always writes all 4 price columns (null for missing grades) |
 | `propagate-type-data` | `{ coinId, numistaData, issueData?, pricingData?, isDuplicate, sourceNumistaId, issueSkipReason?, selectedFields }` | `{ success, updated, skipped, reason? }` | `field-mapper.js`, `opennumismat-db.js`, `metadata-manager.js`, `progress-tracker.js` |
 
 ---
@@ -194,5 +194,5 @@
 - **Most handlers return** `{ success: true, ...data }` on success and `{ success: false, error: string }` on failure.
 - **Exceptions** (return data directly without wrapper): `get-settings`, `save-fetch-settings`, `save-currency`, `save-ui-preference`, `get-statistics`, `increment-api-calls`, `get-currency`, `get-app-version`, `check-installer-eula-marker`.
 - **Phase 1 vs Phase 2 settings** — Lesson 9 critical: `get-app-settings` reads `userData/settings.json` (global); `get-settings` reads `{collectionDir}/.NumiSync/{name}_settings.json` (per-collection).
-- **Price field mapping** (Lesson 21): `price1=UNC`, `price2=XF`, `price3=VF`, `price4=F` — defined in `field-mapper.js:121-126`.
+- **Price field mapping** (Lesson 21): `price1=UNC`, `price2=XF`, `price3=VF`, `price4=F` — use `FieldMapper.extractPriceFields(pricingData)`, the single source of truth in `field-mapper.js`.
 - **Image columns** (Lesson 5): `obverseimg`/`reverseimg` reference `photos` table, NOT `images` table.

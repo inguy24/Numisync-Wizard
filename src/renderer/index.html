@@ -949,6 +949,29 @@
             </div>
           </div>
 
+          <!-- Use Stored Numista ID Toggle -->
+          <div class="data-setting-card">
+            <div class="data-setting-header">
+              <label class="checkbox-label">
+                <input type="checkbox" id="useStoredNumistaId" checked>
+                <strong>Use Stored Numista ID</strong>
+              </label>
+            </div>
+            <div class="data-setting-details">
+              <p class="data-description">
+                When enabled, coins with a known Numista ID (from a previous merge or entered manually
+                in your catalog field) skip the search step and load the matched coin directly,
+                saving 1 API call per enrichment session.
+              </p>
+              <ul class="data-fields-list">
+                <li>Checks enrichment metadata first, then your mapped Numista catalog field</li>
+                <li>Shows the previously matched coin on the match screen for your confirmation</li>
+                <li>Falls back to search automatically if the stored ID is no longer valid on Numista</li>
+                <li>Disable if you prefer to always re-confirm matches from fresh search results</li>
+              </ul>
+            </div>
+          </div>
+
         </div>
 
         <div class="data-settings-summary">

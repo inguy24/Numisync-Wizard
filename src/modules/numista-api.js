@@ -507,6 +507,22 @@ class NumistaAPI {
       }
 
       if (candidates.length === 0) {
+        // Check if 'P' mintmark could represent Philadelphia (no mint mark pre-1980).
+        // Pre-1980 US Philadelphia coins have no mint_letter on Numista, but OpenNumismat
+        // stores them as 'P'. When emptyMintmarkInterpretation is 'no_mint_mark', treat
+        // 'P' as equivalent to the no-mark issue. This fallback is safe: if 'P' were an
+        // explicit mint mark in this series, the filter above would have found it.
+        if (emptyMintmarkInterpretation === 'no_mint_mark' && mintmarksMatch(userMintmark, 'P')) {
+          const noMintIssues = yearMatchedIssues.filter(i => !i.mint_letter || i.mint_letter.trim() === '');
+          if (noMintIssues.length > 0) {
+            log.debug(`Mintmark 'P' not found as explicit letter; trying ${noMintIssues.length} no-mint-letter issue(s) as Philadelphia fallback (no_mint_mark setting)`);
+            if (noMintIssues.length === 1) {
+              log.debug('Result: AUTO_MATCHED (P→Philadelphia no-mark fallback)');
+              return { type: 'AUTO_MATCHED', issue: noMintIssues[0], privyMarksDetected: hasPrivyMarks, signaturesDetected: hasSignatures };
+            }
+            return { type: 'USER_PICK', options: noMintIssues, privyMarksDetected: hasPrivyMarks, signaturesDetected: hasSignatures };
+          }
+        }
         // User's mintmark didn't match any issues - show all year matches for user to pick
         log.debug('Mintmark filter yielded no matches - showing all year-matched issues');
         return { type: 'USER_PICK', options: yearMatchedIssues, privyMarksDetected: hasPrivyMarks, signaturesDetected: hasSignatures };

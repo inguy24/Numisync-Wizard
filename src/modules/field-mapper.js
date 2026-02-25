@@ -7,7 +7,7 @@
  *   mergeFields(selectedFields, numistaData, issueData?, pricingData?, coinData?) — builds UPDATE object
  *   setFieldMapping(newMapping) / getFieldMapping() — runtime mapping reconfiguration
  *   getEnabledFields() — list of currently enabled field names
- * Note: price1=UNC, price2=XF, price3=VF, price4=F (Lesson 21 — canonical grade-to-price mapping)
+ * Note: price1=F, price2=VF, price3=XF, price4=UNC — driven by field mapping config (numistaPath per field)
  * Uses: default-field-mapping.js, mintmark-normalizer.js, logger.js
  * Called by: src/main/index.js (compare-fields, merge-data, propagate-type-data, fast-pricing-update)
  */
@@ -54,6 +54,14 @@ class FieldMapper {
     let skippedRequiresPricing = 0;
     let skippedNoValue = 0;
     let addedCount = 0;
+    // Build lookup object: numistaData + structured pricing so getNestedValue('pricing.f') works
+    // This lets price fields go through the standard field mapping path like every other field
+    const dataForLookup = { ...numistaData };
+    if (pricingData?.prices?.length) {
+      const pricingByGrade = {};
+      pricingData.prices.forEach(p => { pricingByGrade[p.grade.toLowerCase()] = p.price; });
+      dataForLookup.pricing = pricingByGrade;
+    }
 
     for (const [onField, config] of Object.entries(this.fieldMapping)) {
       processedCount++;
@@ -128,25 +136,10 @@ class FieldMapper {
               value = config.transform(value, numistaData);
             }
           }
-        } else if (onField.match(/^price[1-4]$/) && pricingData) {
-          // Get pricing from pricing data
-          // Map price1=UNC, price2=XF, price3=VF, price4=F
-          const priceMap = {
-            'price1': 'unc',  // Uncirculated
-            'price2': 'xf',   // Extremely Fine
-            'price3': 'vf',   // Very Fine
-            'price4': 'f'     // Fine
-          };
-          const gradeKey = priceMap[onField];
-          if (gradeKey && pricingData.prices) {
-            const priceObj = pricingData.prices.find(p => p.grade === gradeKey);
-            value = priceObj?.price || null;
-            log.debug(`  Pricing field '${onField}' (${gradeKey}): ${value}`);
-          }
         } else {
-          // Standard field mapping
+          // Standard field mapping — price fields resolved via numistaPath (e.g. 'pricing.f') in dataForLookup
           const path = config.numistaPath;
-          value = getNestedValue(numistaData, path);
+          value = getNestedValue(dataForLookup, path);
           
           if (processedCount <= 10 || value !== null) {  // Log first 10 or any with values
             log.debug(`  Field '${onField}' from '${path}': ${value === null ? 'null' : (typeof value === 'object' ? JSON.stringify(value).substring(0, 50) : value)}`);
@@ -160,9 +153,12 @@ class FieldMapper {
           log.debug(`    Transformed '${onField}': ${JSON.stringify(originalValue).substring(0, 30)} -> ${value}`);
         }
 
-        // Only add if we have a value
-        if (value !== null && value !== undefined && value !== '') {
-          mapped[onField] = value;
+        // Pricing fields: always include when pricingData was fetched — null means grade not available
+        // and must overwrite any stale value already in the DB column
+        // All other fields: only include if value is non-empty
+        const isPricingFieldWithData = config.requiresPricingData && pricingData !== null;
+        if (isPricingFieldWithData || (value !== null && value !== undefined && value !== '')) {
+          mapped[onField] = value ?? null;
           addedCount++;
           log.debug('[OK] Added %s = %s', onField, value);
         } else {
@@ -212,8 +208,10 @@ class FieldMapper {
       const onValue = coin[field];
       const numistaValue = mapped[field];
 
-      // Skip if no Numista value
-      if (numistaValue === undefined || numistaValue === null) {
+      // Skip if field was not mapped at all
+      // For pricing fields when pricingData was fetched: show even if null so user can zero out stale values
+      const isPricingFieldWithData = config.requiresPricingData && pricingData !== null;
+      if (numistaValue === undefined || (!isPricingFieldWithData && numistaValue === null)) {
         continue;
       }
 
@@ -363,6 +361,8 @@ class FieldMapper {
       .filter(([, config]) => config.enabled)
       .map(([field]) => field);
   }
+
 }
+
 
 module.exports = FieldMapper;

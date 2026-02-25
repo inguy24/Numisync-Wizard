@@ -9,7 +9,7 @@
  *   getCatalogDisplayName(code) — 'KM' → 'Krause', etc.
  *   formatCatalogForDisplay(catalogCode, number) — 'KM', '13' → 'Krause# 13'
  *   getSerializableSources() — IPC-safe NUMISTA_SOURCES (transform functions stripped)
- * Note: price1=UNC, price2=XF, price3=VF, price4=F (Lesson 21 — canonical mapping, defined here at lines 121-126)
+ * Note: price1=F, price2=VF, price3=XF, price4=UNC (Lesson 21 — canonical mapping, defined here at lines 121-126)
  * Uses: (no external module dependencies — pure data and transform functions)
  * Called by: field-mapper.js, settings-manager.js, src/main/index.js (get-available-sources, get-field-mappings)
  */
@@ -583,53 +583,53 @@ const DEFAULT_FIELD_MAPPING = {
   // ============================================================================
 
   price1: {
-    numistaPath: 'pricing.unc',
-    transform: null,
-    priority: 'MEDIUM',
-    enabled: true,
-    requiresIssueData: true,
-    requiresPricingData: true,
-    description: 'Price 1 - Uncirculated (UNC) grade',
-    defaultSourceKey: 'pricing_unc',
-    category: 'pricing',
-    displayOrder: 1
-  },
-
-  price2: {
-    numistaPath: 'pricing.xf',
-    transform: null,
-    priority: 'MEDIUM',
-    enabled: true,
-    requiresIssueData: true,
-    requiresPricingData: true,
-    description: 'Price 2 - Extremely Fine (XF/EF) grade',
-    defaultSourceKey: 'pricing_xf',
-    category: 'pricing',
-    displayOrder: 2
-  },
-
-  price3: {
-    numistaPath: 'pricing.vf',
-    transform: null,
-    priority: 'MEDIUM',
-    enabled: true,
-    requiresIssueData: true,
-    requiresPricingData: true,
-    description: 'Price 3 - Very Fine (VF) grade',
-    defaultSourceKey: 'pricing_vf',
-    category: 'pricing',
-    displayOrder: 3
-  },
-
-  price4: {
     numistaPath: 'pricing.f',
     transform: null,
     priority: 'MEDIUM',
     enabled: true,
     requiresIssueData: true,
     requiresPricingData: true,
-    description: 'Price 4 - Fine (F) grade',
+    description: 'Price 1 - Fine (F) grade',
     defaultSourceKey: 'pricing_f',
+    category: 'pricing',
+    displayOrder: 1
+  },
+
+  price2: {
+    numistaPath: 'pricing.vf',
+    transform: null,
+    priority: 'MEDIUM',
+    enabled: true,
+    requiresIssueData: true,
+    requiresPricingData: true,
+    description: 'Price 2 - Very Fine (VF) grade',
+    defaultSourceKey: 'pricing_vf',
+    category: 'pricing',
+    displayOrder: 2
+  },
+
+  price3: {
+    numistaPath: 'pricing.xf',
+    transform: null,
+    priority: 'MEDIUM',
+    enabled: true,
+    requiresIssueData: true,
+    requiresPricingData: true,
+    description: 'Price 3 - Extremely Fine (XF/EF) grade',
+    defaultSourceKey: 'pricing_xf',
+    category: 'pricing',
+    displayOrder: 3
+  },
+
+  price4: {
+    numistaPath: 'pricing.unc',
+    transform: null,
+    priority: 'MEDIUM',
+    enabled: true,
+    requiresIssueData: true,
+    requiresPricingData: true,
+    description: 'Price 4 - Uncirculated (UNC) grade',
+    defaultSourceKey: 'pricing_unc',
     category: 'pricing',
     displayOrder: 4
   },
