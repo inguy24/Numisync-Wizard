@@ -193,13 +193,13 @@
     <nav class="top-nav">
       <img src="/assets/images/logo-icon.svg" alt="NumiSync Wizard" class="nav-logo" />
       <div class="nav-links">
-        <a href="{{ lp }}/">Home</a> &bull;
-        <a href="#about">About</a> &bull;
-        <a href="#features">Features</a> &bull;
-        <a href="{{ lp }}/download">Download</a> &bull;
-        <a href="#quick-start">Quick Start</a> &bull;
-        <a href="{{ lp }}/license">Support</a> &bull;
-        <a href="#documentation">Docs</a>
+        <a id="nav-home" href="{{ lp }}/">Home</a> &bull;
+        <a id="nav-about" href="#about">About</a> &bull;
+        <a id="nav-features" href="#features">Features</a> &bull;
+        <a id="nav-download" href="{{ lp }}/download">Download</a> &bull;
+        <a id="nav-quickstart" href="#quick-start">Quick Start</a> &bull;
+        <a id="nav-support" href="{{ lp }}/license">Support</a> &bull;
+        <a id="nav-docs" href="#documentation">Docs</a>
       </div>
       <div class="lang-switcher" id="langSwitcher">
         <button class="lang-switcher-btn" onclick="toggleLangDropdown(event)" aria-label="Select language">
@@ -216,9 +216,9 @@
         <p>Created by Shane Burkhardt (<a href="https://github.com/inguy24">@inguy24</a>) &bull; MIT License &bull; Version {{ site.github.latest_release.tag_name | remove: "v" }}</p>
         <p>
           <a href="https://github.com/inguy24/Numisync-Wizard">GitHub</a> &bull;
-          <a href="https://github.com/inguy24/Numisync-Wizard/issues">Report an Issue</a> &bull;
+          <a id="footer-report" href="https://github.com/inguy24/Numisync-Wizard/issues">Report an Issue</a> &bull;
           <a href="https://github.com/inguy24/Numisync-Wizard/discussions">Discussions</a> &bull;
-          <a href="/privacy">Privacy Policy</a>
+          <a id="footer-privacy" href="/privacy">Privacy Policy</a>
         </p>
         <p style="margin-top: 1em; font-size: 0.85em; color: #888;">
           Windows releases are code-signed via <a href="https://signpath.org/" target="_blank">SignPath Foundation</a> for open source projects
@@ -228,30 +228,61 @@
 
     <script>
     (function() {
+      // Language names with flag emojis (surrogate pairs for JS string safety)
       var LANGS = {
-        'en':    'English',
-        'fr':    'Fran\u00e7ais',
-        'de':    'Deutsch',
-        'es':    'Espa\u00f1ol',
-        'ru':    '\u0420\u0443\u0441\u0441\u043a\u0438\u0439',
-        'ja':    '\u65e5\u672c\u8a9e',
-        'zh-CN': '\u4e2d\u6587\uff08\u7b80\u4f53\uff09',
-        'zh-TW': '\u4e2d\u6587\uff08\u7e41\u9ad4\uff09',
-        'it':    'Italiano',
-        'pt':    'Portugu\u00eas',
-        'nl':    'Nederlands'
+        'en':    '\uD83C\uDDEC\uD83C\uDDE7 English',
+        'fr':    '\uD83C\uDDEB\uD83C\uDDF7 Fran\u00e7ais',
+        'de':    '\uD83C\uDDE9\uD83C\uDDEA Deutsch',
+        'es':    '\uD83C\uDDEA\uD83C\uDDF8 Espa\u00f1ol',
+        'ru':    '\uD83C\uDDF7\uD83C\uDDFA \u0420\u0443\u0441\u0441\u043a\u0438\u0439',
+        'ja':    '\uD83C\uDDEF\uD83C\uDDF5 \u65e5\u672c\u8a9e',
+        'zh-CN': '\uD83C\uDDE8\uD83C\uDDF3 \u4e2d\u6587\uff08\u7b80\u4f53\uff09',
+        'zh-TW': '\uD83C\uDDF9\uD83C\uDDFC \u4e2d\u6587\uff08\u7e41\u9ad4\uff09',
+        'it':    '\uD83C\uDDEE\uD83C\uDDF9 Italiano',
+        'pt':    '\uD83C\uDDF5\uD83C\uDDF9 Portugu\u00eas',
+        'nl':    '\uD83C\uDDF3\uD83C\uDDF1 Nederlands'
+      };
+
+      // Nav link translations: [Home, About, Features, Download, Quick Start, Support, Docs]
+      var NAV_LABELS = {
+        'en': ['Home','About','Features','Download','Quick Start','Support','Docs'],
+        'fr': ['Accueil','\u00c0 propos','Fonctionnalit\u00e9s','T\u00e9l\u00e9charger','D\u00e9marrage','Support','Docs'],
+        'de': ['Startseite','\u00dcber','Funktionen','Herunterladen','Schnellstart','Support','Docs'],
+        'es': ['Inicio','Acerca','Funciones','Descargar','Inicio r\u00e1pido','Soporte','Docs'],
+        'ru': ['\u0413\u043b\u0430\u0432\u043d\u0430\u044f','\u041e \u043d\u0430\u0441','\u0424\u0443\u043d\u043a\u0446\u0438\u0438','\u0421\u043a\u0430\u0447\u0430\u0442\u044c','\u0411\u044b\u0441\u0442\u0440\u044b\u0439 \u0441\u0442\u0430\u0440\u0442','\u041f\u043e\u0434\u0434\u0435\u0440\u0436\u043a\u0430','\u0414\u043e\u043a\u0443\u043c\u0435\u043d\u0442\u044b'],
+        'ja': ['\u30db\u30fc\u30e0','\u6982\u8981','\u6a5f\u80fd','\u30c0\u30a6\u30f3\u30ed\u30fc\u30c9','\u30af\u30a4\u30c3\u30af\u30b9\u30bf\u30fc\u30c8','\u30b5\u30dd\u30fc\u30c8','\u30c9\u30ad\u30e5\u30e1\u30f3\u30c8'],
+        'zh-CN': ['\u9996\u9875','\u5173\u4e8e','\u529f\u80fd','\u4e0b\u8f7d','\u5feb\u901f\u5f00\u59cb','\u652f\u6301','\u6587\u6863'],
+        'zh-TW': ['\u9996\u9801','\u95dc\u65bc','\u529f\u80fd','\u4e0b\u8f09','\u5feb\u901f\u958b\u59cb','\u652f\u63f4','\u6587\u4ef6'],
+        'it': ['Home','Info','Funzionalit\u00e0','Download','Avvio rapido','Supporto','Docs'],
+        'pt': ['In\u00edcio','Sobre','Recursos','Baixar','In\u00edcio r\u00e1pido','Suporte','Docs'],
+        'nl': ['Home','Over','Functies','Downloaden','Snel starten','Ondersteuning','Docs']
+      };
+
+      // Footer link translations: [Report an Issue, Privacy Policy]
+      var FOOTER_LABELS = {
+        'en': ['Report an Issue','Privacy Policy'],
+        'fr': ['Signaler un probl\u00e8me','Politique de confidentialit\u00e9'],
+        'de': ['Problem melden','Datenschutz'],
+        'es': ['Reportar un problema','Pol\u00edtica de privacidad'],
+        'ru': ['\u0421\u043e\u043e\u0431\u0449\u0438\u0442\u044c \u043e \u043f\u0440\u043e\u0431\u043b\u0435\u043c\u0435','\u041f\u043e\u043b\u0438\u0442\u0438\u043a\u0430 \u043a\u043e\u043d\u0444\u0438\u0434\u0435\u043d\u0446\u0438\u0430\u043b\u044c\u043d\u043e\u0441\u0442\u0438'],
+        'ja': ['\u554f\u984c\u3092\u5831\u544a','\u30d7\u30e9\u30a4\u30d0\u30b7\u30fc\u30dd\u30ea\u30b7\u30fc'],
+        'zh-CN': ['\u62a5\u544a\u95ee\u9898','\u9690\u79c1\u653f\u7b56'],
+        'zh-TW': ['\u56de\u5831\u554f\u984c','\u96b1\u79c1\u653f\u7b56'],
+        'it': ['Segnala un problema','Informativa sulla privacy'],
+        'pt': ['Reportar um problema','Pol\u00edtica de privacidade'],
+        'nl': ['Probleem melden','Privacybeleid']
       };
 
       var currentLang = '{{ page.lang | default: "en" }}';
       var currentPageId = '{{ page.page_id | default: "" }}';
 
-      // Set current lang label
+      // Set current lang label in button
       var label = document.getElementById('currentLangLabel');
       if (label && LANGS[currentLang]) label.textContent = LANGS[currentLang];
 
-      // Build per-language path for a given language code
+      // Build per-language URL — no trailing slash on non-index pages (matches Jekyll default permalink)
       function langPath(code) {
-        var pagePart = (currentPageId && currentPageId !== 'index') ? currentPageId + '/' : '';
+        var pagePart = (currentPageId && currentPageId !== 'index') ? currentPageId : '';
         return code === 'en'
           ? '/' + pagePart
           : '/' + code + '/' + pagePart;
@@ -288,6 +319,20 @@
           window.location.replace(langPath(lang));
         }
       }
+
+      // Apply nav translations
+      var navIds = ['nav-home','nav-about','nav-features','nav-download','nav-quickstart','nav-support','nav-docs'];
+      var navT = NAV_LABELS[currentLang] || NAV_LABELS['en'];
+      navIds.forEach(function(id, i) {
+        var el = document.getElementById(id);
+        if (el && navT[i]) el.textContent = navT[i];
+      });
+
+      // Apply footer translations
+      var footerT = FOOTER_LABELS[currentLang] || FOOTER_LABELS['en'];
+      var el;
+      el = document.getElementById('footer-report');  if (el) el.textContent = footerT[0];
+      el = document.getElementById('footer-privacy'); if (el) el.textContent = footerT[1];
     })();
 
     function toggleLangDropdown(e) {
