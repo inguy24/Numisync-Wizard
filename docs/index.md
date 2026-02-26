@@ -1,6 +1,8 @@
 ---
 layout: default
 title: NumiSync Wizard - Enrich your OpenNumismat collection
+lang: en
+page_id: index
 ---
 
 <div style="text-align: center; margin: 2em 0 1em 0;">

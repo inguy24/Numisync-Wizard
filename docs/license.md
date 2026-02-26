@@ -1,6 +1,8 @@
 ---
 layout: default
 title: Get a Supporter License
+lang: en
+page_id: license
 ---
 
 <h1 style="margin-top: 2em;">NumiSync Supporter License</h1>

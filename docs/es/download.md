@@ -1,13 +1,13 @@
 ---
 layout: default
-title: Download NumiSync Wizard
-lang: en
+title: Descargar NumiSync Wizard
+lang: es
 page_id: download
 ---
 
-<h1 style="margin-top: 2em;">Download NumiSync Wizard</h1>
+<h1 style="margin-top: 2em;">Descargar NumiSync Wizard</h1>
 
-<p style="margin: 1.5em 0 2em 0; font-size: 1.1em; color: #555;">Choose your platform to get started. NumiSync Wizard is available for Windows, macOS, and Linux.</p>
+<p style="margin: 1.5em 0 2em 0; font-size: 1.1em; color: #555;">Elige tu plataforma para comenzar. NumiSync Wizard está disponible para Windows, macOS y Linux.</p>
 
 ---
 
@@ -19,27 +19,27 @@ page_id: download
       <path d="M0 12.402l35.687-4.86.016 34.423-35.67.203zm35.67 33.529l.028 34.453L.028 75.48.026 45.7zm4.326-39.025L87.314 0v41.527l-47.318.376zm47.329 39.349l-.011 41.34-47.318-6.678-.066-34.739z" fill="#00adef"/>
     </svg>
     <h3 style="margin: 0.5em 0;">Windows</h3>
-    <p style="color: #666; font-size: 0.9em;">Windows 10/11 (64-bit)</p>
+    <p style="color: #666; font-size: 0.9em;">Windows 10/11 (64 bits)</p>
 
     <div style="margin: 1em 0;">
       <strong>Microsoft Store</strong><br/>
       <a href="https://apps.microsoft.com/detail/9N1TDJTPHSMN" target="_blank" rel="noopener" onclick="gtag('event', 'download_click', { platform: 'windows_store' })">
-        <img src="https://get.microsoft.com/images/en-us%20light.svg" alt="Get it from Microsoft" style="height: 52px; margin-top: 0.5em;"/>
+        <img src="https://get.microsoft.com/images/en-us%20light.svg" alt="Obtenerlo de Microsoft" style="height: 52px; margin-top: 0.5em;"/>
       </a>
     </div>
 
     <div style="margin: 1em 0;">
-      <strong>Direct Download (.exe)</strong><br/>
-      <span style="color: #888; font-style: italic;">Coming Soon &mdash; awaiting code signing approval</span>
+      <strong>Descarga directa (.exe)</strong><br/>
+      <span style="color: #888; font-style: italic;">Próximamente &mdash; pendiente de aprobación de firma de código</span>
     </div>
 
     <div style="margin-top: 1.5em; padding: 12px; background: #f9f9f9; border-radius: 6px; font-size: 0.8em; color: #666;">
-      <div style="margin-bottom: 4px;">Free code signing provided by</div>
+      <div style="margin-bottom: 4px;">Firma de código gratuita proporcionada por</div>
       <div>
         <a href="https://signpath.io" target="_blank" rel="noopener" style="color: #0066cc; text-decoration: none; font-weight: 500;">SignPath.io</a>
       </div>
       <div style="margin-top: 2px;">
-        Certificate by <a href="https://signpath.org" target="_blank" rel="noopener" style="color: #0066cc; text-decoration: none; font-weight: 500;">SignPath Foundation</a>
+        Certificado por <a href="https://signpath.org" target="_blank" rel="noopener" style="color: #0066cc; text-decoration: none; font-weight: 500;">SignPath Foundation</a>
       </div>
     </div>
   </div>
@@ -54,17 +54,17 @@ page_id: download
 
     <div style="margin: 1em 0;">
       <strong>Intel (x64)</strong><br/>
-      <a href="https://github.com/inguy24/Numisync-Wizard/releases/latest/download/NumiSync-Wizard-x64.dmg" onclick="gtag('event', 'download_click', { platform: 'macos_intel' })" style="display: inline-block; margin-top: 0.5em; padding: 8px 16px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 0.9em;">Download DMG</a>
+      <a href="https://github.com/inguy24/Numisync-Wizard/releases/latest/download/NumiSync-Wizard-x64.dmg" onclick="gtag('event', 'download_click', { platform: 'macos_intel' })" style="display: inline-block; margin-top: 0.5em; padding: 8px 16px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 0.9em;">Descargar DMG</a>
     </div>
 
     <div style="margin: 1em 0;">
       <strong>Apple Silicon (arm64)</strong><br/>
-      <a href="https://github.com/inguy24/Numisync-Wizard/releases/latest/download/NumiSync-Wizard-arm64.dmg" onclick="gtag('event', 'download_click', { platform: 'macos_arm' })" style="display: inline-block; margin-top: 0.5em; padding: 8px 16px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 0.9em;">Download DMG</a>
+      <a href="https://github.com/inguy24/Numisync-Wizard/releases/latest/download/NumiSync-Wizard-arm64.dmg" onclick="gtag('event', 'download_click', { platform: 'macos_arm' })" style="display: inline-block; margin-top: 0.5em; padding: 8px 16px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 0.9em;">Descargar DMG</a>
     </div>
 
     <p style="font-size: 0.85em; margin-top: 1.5em;">
-      <a href="/macos-install">Installation Guide</a> (unsigned app)
-      <a href="#" onclick="showModal(); return false;" style="color: #0066cc; text-decoration: none; font-weight: 500;">Why unsigned?</a>
+      <a href="/macos-install">Guía de instalación</a> (app sin firmar)
+      <a href="#" onclick="showModal(); return false;" style="color: #0066cc; text-decoration: none; font-weight: 500;">¿Por qué sin firmar?</a>
     </p>
   </div>
 
@@ -113,21 +113,21 @@ page_id: download
       <path d="M 27 43 L 26 45 M 29 43 L 29 45 M 31 43 L 32 45" stroke="#fdb603" stroke-width="1.2" fill="none"/>
     </svg>
     <h3 style="margin: 0.5em 0;">Linux</h3>
-    <p style="color: #666; font-size: 0.9em;">Ubuntu, Debian, Fedora, and more (x64)</p>
+    <p style="color: #666; font-size: 0.9em;">Ubuntu, Debian, Fedora y más (x64)</p>
 
     <div style="margin: 1em 0;">
       <strong>AppImage (Universal)</strong><br/>
-      <a href="https://github.com/inguy24/Numisync-Wizard/releases/latest/download/numisync-wizard-x86_64.AppImage" onclick="gtag('event', 'download_click', { platform: 'linux_appimage' })" style="display: inline-block; margin-top: 0.5em; padding: 8px 16px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 0.9em;">Download</a>
+      <a href="https://github.com/inguy24/Numisync-Wizard/releases/latest/download/numisync-wizard-x86_64.AppImage" onclick="gtag('event', 'download_click', { platform: 'linux_appimage' })" style="display: inline-block; margin-top: 0.5em; padding: 8px 16px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 0.9em;">Descargar</a>
     </div>
 
     <div style="margin: 1em 0;">
       <strong>Debian/Ubuntu (.deb)</strong><br/>
-      <a href="https://github.com/inguy24/Numisync-Wizard/releases/latest/download/numisync-wizard-amd64.deb" onclick="gtag('event', 'download_click', { platform: 'linux_deb' })" style="display: inline-block; margin-top: 0.5em; padding: 8px 16px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 0.9em;">Download</a>
+      <a href="https://github.com/inguy24/Numisync-Wizard/releases/latest/download/numisync-wizard-amd64.deb" onclick="gtag('event', 'download_click', { platform: 'linux_deb' })" style="display: inline-block; margin-top: 0.5em; padding: 8px 16px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 0.9em;">Descargar</a>
     </div>
 
     <div style="margin: 1em 0;">
       <strong>Fedora/RHEL (.rpm)</strong><br/>
-      <a href="https://github.com/inguy24/Numisync-Wizard/releases/latest/download/numisync-wizard-x86_64.rpm" onclick="gtag('event', 'download_click', { platform: 'linux_rpm' })" style="display: inline-block; margin-top: 0.5em; padding: 8px 16px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 0.9em;">Download</a>
+      <a href="https://github.com/inguy24/Numisync-Wizard/releases/latest/download/numisync-wizard-x86_64.rpm" onclick="gtag('event', 'download_click', { platform: 'linux_rpm' })" style="display: inline-block; margin-top: 0.5em; padding: 8px 16px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 0.9em;">Descargar</a>
     </div>
   </div>
 
@@ -135,57 +135,57 @@ page_id: download
 
 ---
 
-## Installation Guides
+## Guías de Instalación
 
-- [Windows Installation](/installation#windows-installation)
-- [macOS Installation](/installation#macos-installation) (unsigned app instructions)
-- [Linux Installation](/installation#linux-installation)
+- [Instalación en Windows](/es/installation#windows-installation)
+- [Instalación en macOS](/es/installation#macos-installation) (instrucciones para app sin firmar)
+- [Instalación en Linux](/es/installation#linux-installation)
 
 ---
 
-## Source Code
+## Código Fuente
 
-NumiSync Wizard is open source under the MIT License.
+NumiSync Wizard es de código abierto bajo la Licencia MIT.
 
 <div style="text-align: center; margin: 2em 0;">
-  <a href="https://github.com/inguy24/Numisync-Wizard" style="display: inline-block; padding: 10px 20px; background: #24292e; color: white; text-decoration: none; border-radius: 6px; font-weight: 500;">View on GitHub</a>
+  <a href="https://github.com/inguy24/Numisync-Wizard" style="display: inline-block; padding: 10px 20px; background: #24292e; color: white; text-decoration: none; border-radius: 6px; font-weight: 500;">Ver en GitHub</a>
 </div>
 
 ---
 
 <div style="text-align: center; margin: 2em 0;">
-  <a href="/" style="display: inline-block; padding: 10px 20px; background: #0066cc; color: white; text-decoration: none; border-radius: 6px;">Back to Home</a>
+  <a href="/es/" style="display: inline-block; padding: 10px 20px; background: #0066cc; color: white; text-decoration: none; border-radius: 6px;">Volver al inicio</a>
 </div>
 
-<!-- Modal for unsigned macOS explanation -->
+<!-- Modal para explicar por qué macOS no está firmado -->
 <div id="unsignedModal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);" onclick="if(event.target === this) hideModal();">
   <div style="background-color: #fff; margin: 10% auto; padding: 30px; border-radius: 8px; max-width: 600px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" onclick="event.stopPropagation();">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-      <h2 style="margin: 0; color: #333;">Why is the macOS app unsigned?</h2>
+      <h2 style="margin: 0; color: #333;">¿Por qué la app de macOS no está firmada?</h2>
       <button onclick="hideModal()" style="background: none; border: none; font-size: 28px; cursor: pointer; color: #999; line-height: 1;">&times;</button>
     </div>
 
     <div style="color: #555; line-height: 1.6;">
-      <p>We'd love to participate in the Apple Developer Program and provide a fully signed macOS app, but the cost just doesn't make sense for this project.</p>
+      <p>Nos encantaría participar en el Apple Developer Program y ofrecer una app de macOS completamente firmada, pero el coste simplemente no tiene sentido para este proyecto.</p>
 
-      <p><strong>The Apple Developer Program costs $99/year.</strong> For a free, open-source hobby project supported by optional $10 donations, this recurring fee would consume most (or all) of the supporter contributions.</p>
+      <p><strong>El Apple Developer Program cuesta 99 $/año.</strong> Para un proyecto de hobby gratuito y de código abierto respaldado por donaciones opcionales de 10 $, esta cuota recurrente consumiría la mayor parte (o la totalidad) de las aportaciones de los supporters.</p>
 
-      <p>Instead of charging users more or running at a loss, we've chosen to:</p>
+      <p>En lugar de cobrar más a los usuarios o trabajar con pérdidas, hemos optado por:</p>
       <ul style="margin: 10px 0; padding-left: 25px;">
-        <li>Keep NumiSync Wizard completely <strong>free to use</strong></li>
-        <li>Provide <strong>clear installation instructions</strong> for the unsigned app</li>
-        <li>Focus resources on <strong>features and improvements</strong> rather than Apple fees</li>
+        <li>Mantener NumiSync Wizard completamente <strong>gratuito</strong></li>
+        <li>Proporcionar <strong>instrucciones de instalación claras</strong> para la app sin firmar</li>
+        <li>Dedicar los recursos a <strong>funciones y mejoras</strong> en lugar de pagar a Apple</li>
       </ul>
 
-      <p>The app is <strong>safe to use</strong> — it's open source and built automatically via GitHub Actions. You just need to <a href="/macos-install" style="color: #0066cc;">right-click and select "Open"</a> the first time you launch it.</p>
+      <p>La app es <strong>segura de usar</strong> — es de código abierto y se compila automáticamente mediante GitHub Actions. Solo necesitas <a href="/macos-install" style="color: #0066cc;">hacer clic derecho y seleccionar "Abrir"</a> la primera vez que la lances.</p>
 
       <p style="margin-top: 20px; padding: 15px; background: #f0f7ff; border-left: 4px solid #0066cc; border-radius: 4px;">
-        <strong>💡 Note:</strong> If Apple ever introduces a free tier for individual developers (like Microsoft recently did), we'll gladly sign the app!
+        <strong>Nota:</strong> Si Apple alguna vez introduce un nivel gratuito para desarrolladores individuales (como Microsoft hizo recientemente), firmaremos la app con mucho gusto.
       </p>
     </div>
 
     <div style="text-align: right; margin-top: 25px;">
-      <button onclick="hideModal()" style="padding: 10px 24px; background: #0066cc; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px;">Got it!</button>
+      <button onclick="hideModal()" style="padding: 10px 24px; background: #0066cc; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px;">¡Entendido!</button>
     </div>
   </div>
 </div>

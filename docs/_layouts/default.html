@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ site.lang | default: "en-US" }}">
+<html lang="{{ page.lang | default: 'en' }}">
   <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -15,6 +15,35 @@
     </script>
     <link rel="stylesheet" href="{{ '/assets/css/style.css?v=' | append: site.github.build_revision | relative_url }}">
     <link rel="icon" type="image/png" href="/assets/images/favicon.png">
+    {% if page.page_id %}
+    {% if page.page_id == 'index' %}
+    <link rel="alternate" hreflang="en"    href="{{ site.url }}/" />
+    <link rel="alternate" hreflang="fr"    href="{{ site.url }}/fr/" />
+    <link rel="alternate" hreflang="de"    href="{{ site.url }}/de/" />
+    <link rel="alternate" hreflang="es"    href="{{ site.url }}/es/" />
+    <link rel="alternate" hreflang="ru"    href="{{ site.url }}/ru/" />
+    <link rel="alternate" hreflang="ja"    href="{{ site.url }}/ja/" />
+    <link rel="alternate" hreflang="zh-CN" href="{{ site.url }}/zh-CN/" />
+    <link rel="alternate" hreflang="zh-TW" href="{{ site.url }}/zh-TW/" />
+    <link rel="alternate" hreflang="it"    href="{{ site.url }}/it/" />
+    <link rel="alternate" hreflang="pt"    href="{{ site.url }}/pt/" />
+    <link rel="alternate" hreflang="nl"    href="{{ site.url }}/nl/" />
+    <link rel="alternate" hreflang="x-default" href="{{ site.url }}/" />
+    {% else %}
+    <link rel="alternate" hreflang="en"    href="{{ site.url }}/{{ page.page_id }}/" />
+    <link rel="alternate" hreflang="fr"    href="{{ site.url }}/fr/{{ page.page_id }}/" />
+    <link rel="alternate" hreflang="de"    href="{{ site.url }}/de/{{ page.page_id }}/" />
+    <link rel="alternate" hreflang="es"    href="{{ site.url }}/es/{{ page.page_id }}/" />
+    <link rel="alternate" hreflang="ru"    href="{{ site.url }}/ru/{{ page.page_id }}/" />
+    <link rel="alternate" hreflang="ja"    href="{{ site.url }}/ja/{{ page.page_id }}/" />
+    <link rel="alternate" hreflang="zh-CN" href="{{ site.url }}/zh-CN/{{ page.page_id }}/" />
+    <link rel="alternate" hreflang="zh-TW" href="{{ site.url }}/zh-TW/{{ page.page_id }}/" />
+    <link rel="alternate" hreflang="it"    href="{{ site.url }}/it/{{ page.page_id }}/" />
+    <link rel="alternate" hreflang="pt"    href="{{ site.url }}/pt/{{ page.page_id }}/" />
+    <link rel="alternate" hreflang="nl"    href="{{ site.url }}/nl/{{ page.page_id }}/" />
+    <link rel="alternate" hreflang="x-default" href="{{ site.url }}/{{ page.page_id }}/" />
+    {% endif %}
+    {% endif %}
     <style>
       body {
         margin: 0;
@@ -65,6 +94,59 @@
         text-decoration: underline;
       }
 
+      /* Language Switcher */
+      .lang-switcher {
+        position: relative;
+        display: inline-block;
+        flex-shrink: 0;
+      }
+
+      .lang-switcher-btn {
+        background: transparent;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        padding: 5px 10px;
+        cursor: pointer;
+        font-size: 0.85em;
+        color: #444;
+        white-space: nowrap;
+        font-family: inherit;
+      }
+
+      .lang-switcher-btn:hover {
+        background: #eee;
+      }
+
+      .lang-dropdown {
+        display: none;
+        position: absolute;
+        right: 0;
+        top: calc(100% + 4px);
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+        z-index: 1001;
+        min-width: 170px;
+        padding: 4px 0;
+      }
+
+      .lang-dropdown a {
+        display: block;
+        padding: 7px 14px;
+        text-decoration: none;
+        color: #333;
+        font-size: 0.9em;
+      }
+
+      .lang-dropdown a:hover {
+        background: #f5f5f5;
+      }
+
+      .lang-switcher.open .lang-dropdown {
+        display: block;
+      }
+
       /* Main content styling */
       .main-content {
         max-width: 64rem;
@@ -96,23 +178,34 @@
           font-size: 0.85em;
         }
 
+        .lang-switcher {
+          margin-top: 0.5em;
+        }
+
         body {
-          padding-top: 100px;
+          padding-top: 130px;
         }
       }
     </style>
   </head>
   <body>
+    {% if page.lang and page.lang != 'en' %}{% assign lp = page.lang | prepend: '/' %}{% else %}{% assign lp = '' %}{% endif %}
     <nav class="top-nav">
       <img src="/assets/images/logo-icon.svg" alt="NumiSync Wizard" class="nav-logo" />
       <div class="nav-links">
-        <a href="/">Home</a> •
-        <a href="#about">About</a> •
-        <a href="#features">Features</a> •
-        <a href="/download">Download</a> •
-        <a href="#quick-start">Quick Start</a> •
-        <a href="/license">Support</a> •
+        <a href="{{ lp }}/">Home</a> &bull;
+        <a href="#about">About</a> &bull;
+        <a href="#features">Features</a> &bull;
+        <a href="{{ lp }}/download">Download</a> &bull;
+        <a href="#quick-start">Quick Start</a> &bull;
+        <a href="{{ lp }}/license">Support</a> &bull;
         <a href="#documentation">Docs</a>
+      </div>
+      <div class="lang-switcher" id="langSwitcher">
+        <button class="lang-switcher-btn" onclick="toggleLangDropdown(event)" aria-label="Select language">
+          <span id="currentLangLabel">English</span> &#9662;
+        </button>
+        <div class="lang-dropdown" id="langDropdown"></div>
       </div>
     </nav>
 
@@ -120,11 +213,11 @@
       {{ content }}
 
       <footer class="site-footer">
-        <p>Created by Shane Burkhardt (<a href="https://github.com/inguy24">@inguy24</a>) • MIT License • Version {{ site.github.latest_release.tag_name | remove: "v" }}</p>
+        <p>Created by Shane Burkhardt (<a href="https://github.com/inguy24">@inguy24</a>) &bull; MIT License &bull; Version {{ site.github.latest_release.tag_name | remove: "v" }}</p>
         <p>
-          <a href="https://github.com/inguy24/Numisync-Wizard">GitHub</a> •
-          <a href="https://github.com/inguy24/Numisync-Wizard/issues">Report an Issue</a> •
-          <a href="https://github.com/inguy24/Numisync-Wizard/discussions">Discussions</a> •
+          <a href="https://github.com/inguy24/Numisync-Wizard">GitHub</a> &bull;
+          <a href="https://github.com/inguy24/Numisync-Wizard/issues">Report an Issue</a> &bull;
+          <a href="https://github.com/inguy24/Numisync-Wizard/discussions">Discussions</a> &bull;
           <a href="/privacy">Privacy Policy</a>
         </p>
         <p style="margin-top: 1em; font-size: 0.85em; color: #888;">
@@ -132,5 +225,80 @@
         </p>
       </footer>
     </main>
+
+    <script>
+    (function() {
+      var LANGS = {
+        'en':    'English',
+        'fr':    'Fran\u00e7ais',
+        'de':    'Deutsch',
+        'es':    'Espa\u00f1ol',
+        'ru':    '\u0420\u0443\u0441\u0441\u043a\u0438\u0439',
+        'ja':    '\u65e5\u672c\u8a9e',
+        'zh-CN': '\u4e2d\u6587\uff08\u7b80\u4f53\uff09',
+        'zh-TW': '\u4e2d\u6587\uff08\u7e41\u9ad4\uff09',
+        'it':    'Italiano',
+        'pt':    'Portugu\u00eas',
+        'nl':    'Nederlands'
+      };
+
+      var currentLang = '{{ page.lang | default: "en" }}';
+      var currentPageId = '{{ page.page_id | default: "" }}';
+
+      // Set current lang label
+      var label = document.getElementById('currentLangLabel');
+      if (label && LANGS[currentLang]) label.textContent = LANGS[currentLang];
+
+      // Build per-language path for a given language code
+      function langPath(code) {
+        var pagePart = (currentPageId && currentPageId !== 'index') ? currentPageId + '/' : '';
+        return code === 'en'
+          ? '/' + pagePart
+          : '/' + code + '/' + pagePart;
+      }
+
+      // Populate dropdown
+      var dropdown = document.getElementById('langDropdown');
+      if (dropdown) {
+        Object.keys(LANGS).forEach(function(code) {
+          if (code === currentLang) return;
+          var a = document.createElement('a');
+          a.textContent = LANGS[code];
+          a.href = langPath(code);
+          a.addEventListener('click', function() {
+            localStorage.setItem('numisync_lang', code);
+          });
+          dropdown.appendChild(a);
+        });
+      }
+
+      // Auto-detection: runs only on first visit (no saved preference)
+      var savedLang = localStorage.getItem('numisync_lang');
+      if (!savedLang) {
+        var raw = (navigator.language || '').toLowerCase();
+        var localeMap = {
+          'zh-tw': 'zh-TW', 'zh-hk': 'zh-TW', 'zh-mo': 'zh-TW',
+          'zh-cn': 'zh-CN', 'zh-sg': 'zh-CN', 'zh': 'zh-CN',
+          'pt-br': 'pt', 'pt': 'pt'
+        };
+        var supported = ['fr', 'de', 'es', 'ru', 'ja', 'it', 'nl'];
+        var lang = localeMap[raw] || localeMap[raw.slice(0, 2)] ||
+          (supported.indexOf(raw.slice(0, 2)) !== -1 ? raw.slice(0, 2) : null);
+        if (lang && lang !== currentLang) {
+          window.location.replace(langPath(lang));
+        }
+      }
+    })();
+
+    function toggleLangDropdown(e) {
+      e.stopPropagation();
+      document.getElementById('langSwitcher').classList.toggle('open');
+    }
+
+    document.addEventListener('click', function() {
+      var sw = document.getElementById('langSwitcher');
+      if (sw) sw.classList.remove('open');
+    });
+    </script>
   </body>
 </html>

@@ -1,6 +1,8 @@
 ---
 layout: default
 title: Installation Guide
+lang: en
+page_id: installation
 ---
 
 # Installation Guide

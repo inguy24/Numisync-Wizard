@@ -1,6 +1,8 @@
 ---
 layout: default
 title: Quick Start Guide
+lang: en
+page_id: quickstart
 ---
 
 # Quick Start Guide
