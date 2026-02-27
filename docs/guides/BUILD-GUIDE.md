@@ -263,6 +263,53 @@ Review `dist/win-unpacked/` contents. Consider adding to `files` exclude pattern
 
 ---
 
+## GitHub Pages Website Maintenance
+
+The marketing site (`numisync.com`) is a Jekyll site built from `docs/` via native GitHub Pages. It supports **13 languages** — English (root) plus 12 translated directories.
+
+### Directory Structure
+
+```
+docs/
+├── index.md, download.md, installation.md, quickstart.md, license.md  ← English (canonical)
+├── _layouts/default.html   ← SINGLE template for all languages
+├── fr/  de/  es/  ru/  ja/  zh-CN/  zh-TW/  it/  pt/  pt-BR/  nl/  tl/
+│   └── (5 files each: index, download, installation, quickstart, license)
+```
+
+### When You Update an English Page
+
+**You must update all 12 translated language directories with the equivalent change.**
+
+1. Edit the English page in `docs/`
+2. Apply the same structural change (new section, updated heading, new screenshot HTML, etc.) to the corresponding file in each of the 12 language directories
+3. Translate any new English text — AI drafts are acceptable as first pass
+4. Preserve all HTML tags, image paths, front matter keys (`lang`, `page_id`), and product names in English (`NumiSync Wizard`, `OpenNumismat`, `Numista`, `Windows`, `macOS`, etc.)
+
+### Changing the Nav or Footer
+
+All nav/footer text and language-switcher logic lives in **`docs/_layouts/default.html`** only — it is the single template. Changes there automatically apply to every page in every language. When adding translated labels, update the `NAV_LABELS` and `FOOTER_LABELS` JS objects in that file.
+
+### Adding a New Language
+
+1. **`docs/_layouts/default.html`** — add entries to: `LANGS`, `NAV_LABELS`, `FOOTER_LABELS`, `localeMap` (if needed), and the `supported` array
+2. **hreflang tags** — add `<link rel="alternate" hreflang="{code}" ...>` in both the `index` and non-index `{% if %}` blocks inside `<head>`
+3. **Create `docs/{lang}/`** — 5 files: `index.md`, `download.md`, `installation.md`, `quickstart.md`, `license.md`. Each needs front matter:
+   ```yaml
+   ---
+   layout: default
+   lang: {code}
+   page_id: {pagename}
+   ---
+   ```
+4. Push to `main` — GitHub Pages builds automatically (no CI action needed)
+
+### Release Checklist Addition
+
+Add to every release: if any English website page changed, verify translations were updated.
+
+---
+
 ## Checklist Before Release
 
 - [ ] Version updated in package.json
@@ -273,6 +320,7 @@ Review `dist/win-unpacked/` contents. Consider adding to `files` exclude pattern
 - [ ] Build completes without errors
 - [ ] Installer tested on clean system
 - [ ] GitHub release created (if publishing)
+- [ ] If any English docs/*.md page changed — translated language dirs updated
 
 ---
 

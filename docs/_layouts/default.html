@@ -28,6 +28,8 @@
     <link rel="alternate" hreflang="it"    href="{{ site.url }}/it/" />
     <link rel="alternate" hreflang="pt"    href="{{ site.url }}/pt/" />
     <link rel="alternate" hreflang="nl"    href="{{ site.url }}/nl/" />
+    <link rel="alternate" hreflang="pt-BR" href="{{ site.url }}/pt-BR/" />
+    <link rel="alternate" hreflang="tl"    href="{{ site.url }}/tl/" />
     <link rel="alternate" hreflang="x-default" href="{{ site.url }}/" />
     {% else %}
     <link rel="alternate" hreflang="en"    href="{{ site.url }}/{{ page.page_id }}/" />
@@ -41,6 +43,8 @@
     <link rel="alternate" hreflang="it"    href="{{ site.url }}/it/{{ page.page_id }}/" />
     <link rel="alternate" hreflang="pt"    href="{{ site.url }}/pt/{{ page.page_id }}/" />
     <link rel="alternate" hreflang="nl"    href="{{ site.url }}/nl/{{ page.page_id }}/" />
+    <link rel="alternate" hreflang="pt-BR" href="{{ site.url }}/pt-BR/{{ page.page_id }}/" />
+    <link rel="alternate" hreflang="tl"    href="{{ site.url }}/tl/{{ page.page_id }}/" />
     <link rel="alternate" hreflang="x-default" href="{{ site.url }}/{{ page.page_id }}/" />
     {% endif %}
     {% endif %}
@@ -240,7 +244,9 @@
         'zh-TW': '\uD83C\uDDF9\uD83C\uDDFC \u4e2d\u6587\uff08\u7e41\u9ad4\uff09',
         'it':    '\uD83C\uDDEE\uD83C\uDDF9 Italiano',
         'pt':    '\uD83C\uDDF5\uD83C\uDDF9 Portugu\u00eas',
-        'nl':    '\uD83C\uDDF3\uD83C\uDDF1 Nederlands'
+        'nl':    '\uD83C\uDDF3\uD83C\uDDF1 Nederlands',
+        'pt-BR': '\uD83C\uDDE7\uD83C\uDDF7 Portugu\u00eas (Brasil)',
+        'tl':    '\uD83C\uDDF5\uD83C\uDDED Filipino'
       };
 
       // Nav link translations: [Home, About, Features, Download, Quick Start, Support, Docs]
@@ -255,7 +261,9 @@
         'zh-TW': ['\u9996\u9801','\u95dc\u65bc','\u529f\u80fd','\u4e0b\u8f09','\u5feb\u901f\u958b\u59cb','\u652f\u63f4','\u6587\u4ef6'],
         'it': ['Home','Info','Funzionalit\u00e0','Download','Avvio rapido','Supporto','Docs'],
         'pt': ['In\u00edcio','Sobre','Recursos','Baixar','In\u00edcio r\u00e1pido','Suporte','Docs'],
-        'nl': ['Home','Over','Functies','Downloaden','Snel starten','Ondersteuning','Docs']
+        'nl':    ['Home','Over','Functies','Downloaden','Snel starten','Ondersteuning','Docs'],
+        'pt-BR': ['In\u00edcio','Sobre','Recursos','Baixar','In\u00edcio R\u00e1pido','Suporte','Docs'],
+        'tl':    ['Tahanan','Tungkol','Mga Tampok','I-download','Mabilis na Simula','Suporta','Docs']
       };
 
       // Footer link translations: [Report an Issue, Privacy Policy]
@@ -270,7 +278,9 @@
         'zh-TW': ['\u56de\u5831\u554f\u984c','\u96b1\u79c1\u653f\u7b56'],
         'it': ['Segnala un problema','Informativa sulla privacy'],
         'pt': ['Reportar um problema','Pol\u00edtica de privacidade'],
-        'nl': ['Probleem melden','Privacybeleid']
+        'nl':    ['Probleem melden','Privacybeleid'],
+        'pt-BR': ['Reportar um problema','Pol\u00edtica de privacidade'],
+        'tl':    ['Mag-ulat ng Isyu','Patakaran sa Privacy']
       };
 
       var currentLang = '{{ page.lang | default: "en" }}';
@@ -310,9 +320,10 @@
         var localeMap = {
           'zh-tw': 'zh-TW', 'zh-hk': 'zh-TW', 'zh-mo': 'zh-TW',
           'zh-cn': 'zh-CN', 'zh-sg': 'zh-CN', 'zh': 'zh-CN',
-          'pt-br': 'pt', 'pt': 'pt'
+          'pt-br': 'pt-BR', 'pt-pt': 'pt', 'pt': 'pt',
+          'tl': 'tl', 'fil': 'tl'
         };
-        var supported = ['fr', 'de', 'es', 'ru', 'ja', 'it', 'nl'];
+        var supported = ['fr', 'de', 'es', 'ru', 'ja', 'it', 'nl', 'tl'];
         var lang = localeMap[raw] || localeMap[raw.slice(0, 2)] ||
           (supported.indexOf(raw.slice(0, 2)) !== -1 ? raw.slice(0, 2) : null);
         if (lang && lang !== currentLang) {

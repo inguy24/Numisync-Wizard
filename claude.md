@@ -45,6 +45,8 @@
 | Add new emoji UI strings | `src/renderer/ui-strings.js` only (Python binary ops) — reference via `UI_STRINGS.*` in app.js |
 | Change OpenNumismat DB schema | DATABASE-SCHEMA section in `docs/reference/PROJECT-REFERENCE.md` |
 | Add a new lesson learned | CLAUDE.md §5 under the correct `###` category |
+| Update any English website page (docs/*.md) | Also update the same page in all 12 translated language directories (`docs/fr/`, `docs/de/`, `docs/es/`, `docs/ru/`, `docs/ja/`, `docs/zh-CN/`, `docs/zh-TW/`, `docs/it/`, `docs/pt/`, `docs/pt-BR/`, `docs/nl/`, `docs/tl/`). See BUILD-GUIDE.md §GitHub Pages Website Maintenance for procedure. |
+| Add a new language to the website | Update LANGS, NAV_LABELS, FOOTER_LABELS, localeMap, and supported array in `docs/_layouts/default.html`; add hreflang `<link>` tags in both index and non-index `{% if %}` blocks; create `docs/{lang}/` directory with 5 files (index, download, installation, quickstart, license). |
 
 **Note:** The MCP server (`mcp/server.js`) reads CLAUDE.md §5, CHANGELOG.md, IPC-HANDLERS-QUICK-REF.md, swagger.yaml, and denomination-aliases.json at query time — keeping those files accurate keeps the MCP tools accurate automatically.
 

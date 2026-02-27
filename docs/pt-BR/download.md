@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Baixar NumiSync Wizard
-lang: pt
+lang: pt-BR
 page_id: download
 ---
 
@@ -24,7 +24,7 @@ page_id: download
     <div style="margin: 1em 0;">
       <strong>Microsoft Store</strong><br/>
       <a href="https://apps.microsoft.com/detail/9N1TDJTPHSMN" target="_blank" rel="noopener" onclick="gtag('event', 'download_click', { platform: 'windows_store' })">
-        <img src="https://get.microsoft.com/images/pt-pt%20light.svg" alt="Obtenha na Microsoft" style="height: 52px; margin-top: 0.5em;"/>
+        <img src="https://get.microsoft.com/images/pt-br%20light.svg" alt="Obtenha na Microsoft" style="height: 52px; margin-top: 0.5em;"/>
       </a>
     </div>
 
@@ -63,7 +63,7 @@ page_id: download
     </div>
 
     <p style="font-size: 0.85em; margin-top: 1.5em;">
-      <a href="/pt/installation#macos-installation">Guia de Instalação</a> (app não assinado)
+      <a href="/pt-BR/installation#macos-installation">Guia de Instalação</a> (app não assinado)
       <a href="#" onclick="showModal(); return false;" style="color: #0066cc; text-decoration: none; font-weight: 500;">Por que não assinado?</a>
     </p>
   </div>
@@ -137,9 +137,9 @@ page_id: download
 
 ## Guias de Instalação
 
-- [Instalação no Windows](/pt/installation#windows-installation)
-- [Instalação no macOS](/pt/installation#macos-installation) (instruções para app não assinado)
-- [Instalação no Linux](/pt/installation#linux-installation)
+- [Instalação no Windows](/pt-BR/installation#windows-installation)
+- [Instalação no macOS](/pt-BR/installation#macos-installation) (instruções para app não assinado)
+- [Instalação no Linux](/pt-BR/installation#linux-installation)
 
 ---
 
@@ -154,7 +154,7 @@ NumiSync Wizard é código aberto sob a Licença MIT.
 ---
 
 <div style="text-align: center; margin: 2em 0;">
-  <a href="/pt/" style="display: inline-block; padding: 10px 20px; background: #0066cc; color: white; text-decoration: none; border-radius: 6px;">Voltar ao Início</a>
+  <a href="/pt-BR/" style="display: inline-block; padding: 10px 20px; background: #0066cc; color: white; text-decoration: none; border-radius: 6px;">Voltar ao Início</a>
 </div>
 
 <!-- Modal para explicação do macOS não assinado -->
@@ -177,7 +177,7 @@ NumiSync Wizard é código aberto sob a Licença MIT.
         <li>Concentrar os recursos em <strong>funcionalidades e melhorias</strong>, e não nas taxas da Apple</li>
       </ul>
 
-      <p>O app é <strong>seguro para usar</strong> — é de código aberto e compilado automaticamente via GitHub Actions. Basta <a href="/pt/installation#macos-installation" style="color: #0066cc;">clicar com o botão direito e selecionar "Abrir"</a> na primeira vez que iniciá-lo.</p>
+      <p>O app é <strong>seguro para usar</strong> — é de código aberto e compilado automaticamente via GitHub Actions. Basta <a href="/pt-BR/installation#macos-installation" style="color: #0066cc;">clicar com o botão direito e selecionar "Abrir"</a> na primeira vez que iniciá-lo.</p>
 
       <p style="margin-top: 20px; padding: 15px; background: #f0f7ff; border-left: 4px solid #0066cc; border-radius: 4px;">
         <strong>Nota:</strong> Se a Apple algum dia introduzir um nível gratuito para desenvolvedores individuais (como a Microsoft fez recentemente), assinaremos o app com prazer!
