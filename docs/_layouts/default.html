@@ -233,20 +233,21 @@
     <script>
     (function() {
       // Language names with flag emojis (surrogate pairs for JS string safety)
+      // Order: alphabetical by native name (standard convention)
       var LANGS = {
-        'en':    '\uD83C\uDDEC\uD83C\uDDE7 English',
-        'fr':    '\uD83C\uDDEB\uD83C\uDDF7 Fran\u00e7ais',
         'de':    '\uD83C\uDDE9\uD83C\uDDEA Deutsch',
+        'en':    '\uD83C\uDDEC\uD83C\uDDE7 English',
         'es':    '\uD83C\uDDEA\uD83C\uDDF8 Espa\u00f1ol',
-        'ru':    '\uD83C\uDDF7\uD83C\uDDFA \u0420\u0443\u0441\u0441\u043a\u0438\u0439',
-        'ja':    '\uD83C\uDDEF\uD83C\uDDF5 \u65e5\u672c\u8a9e',
-        'zh-CN': '\uD83C\uDDE8\uD83C\uDDF3 \u4e2d\u6587\uff08\u7b80\u4f53\uff09',
-        'zh-TW': '\uD83C\uDDF9\uD83C\uDDFC \u4e2d\u6587\uff08\u7e41\u9ad4\uff09',
+        'tl':    '\uD83C\uDDF5\uD83C\uDDED Filipino',
+        'fr':    '\uD83C\uDDEB\uD83C\uDDF7 Fran\u00e7ais',
         'it':    '\uD83C\uDDEE\uD83C\uDDF9 Italiano',
-        'pt':    '\uD83C\uDDF5\uD83C\uDDF9 Portugu\u00eas',
+        'ja':    '\uD83C\uDDEF\uD83C\uDDF5 \u65e5\u672c\u8a9e',
         'nl':    '\uD83C\uDDF3\uD83C\uDDF1 Nederlands',
+        'pt':    '\uD83C\uDDF5\uD83C\uDDF9 Portugu\u00eas',
         'pt-BR': '\uD83C\uDDE7\uD83C\uDDF7 Portugu\u00eas (Brasil)',
-        'tl':    '\uD83C\uDDF5\uD83C\uDDED Filipino'
+        'ru':    '\uD83C\uDDF7\uD83C\uDDFA \u0420\u0443\u0441\u0441\u043a\u0438\u0439',
+        'zh-CN': '\uD83C\uDDE8\uD83C\uDDF3 \u4e2d\u6587\uff08\u7b80\u4f53\uff09',
+        'zh-TW': '\uD83C\uDDF9\uD83C\uDDFC \u4e2d\u6587\uff08\u7e41\u9ad4\uff09'
       };
 
       // Nav link translations: [Home, About, Features, Download, Quick Start, Support, Docs]
