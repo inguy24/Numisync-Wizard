@@ -24,8 +24,9 @@ page_id: download
     <div style="margin: 1em 0;">
       <strong>Microsoft Store</strong><br/>
       <a href="https://apps.microsoft.com/detail/9N1TDJTPHSMN" target="_blank" rel="noopener" onclick="gtag('event', 'download_click', { platform: 'windows_store' })">
-        <img src="https://get.microsoft.com/images/ja-jp%20light.svg" alt="Microsoft Storeで入手" style="height: 52px; margin-top: 0.5em;"/>
+        <img src="https://get.microsoft.com/images/en-us%20light.svg" alt="Microsoft Storeで入手" style="height: 52px; margin-top: 0.5em;"/>
       </a>
+      <div style="font-size: 0.8em; color: #666; margin-top: 0.3em;">Microsoft Storeで入手</div>
     </div>
 
     <div style="margin: 1em 0;">
